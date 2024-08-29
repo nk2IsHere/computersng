@@ -5,9 +5,9 @@ local colorWhite = {255, 255, 255, 255}
 function Entry()
     local screenWidth, screenHeight = table.unpack(Render.GetScreenBoundaries())
     local defaultFontSize = Render.GetDefaultFontSize()
-    
+
     while true do
-        local ok, err = pcall(Loop, screenWidth, screenHeight, defaultFontSize)s
+        local ok, err = pcall(Loop, screenWidth, screenHeight, defaultFontSize)
         if not ok then
             print("Error: " .. err)
         end
