@@ -24,7 +24,7 @@ public class ComputerStatefulDataContextEntry : IContextEntry.StatefulDataContex
         _configuration = configuration;
         _entryPointLoader = entryPointLoader;
         _computerApis = new List<IComputerApi> {
-            new EntryComputerApi(this),
+            new EntryComputerApi(this, _configuration),
             new RenderComputerApi(_configuration, font)
         };
         

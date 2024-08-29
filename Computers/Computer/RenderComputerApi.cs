@@ -125,6 +125,23 @@ public class RenderComputerState {
         var (r, g, b, a) = (color[0], color[1], color[2], color[3]);
         _rawForeground[y * _configuration.CanvasWidth + x] = new Color(r, g, b, a);
     }
+    
+    public int[] GetScreenBoundaries() {
+        return new[] { _configuration.CanvasWidth, _configuration.CanvasHeight };
+    }
+
+    public int GetMaximalFontSize() {
+        return _font.GlyphSize();
+    }
+    
+    public int GetDefaultFontSize() {
+        return (int) (GetMaximalFontSize() * _configuration.FontDefaultScale);
+    }
+    
+    public int[] MeasureTextWidth(string text, int size) {
+        var (textWidth, textHeight) = _font.Measure(text, size);
+        return new[] { textWidth, textHeight };
+    }
 }
 
 public class RenderComputerApi: IComputerApi {

@@ -9,6 +9,10 @@ public class BmFont {
     
     private readonly Dictionary<char, FontChar> _characterMap;
     private readonly Texture2D _texture;
+    private readonly FontInfo _info;
+    
+    private readonly float _maxScale;
+    
     private readonly Color[] _materializedTexture;
     private readonly Color[] _materializedScaledTexture;
     
@@ -22,6 +26,8 @@ public class BmFont {
     }
 
     private BmFont(FontFile fontFile, Texture2D fontTexture) {
+        _info = fontFile.Info;
+        
         _texture = fontTexture;
         _characterMap = new Dictionary<char, FontChar>();
 
@@ -33,7 +39,8 @@ public class BmFont {
         _materializedTexture = new Color[fontTexture.Width * fontTexture.Height];
         fontTexture.GetData(0, null, _materializedTexture, 0, _materializedTexture.Length);
         
-        _materializedScaledTexture = new Color[fontTexture.Width * fontTexture.Height];
+        _maxScale = 3.0f;
+        _materializedScaledTexture = new Color[fontTexture.Width * fontTexture.Height * (int) (_maxScale * _maxScale)];
     }
     
     public (int, int) Measure(string text, float size) {
@@ -43,22 +50,23 @@ public class BmFont {
             if (!_characterMap.TryGetValue(c, out var fc)) {
                 continue;
             }
-            width += (int)(fc.XAdvance * size);
+            width += (int) (fc.XAdvance * size);
             height = Math.Max(height, (int)(fc.Height * size));
         }
         return (width, height);
     }
     
-    public float GlyphSize() {
-        if (_characterMap.Count == 0) {
-            return 0;
-        }
-        
-        var fc = _characterMap.First().Value;
-        return fc.Width;
+    public int GlyphSize() {
+        return _info.Size;
+    }
+    
+    public float MaxScale() {
+        return _maxScale;
     }
 
     public void Draw(SpriteBatch spriteBatch, int x, int y, string text, float scale, Color color) {
+        scale = Math.Min(scale, _maxScale);
+        
         var dx = x;
         foreach (var c in text) {
             if (!_characterMap.TryGetValue(c, out var fc)) {
@@ -79,7 +87,9 @@ public class BmFont {
     }
     
     public void Draw(Color[] colorData, int canvasWidth, int canvasHeight, int x, int y, string text, float scale, Color color) {
+        scale = Math.Min(scale, _maxScale);
         var dx = x;
+        
         foreach (var c in text) {
             if (!_characterMap.TryGetValue(c, out var fc)) {
                 continue;

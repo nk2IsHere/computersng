@@ -7,5 +7,7 @@ public record Configuration(
     int CanvasHeight,
     string EntryPointPath,
     string FontDefinitionPath,
-    string FontTexturePath
+    string FontTexturePath,
+    float FontDefaultScale,
+    bool ShouldResetScriptOnFatalError
 );

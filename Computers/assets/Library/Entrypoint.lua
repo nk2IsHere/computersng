@@ -4,9 +4,12 @@ local colorWhite = {255, 255, 255, 255}
 
 function Entry()
     while true do
+        local screenWidth, screenHeight = table.unpack(Render.GetScreenBoundaries())
+        local defaultFontSize = Render.GetDefaultFontSize()
+
         Render.Begin()
-        Render.Rectangle(0, 0, 376, 212, colorRed)
-        Render.Text("Hello from lua!", 0, 0, 8, colorWhite)
+        Render.Rectangle(0, 0, screenWidth, screenHeight, colorRed)
+        Render.Text("Hello from lua! Rendering on " .. screenWidth .. "x" .. screenHeight .. " screen", 0, 0, defaultFontSize, colorWhite)
         Render.End()
     end
 end

@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Computers.Computer.Boundary;
 
 namespace Computers.Computer;
@@ -9,17 +10,20 @@ public class EntryComputerApi : IComputerApi {
     public List<Type> ReceivableEvents => new();
 
     private readonly IComputerPort _computerPort;
+    private readonly Configuration _configuration;
     
     private Thread? _computerThread;
 
-    public EntryComputerApi(IComputerPort computerPort) {
+    public EntryComputerApi(IComputerPort computerPort, Configuration configuration) {
         _computerPort = computerPort;
+        _configuration = configuration;
     }
 
     public void ReceiveEvent(IComputerEvent computerEvent) {
         throw new InvalidOperationException("Entry Computer API does not receive events.");
     }
 
+    [SuppressMessage("ReSharper.DPA", "DPA0002: Excessive memory allocations in SOH", MessageId = "type: MoonSharp.Interpreter.DynValue")]
     public void Reset() {
         _computerThread?.Interrupt();
         
@@ -37,10 +41,15 @@ public class EntryComputerApi : IComputerApi {
                 try {
                     _computerPort.Call("Entry");
                 } catch(Exception e) {
-                    Console.WriteLine(e);
+                    if (!_configuration.ShouldResetScriptOnFatalError) {
+                        shouldRun = false;
+                    }
+                    
                     if (e is ThreadInterruptedException) {
                         shouldRun = false;
                     }
+                    
+                    Console.WriteLine(e);
                 }
             }
         });

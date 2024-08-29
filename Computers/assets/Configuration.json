@@ -5,5 +5,7 @@
   "canvasHeight": 212,
   "entryPointPath": "Library/Entrypoint.lua",
   "fontDefinitionPath": "HomeVideo/HomeVideo.xml",
-  "fontTexturePath": "HomeVideo/HomeVideo.png"
+  "fontTexturePath": "HomeVideo/HomeVideo.png",
+  "fontDefaultScale": 1,
+  "shouldResetScriptOnFatalError": false
 }

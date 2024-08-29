@@ -28,8 +28,8 @@ public record TextRenderCommand(
         int canvasWidth,
         int canvasHeight
     ) {
-        var fontSize = Font.GlyphSize();
-        var scaledSize = Math.Min(1f, Size / fontSize); // Size is at most 1
+        var fontSize = (float) Font.GlyphSize();
+        var scaledSize = Math.Min(Font.MaxScale(), Size / fontSize);
         
         Font.Draw(data, canvasWidth, canvasHeight, X, Y, Text, scaledSize, Color);
     }
