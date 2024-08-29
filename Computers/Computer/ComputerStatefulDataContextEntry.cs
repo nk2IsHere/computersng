@@ -21,7 +21,7 @@ public class ComputerStatefulDataContextEntry : IContextEntry.StatefulDataContex
         _configuration = configuration;
         _entryPointLoader = entryPointLoader;
         _computerApis = new List<IComputerApi> {
-            new TickComputerApi(_configuration, this),
+            new EntryComputerApi(this),
             new RenderComputerApi(_configuration)
         };
         
@@ -49,7 +49,7 @@ public class ComputerStatefulDataContextEntry : IContextEntry.StatefulDataContex
                     return;
                 }
                 
-                UserData.RegisterType(api.GetType());
+                UserData.RegisterType(api.Api.GetType());
                 _script.Globals[api.Name] = api.Api;
             });
     }
@@ -61,6 +61,10 @@ public class ComputerStatefulDataContextEntry : IContextEntry.StatefulDataContex
                     api.ReceiveEvent(computerEvent);
                 }
             });
+    }
+
+    public bool Exists(string variableName) {
+        return _script.Globals.Get(variableName) != null;
     }
 
     public void Call(string functionName, params object[] args) {

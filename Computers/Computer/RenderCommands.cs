@@ -31,7 +31,7 @@ public record TextRenderCommand(
             Game1.graphics.GraphicsDevice,
             canvasWidth, 
             canvasHeight, 
-            false, 
+            false,
             SurfaceFormat.Color,
             DepthFormat.None
         );
@@ -48,13 +48,14 @@ public record TextRenderCommand(
             Color, 
             0f,
             Vector2.Zero, 
-            Size / 100f,
+            Size / 100f * 2f,
             SpriteEffects.None,
             0f
         );
         spriteBatch.End();
         Game1.graphics.GraphicsDevice.SetRenderTargets(previousRenderTarget);
 
+        // TODO: Figure out a way not to allocate a new array every time in renderTarget.GetData
         var textData = ArrayPool<Color>.Shared.Rent(canvasWidth * canvasHeight);
         renderTarget.GetData(textData, 0, canvasWidth * canvasHeight);
         
