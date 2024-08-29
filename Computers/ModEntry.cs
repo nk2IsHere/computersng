@@ -4,14 +4,12 @@ using Computers.Core;
 using Computers.Game;
 using Computers.Game.Boundary;
 using Computers.Game.Utils;
-using Microsoft.Xna.Framework;
 using StardewValley;
 using StardewValley.GameData.BigCraftables;
 using StardewValley.GameData.Machines;
 using StardewValley.GameData.Objects;
 using Object = StardewValley.Object;
 using StardewModdingAPI;
-using StardewValley.Menus;
 using GameWindow = Computers.Game.Utils.GameWindow;
 
 namespace Computers;

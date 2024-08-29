@@ -27,7 +27,14 @@ public record TextRenderCommand(
         int canvasWidth,
         int canvasHeight
     ) {
-        using var renderTarget = new RenderTarget2D(Game1.graphics.GraphicsDevice, canvasWidth, canvasHeight, false, SurfaceFormat.Color, DepthFormat.None);
+        using var renderTarget = new RenderTarget2D(
+            Game1.graphics.GraphicsDevice,
+            canvasWidth, 
+            canvasHeight, 
+            false, 
+            SurfaceFormat.Color,
+            DepthFormat.None
+        );
         using var spriteBatch = new SpriteBatch(Game1.graphics.GraphicsDevice);
         
         var previousRenderTarget = Game1.graphics.GraphicsDevice.GetRenderTargets();
@@ -54,7 +61,7 @@ public record TextRenderCommand(
         for (var i = 0; i < textData.Length; i++) {
             var row = i / renderTarget.Width;
             var col = i % renderTarget.Width;
-            var index = (Y + row) * canvasWidth + (X + col);
+            var index = (Y + row) * canvasWidth + X + col;
             if (index >= 0 && index < data.Length) {
                 // Blend the text color with the background color
                 data[index] = Color.Lerp(data[index], textData[i], textData[i].A / 255f);

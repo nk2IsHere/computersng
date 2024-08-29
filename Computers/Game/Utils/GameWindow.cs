@@ -11,8 +11,8 @@ public class GameWindow : IClickableMenu {
     public GameWindow(int width, int height, Action<Rectangle, SpriteBatch> render) : base(
         Game1.uiViewport.Width / 2 - (width + borderWidth * 2) / 2,
         Game1.uiViewport.Height / 2 - (height + borderWidth * 2) / 2,
-        width + borderWidth * 2 + 64,
-        height + borderWidth * 2 + 128,
+        width + borderWidth * 2,
+        height + borderWidth * 2,
         true
     ) {
         _render = render;

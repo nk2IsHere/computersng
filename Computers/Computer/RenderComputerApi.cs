@@ -23,15 +23,15 @@ public class RenderComputerApi: IComputerApi {
         Configuration configuration
     ) {
         _configuration = configuration;
-        _renderData = new Color[configuration.WindowWidth * configuration.WindowHeight];
+        _renderData = new Color[configuration.CanvasWidth * configuration.CanvasHeight];
         
-        _rawBackground = new Color[configuration.WindowWidth * configuration.WindowHeight];
+        _rawBackground = new Color[configuration.CanvasWidth * configuration.CanvasHeight];
         ClearBackground();
         
-        _rawForeground = new Color[configuration.WindowWidth * configuration.WindowHeight];
+        _rawForeground = new Color[configuration.CanvasWidth * configuration.CanvasHeight];
         ClearForeground();
         
-        _renderTexture = new Texture2D(Game1.graphics.GraphicsDevice, configuration.WindowWidth, configuration.WindowHeight, false, SurfaceFormat.Color);
+        _renderTexture = new Texture2D(Game1.graphics.GraphicsDevice, configuration.CanvasWidth, configuration.CanvasHeight, false, SurfaceFormat.Color);
     }
     
     public void ReceiveEvent(IComputerEvent computerEvent) {
@@ -42,7 +42,7 @@ public class RenderComputerApi: IComputerApi {
         }
         
         foreach (var command in _commands) {
-            command.Draw(_renderData, _configuration.WindowWidth, _configuration.WindowHeight);
+            command.Draw(_renderData, _configuration.CanvasWidth, _configuration.CanvasHeight);
         }
         
         // Fill the raw foreground with the render data by blending the render data with the raw foreground
@@ -52,12 +52,13 @@ public class RenderComputerApi: IComputerApi {
         
         _renderTexture.SetData(
             0,
-            new Rectangle(0, 0, _configuration.WindowWidth, _configuration.WindowHeight),
+            new Rectangle(0, 0, _configuration.CanvasWidth, _configuration.CanvasHeight),
             _renderData,
             0,
-            _configuration.WindowWidth * _configuration.WindowHeight
+            _configuration.CanvasWidth * _configuration.CanvasHeight
         );
         
+        Console.WriteLine(rectangle);
         batch.Draw(_renderTexture, rectangle, Color.White);
     }
 
@@ -123,20 +124,20 @@ public class RenderComputerApi: IComputerApi {
     }
     
     public void SetBackground(int x, int y, int[] color) {
-        if (x < 0 || x >= _configuration.WindowWidth || y < 0 || y >= _configuration.WindowHeight) {
+        if (x < 0 || x >= _configuration.CanvasWidth || y < 0 || y >= _configuration.CanvasHeight) {
             return;
         }
         
         var (r, g, b, a) = (color[0], color[1], color[2], color[3]);
-        _rawBackground[y * _configuration.WindowWidth + x] = new Color(r, g, b, a);
+        _rawBackground[y * _configuration.CanvasWidth + x] = new Color(r, g, b, a);
     }
     
     public void SetForeground(int x, int y, int[] color) {
-        if (x < 0 || x >= _configuration.WindowWidth || y < 0 || y >= _configuration.WindowHeight) {
+        if (x < 0 || x >= _configuration.CanvasWidth || y < 0 || y >= _configuration.CanvasHeight) {
             return;
         }
         
         var (r, g, b, a) = (color[0], color[1], color[2], color[3]);
-        _rawForeground[y * _configuration.WindowWidth + x] = new Color(r, g, b, a);
+        _rawForeground[y * _configuration.CanvasWidth + x] = new Color(r, g, b, a);
     }
 }
