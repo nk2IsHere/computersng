@@ -1,8 +1,10 @@
+using System.Buffers;
+using Computers.Computer.Utils;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using StardewValley;
 
-namespace Computers.Computer.Boundary;
+namespace Computers.Computer;
 
 public interface IRenderCommand {
     void Draw(
@@ -26,42 +28,41 @@ public record TextRenderCommand(
         int canvasWidth,
         int canvasHeight
     ) {
-        //  var graphicsDevice = Game1.graphics.GraphicsDevice;
-        //        
-        //        var renderTarget = new RenderTarget2D(
-        //            graphicsDevice, 
-        //            (int)font.MeasureString(text).X, 
-        //            (int)font.MeasureString(text).Y
-        //        );
-        //    
-        //        graphicsDevice.SetRenderTarget(renderTarget);
-        //        graphicsDevice.Clear(Color.Transparent);
+        using var renderTarget = new RenderTarget2D(Game1.graphics.GraphicsDevice, canvasWidth, canvasHeight, false, SurfaceFormat.Color, DepthFormat.None);
+        using var spriteBatch = new SpriteBatch(Game1.graphics.GraphicsDevice);
+        
+        var previousRenderTarget = Game1.graphics.GraphicsDevice.GetRenderTargets();
+        Game1.graphics.GraphicsDevice.SetRenderTarget(renderTarget);
+        Game1.graphics.GraphicsDevice.Clear(Color.Transparent);
+        spriteBatch.Begin();
+        spriteBatch.DrawString(
+            Font, 
+            Text, 
+            Vector2.Zero,
+            Color, 
+            0f,
+            Vector2.Zero, 
+            Size / 100f,
+            SpriteEffects.None,
+            0f
+        );
+        spriteBatch.End();
+        Game1.graphics.GraphicsDevice.SetRenderTargets(previousRenderTarget);
 
-        //        using (var spriteBatch = new SpriteBatch(graphicsDevice)) {
-        //            spriteBatch.Begin();
-        //            spriteBatch.DrawString(font, text, new Vector2(0, 0), color);
-        //            spriteBatch.End();
-        //        }
-
-        //        graphicsDevice.SetRenderTarget(null);
-
-        //        var data = new Color[renderTarget.Width * renderTarget.Height];
-        //        renderTarget.GetData(data);
-        //        
-        //        var textureData = new Color[texture.Width * texture.Height];
-        //        for (var i = 0; i < textureData.Length; i++) {
-        //            textureData[i] = Color.Transparent;
-        //        }
-        //        
-        //        for (var i = 0; i < data.Length; i++) {
-        //            var row = i / renderTarget.Width;
-        //            var col = i % renderTarget.Width;
-        //            var index = (row + y) * texture.Width + (col + x);
-        //            textureData[index] = data[i];
-        //        }
-        //        
-        //        texture.SetData(textureData);
-        //        renderTarget.Dispose();
+        var textData = ArrayPool<Color>.Shared.Rent(canvasWidth * canvasHeight);
+        renderTarget.GetData(textData, 0, canvasWidth * canvasHeight);
+        
+        for (var i = 0; i < textData.Length; i++) {
+            var row = i / renderTarget.Width;
+            var col = i % renderTarget.Width;
+            var index = (Y + row) * canvasWidth + (X + col);
+            if (index >= 0 && index < data.Length) {
+                // Blend the text color with the background color
+                data[index] = Color.Lerp(data[index], textData[i], textData[i].A / 255f);
+            }
+        }
+        
+        ArrayPool<Color>.Shared.Return(textData);
     }
 }
 
