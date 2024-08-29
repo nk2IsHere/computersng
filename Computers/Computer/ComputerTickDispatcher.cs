@@ -5,20 +5,15 @@ using StardewModdingAPI.Events;
 
 namespace Computers.Computer;
 
-public class ComputerTickDispatcher: IEventHandler {
+public class ComputerTickDispatcher: ComputerEventHandler {
     
-    private readonly ContextLookup<IComputerPort> _computers;
-
-    public ComputerTickDispatcher(ContextLookup<IComputerPort> computers) {
-        _computers = computers;
+    public ComputerTickDispatcher(ContextLookup<IComputerPort> computers) : base(computers) {
     }
-
-    public ISet<Type> EventTypes => new HashSet<Type> { typeof(UpdateTickedEvent) };
     
-    public void Handle(IEvent @event) {
-        var eventArgs = @event.Data<UpdateTickedEventArgs>();
-        _computers
-            .Get()
-            .ForEach(computer => computer.Value.Fire(new TickComputerEvent(eventArgs.Ticks)));
+    public override ISet<Type> EventTypes => new HashSet<Type> { typeof(UpdateTickedEvent) };
+    
+    protected override IComputerEvent CreateEvent(IEvent @event) {
+        var args = @event.Data<UpdateTickedEventArgs>();
+        return new TickComputerEvent(args.Ticks);
     }
 }

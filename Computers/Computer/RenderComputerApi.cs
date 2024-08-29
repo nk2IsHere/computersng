@@ -6,7 +6,7 @@ using StardewValley;
 
 namespace Computers.Computer;
 
-public class RenderComputerState {
+internal class RenderComputerState {
     private readonly List<IRenderCommand> _commands = new();
     private readonly Color[] _rawBackground;
     private readonly Color[] _rawForeground;
@@ -148,8 +148,11 @@ public class RenderComputerApi: IComputerApi {
     public string Name => "Render";
     public bool ShouldExpose => true;
     public object Api => _state;
-    public List<Type> ReceivableEvents => new() { typeof(RenderComputerEvent) };
     
+    public ISet<Type> ReceivableEvents => new HashSet<Type> { typeof(RenderComputerEvent) };
+
+    public ISet<Type> RegisterableApiTypes => new HashSet<Type> { typeof(RenderComputerState) };
+
     private readonly Configuration _configuration;
     
     private readonly RenderComputerState _state;
@@ -162,6 +165,7 @@ public class RenderComputerApi: IComputerApi {
     private readonly Texture2D _renderTexture;
     
     public RenderComputerApi(
+        IComputerPort computerPort,
         Configuration configuration,
         BmFont font
     ) {

@@ -24,7 +24,8 @@ public class ComputerStatefulDataContextEntry : IContextEntry.StatefulDataContex
         _entryPointLoader = entryPointLoader;
         _computerApis = new List<IComputerApi> {
             new EntryComputerApi(this, _configuration),
-            new RenderComputerApi(_configuration, font)
+            new RenderComputerApi(this, _configuration, font),
+            new EventComputerApi(this, _configuration)
         };
         
         ResetScriptWith(_entryPointLoader.Load());
@@ -51,7 +52,11 @@ public class ComputerStatefulDataContextEntry : IContextEntry.StatefulDataContex
                     return;
                 }
                 
-                UserData.RegisterType(api.Api.GetType());
+                api.RegisterableApiTypes
+                    .ForEach(apiType => {
+                        UserData.RegisterType(apiType);
+                    });
+                
                 _script.Globals[api.Name] = api.Api;
             });
     }

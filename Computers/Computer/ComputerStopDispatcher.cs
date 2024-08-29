@@ -4,19 +4,15 @@ using Computers.Game.Boundary;
 
 namespace Computers.Computer;
 
-public class ComputerStopDispatcher: IEventHandler {
-       
-    private readonly ContextLookup<IComputerPort> _computers;
-
-    public ComputerStopDispatcher(ContextLookup<IComputerPort> computers) {
-        _computers = computers;
+public class ComputerStopDispatcher: ComputerEventHandler {
+    
+    public ComputerStopDispatcher(ContextLookup<IComputerPort> computers) : base(computers) {
     }
     
-    public ISet<Type> EventTypes => new HashSet<Type>() { typeof(ReturnedToTitleEvent) };
+    public override ISet<Type> EventTypes => new HashSet<Type> { typeof(ReturnedToTitleEvent) };
     
-    public void Handle(IEvent @event) {
-        _computers
-            .Get()
-            .ForEach(computer => computer.Value.Fire(new StopComputerEvent()));
+    protected override IComputerEvent CreateEvent(IEvent @event) {
+        return new StopComputerEvent();
     }
+    
 }

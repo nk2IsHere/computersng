@@ -215,9 +215,6 @@ public class ModEntry : Mod {
         helper.Events.GameLoop.GameLaunched += (sender, e) => eventBus.Publish(new GameLaunchedEvent(e));
         helper.Events.GameLoop.UpdateTicked += (sender, e) => eventBus.Publish(new UpdateTickedEvent(e));
         helper.Events.GameLoop.ReturnedToTitle += (sender, e) => eventBus.Publish(new ReturnedToTitleEvent(e));
-        helper.Events.Input.ButtonPressed += (sender, e) => eventBus.Publish(new ButtonPressedEvent(e));
-        helper.Events.Input.CursorMoved += (sender, e) => eventBus.Publish(new CursorMovedEvent(e));
-        helper.Events.Input.MouseWheelScrolled += (sender, e) => eventBus.Publish(new MouseWheelScrolledEvent(e));
         helper.Events.World.ObjectListChanged += (sender, e) => eventBus.Publish(new ObjectListChangedEvent(e));
     }
 
@@ -226,11 +223,14 @@ public class ModEntry : Mod {
         var configuration = _context.GetSingle<Configuration>("tools.kot.nk2.computers.Configuration");
         monitor.Log("Drawing screen.");
         
-        // GameMenu
         Game1.activeClickableMenu = new GameWindow(
             configuration.WindowWidth,
             configuration.WindowHeight,
-            (rectangle, batch) => computerPort.Fire(new RenderComputerEvent(rectangle, batch))
+            (rectangle, batch) => computerPort.Fire(new RenderComputerEvent(rectangle, batch)),
+            onReceiveLeftClick: (x, y) => computerPort.Fire(new MouseLeftClickedEvent(computerPort.Id, x, y)),
+            onReceiveRightClick: (x, y) => computerPort.Fire(new MouseRightClickedEvent(computerPort.Id, x, y)),
+            onReceiveKeyPress: key => computerPort.Fire(new KeyPressedEvent(computerPort.Id, key)),
+            onReceiveScrollWheelAction: direction => computerPort.Fire(new MouseWheelEvent(computerPort.Id, direction))
         );
     }
 
