@@ -1,5 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using Computers.Computer.Boundary;
+using Computers.Game.Boundary;
 
 namespace Computers.Computer;
 
@@ -7,7 +8,7 @@ public class EntryComputerApi : IComputerApi {
     public string Name => "Entry";
     public bool ShouldExpose => false;
     public object Api => this;
-    public List<Type> ReceivableEvents => new();
+    public List<Type> ReceivableEvents => new() { typeof(StopComputerEvent) };
 
     private readonly IComputerPort _computerPort;
     private readonly Configuration _configuration;
@@ -20,7 +21,9 @@ public class EntryComputerApi : IComputerApi {
     }
 
     public void ReceiveEvent(IComputerEvent computerEvent) {
-        throw new InvalidOperationException("Entry Computer API does not receive events.");
+        if (computerEvent is StopComputerEvent) {
+            Stop();
+        }
     }
 
     [SuppressMessage("ReSharper.DPA", "DPA0002: Excessive memory allocations in SOH", MessageId = "type: MoonSharp.Interpreter.DynValue")]
@@ -55,5 +58,9 @@ public class EntryComputerApi : IComputerApi {
         });
         
         _computerThread.Start();
+    }
+    
+    public void Stop() {
+        _computerThread?.Interrupt();
     }
 }

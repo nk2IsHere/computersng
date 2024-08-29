@@ -14,3 +14,7 @@ public record TickComputerEvent(uint Ticks) : IComputerEvent {
 public record RenderComputerEvent(Rectangle Rectangle, SpriteBatch Batch) : IComputerEvent {
     public T Data<T>() => (T) (object) (Rectangle, Batch);
 }
+
+public record StopComputerEvent : IComputerEvent {
+    public T Data<T>() => default!;
+}

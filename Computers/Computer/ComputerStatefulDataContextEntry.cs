@@ -2,7 +2,6 @@ using Computers.Computer.Boundary;
 using Computers.Computer.Utils;
 using Computers.Core;
 using Computers.Game.Boundary;
-using Microsoft.Xna.Framework.Graphics;
 using MoonSharp.Interpreter;
 using Context = Computers.Core.Context;
 

@@ -200,14 +200,25 @@ public class ModEntry : Mod {
                 initializer => new ComputerTickDispatcher(
                     initializer.Lookup<IComputerPort>()
                 )
+            ),
+            new IContextEntry.ServiceContextEntry(
+                "tools.kot.nk2.computers.Service.ComputerStopDispatcher",
+                typeof(IEventHandler),
+                initializer => new ComputerStopDispatcher(
+                    initializer.Lookup<IComputerPort>()
+                )
             )
         );
 
         var (_, eventBus) = _context.Get<IEventBus>("tools.kot.nk2.computers.Service.EventBus");
-        helper.Events.GameLoop.GameLaunched += (sender, e) => eventBus.Publish(new GameLaunchedEvent(e));
         helper.Events.Content.AssetRequested += (sender, e) => eventBus.Publish(new AssetRequestedEvent(e));
-        helper.Events.GameLoop.UpdateTicked += (sender, e) => eventBus.Publish(new UpdateTickedEvent(e)); 
-        // ObjectListChanged
+        helper.Events.GameLoop.GameLaunched += (sender, e) => eventBus.Publish(new GameLaunchedEvent(e));
+        helper.Events.GameLoop.UpdateTicked += (sender, e) => eventBus.Publish(new UpdateTickedEvent(e));
+        helper.Events.GameLoop.ReturnedToTitle += (sender, e) => eventBus.Publish(new ReturnedToTitleEvent(e));
+        helper.Events.Input.ButtonPressed += (sender, e) => eventBus.Publish(new ButtonPressedEvent(e));
+        helper.Events.Input.CursorMoved += (sender, e) => eventBus.Publish(new CursorMovedEvent(e));
+        helper.Events.Input.MouseWheelScrolled += (sender, e) => eventBus.Publish(new MouseWheelScrolledEvent(e));
+        helper.Events.World.ObjectListChanged += (sender, e) => eventBus.Publish(new ObjectListChangedEvent(e));
     }
 
     private static void DrawScreen(IComputerPort computerPort) {
@@ -292,8 +303,8 @@ public class ModEntry : Mod {
     ) {
         var monitor = _context.GetSingle<IMonitor>("tools.kot.nk2.computers.Monitor");
         monitor.Log($"Preparing output from computer machine. Machine: {machine}, InputItem: {inputItem}, Probe: {probe}, OutputData: {outputData}");
+        
         overrideMinutesUntilReady = null;
-
         var outputItem = inputItem.getOne();
         
         if (probe) {
