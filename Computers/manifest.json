@@ -1,0 +1,9 @@
+{
+  "Name": "Computers",
+  "Author": "nk2",
+  "Version": "1.0.0",
+  "Description": "Programmable computers for Stardew Valley",
+  "UniqueID": "tools.kot.nk2.computers",
+  "EntryDll": "Computers.dll",
+  "MinimumApiVersion": "4.0.4"
+}
