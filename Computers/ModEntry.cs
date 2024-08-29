@@ -1,7 +1,9 @@
 using Computers.Computer;
+using Computers.Computer.Boundary;
 using Computers.Core;
 using Computers.Game;
 using Computers.Game.Boundary;
+using Computers.Game.Utils;
 using Microsoft.Xna.Framework;
 using StardewValley;
 using StardewValley.GameData.BigCraftables;
@@ -186,6 +188,18 @@ public class ModEntry : Mod {
                     initializer.GetSingle<IMonitor>(),
                     initializer.Lookup<IEventHandler>()
                 )
+            ),
+            new IContextEntry.StatelessDataContextEntry(
+                "tools.kot.nk2.computers.Configuration",
+                typeof(Configuration),
+                helper.ModContent.Load<Configuration>("assets/Configuration.json")
+            ),
+            new IContextEntry.ServiceContextEntry(
+                "tools.kot.nk2.computers.Service.ComputerTickDispatcher",
+                typeof(IEventHandler),
+                initializer => new ComputerTickDispatcher(
+                    initializer.Lookup<IComputerPort>()
+                )
             )
         );
 
@@ -193,18 +207,19 @@ public class ModEntry : Mod {
         helper.Events.GameLoop.GameLaunched += (sender, e) => eventBus.Publish(new GameLaunchedEvent(e));
         helper.Events.Content.AssetRequested += (sender, e) => eventBus.Publish(new AssetRequestedEvent(e));
         helper.Events.GameLoop.UpdateTicked += (sender, e) => eventBus.Publish(new UpdateTickedEvent(e)); 
+        // ObjectListChanged
     }
 
-    private static void DrawScreen() {
-        var (_, monitor) = _context.Get<IMonitor>("tools.kot.nk2.computers.Monitor");
+    private static void DrawScreen(IComputerPort computerPort) {
+        var monitor = _context.GetSingle<IMonitor>("tools.kot.nk2.computers.Monitor");
+        var configuration = _context.GetSingle<Configuration>("tools.kot.nk2.computers.Configuration");
         monitor.Log("Drawing screen.");
         
         // GameMenu
         Game1.activeClickableMenu = new GameWindow(
-            800,
-            600,
-            (batch) => {
-            }
+            configuration.WindowWidth,
+            configuration.WindowHeight,
+            (rectangle, batch) => computerPort.Fire(new RenderComputerEvent(rectangle, batch))
         );
     }
 
@@ -213,13 +228,32 @@ public class ModEntry : Mod {
         GameLocation location,
         Farmer player
     ) {
-        var (_, monitor) = _context.Get<IMonitor>("tools.kot.nk2.computers.Monitor");
+        var monitor = _context.GetSingle<IMonitor>("tools.kot.nk2.computers.Monitor");
         monitor.Log($"Interacted with computer machine. Machine: {machine}, Location: {location}, Player: {player}, Held Object: {machine.heldObject}");
-        DrawScreen();
+
+        var modData = machine.HeldObjectModData();
+        if (modData == null) {
+            monitor.Log("Computer does not have a held object - cannot infer script.");
+            return false;
+        }
+        
+        if (!modData.ContainsKey("ScriptId")) {
+            monitor.Log("Computer does not have a script id - cannot infer script.");
+            return false;
+        }
+        
+        var scriptId = modData["ScriptId"];
+        monitor.Log($"Computer has script id: {scriptId}");
+        
+        var computerState = _context.GetSingle<IComputerPort>(scriptId);
+        
+        DrawScreen(computerState);
         return true;
     }
 
-    private static string MakeNewScript() {
+    private static string MakeNewComputerState() {
+        var configuration = _context.GetSingle<Configuration>("tools.kot.nk2.computers.Configuration");
+        
         var uuid = Guid.NewGuid().ToString();
         var scriptId = $"tools.kot.nk2.computers.Script.{uuid}";
 
@@ -231,7 +265,7 @@ public class ModEntry : Mod {
         _context.Store(new ComputerStatefulDataContextEntry(
             scriptId,
             targetLoader,
-            true
+            configuration
         ));
         
         return scriptId;
@@ -244,7 +278,7 @@ public class ModEntry : Mod {
         MachineItemOutput outputData, 
         out int? overrideMinutesUntilReady
     ) {
-        var (_, monitor) = _context.Get<IMonitor>("tools.kot.nk2.computers.Monitor");
+        var monitor = _context.GetSingle<IMonitor>("tools.kot.nk2.computers.Monitor");
         monitor.Log($"Preparing output from computer machine. Machine: {machine}, InputItem: {inputItem}, Probe: {probe}, OutputData: {outputData}");
         overrideMinutesUntilReady = null;
 
@@ -259,7 +293,7 @@ public class ModEntry : Mod {
             return outputItem;
         }
         
-        var scriptId = MakeNewScript();
+        var scriptId = MakeNewComputerState();
         monitor.Log($"Setting ScriptId to {scriptId}");
         outputItem.modData["ScriptId"] = scriptId;
 

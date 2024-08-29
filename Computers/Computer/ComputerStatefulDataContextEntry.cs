@@ -1,26 +1,31 @@
 using Computers.Computer.Boundary;
 using Computers.Core;
 using Computers.Game.Boundary;
-using Microsoft.Xna.Framework.Graphics;
 using MoonSharp.Interpreter;
 using Context = Computers.Core.Context;
 
 namespace Computers.Computer;
 
-public class ComputerStatefulDataContextEntry : IContextEntry.StatefulDataContextEntry<ComputerStatefulDataContextEntry>, IComputerState {
-    private readonly bool _shouldReloadScriptEveryTick;
+public class ComputerStatefulDataContextEntry : IContextEntry.StatefulDataContextEntry<ComputerStatefulDataContextEntry>, IComputerPort {
+    private readonly Configuration _configuration;
     private readonly ITargetLoader<string> _entryPointLoader;
+    private readonly List<IComputerApi> _computerApis;
+    
     private readonly Script _script = new(CoreModules.Preset_SoftSandbox);
     
     public ComputerStatefulDataContextEntry(
         string id,
         ITargetLoader<string> entryPointLoader,
-        bool shouldReloadScriptEveryTick
+        Configuration configuration
     ) : base(id) {
+        _configuration = configuration;
         _entryPointLoader = entryPointLoader;
-        _shouldReloadScriptEveryTick = shouldReloadScriptEveryTick;
+        _computerApis = new List<IComputerApi> {
+            new TickComputerApi(_configuration, this),
+            new RenderComputerApi(_configuration)
+        };
         
-        _script.DoString(_entryPointLoader.Load());
+        ResetScriptWith(_entryPointLoader.Load());
     }
 
     public override object GetValue(Context context) {
@@ -34,18 +39,46 @@ public class ComputerStatefulDataContextEntry : IContextEntry.StatefulDataContex
     public override ContextEntryState Store(Context context) {
         throw new NotImplementedException();
     }
-    
-    public void Tick(int ticks) {
-        if (_shouldReloadScriptEveryTick) {
-            _script.DoString(_entryPointLoader.Load());
-        }
-            
-        if (_script.Globals["Tick"] != null) {
-            _script.Call(_script.Globals["Tick"], ticks);
-        }
+
+    private void ResetScriptWith(string script) {
+        _script.DoString(script);
+        _computerApis
+            .ForEach(api => {
+                api.Reset();
+                if (!api.ShouldExpose) {
+                    return;
+                }
+                
+                UserData.RegisterType(api.GetType());
+                _script.Globals[api.Name] = api.Api;
+            });
     }
 
-    public void Render(SpriteBatch batch) {
-        throw new NotImplementedException();
+    public void Fire(IComputerEvent computerEvent) {
+        _computerApis
+            .ForEach(api => {
+                if (api.ReceivableEvents.Contains(computerEvent.GetType())) {
+                    api.ReceiveEvent(computerEvent);
+                }
+            });
+    }
+
+    public void Call(string functionName, params object[] args) {
+        _script.Call(_script.Globals[functionName], args);
+    }
+
+    public void Set(string variableName, object value) {
+        _script.Globals[variableName] = value;
+    }
+
+    public T Get<T>(string variableName) {
+        return _script.Globals.Get(variableName).ToObject<T>();
+    }
+
+    public void Reset() {
+        _computerApis
+            .ForEach(api => {
+                api.Reset();
+            });
     }
 }
