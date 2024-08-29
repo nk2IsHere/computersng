@@ -1,9 +1,11 @@
 using Computers.Computer;
 using Computers.Computer.Boundary;
+using Computers.Computer.Utils;
 using Computers.Core;
 using Computers.Game;
 using Computers.Game.Boundary;
 using Computers.Game.Utils;
+using Microsoft.Xna.Framework.Graphics;
 using StardewValley;
 using StardewValley.GameData.BigCraftables;
 using StardewValley.GameData.Machines;
@@ -250,20 +252,32 @@ public class ModEntry : Mod {
     }
 
     private static string MakeNewComputerState() {
-        var configuration = _context.GetSingle<Configuration>("tools.kot.nk2.computers.Configuration");
-        
         var uuid = Guid.NewGuid().ToString();
         var scriptId = $"tools.kot.nk2.computers.Script.{uuid}";
-
+        
+        // TODO: figure out context for computer state. Passing arguments like that is stupid.
+        var configuration = _context.GetSingle<Configuration>("tools.kot.nk2.computers.Configuration");
+        
         var targetLoader = new TargetLoader<string>(
             _context.GetSingle<IModHelper>(),
-            "assets/Library/Entrypoint.lua"
+            $"assets/{configuration.EntryPointPath}"
         );
+
+        var fontDefinitionLoader = new TargetLoader<string>(
+            _context.GetSingle<IModHelper>(),
+            $"assets/{configuration.FontDefinitionPath}"
+        );
+        
+        var fontTexture = _context.GetSingle<IModHelper>().ModContent
+            .Load<Texture2D>($"assets/{configuration.FontTexturePath}");
+
+        var font = BmFont.Load(fontDefinitionLoader.Load(), fontTexture)!;
         
         _context.Store(new ComputerStatefulDataContextEntry(
             scriptId,
             targetLoader,
-            configuration
+            configuration,
+            font
         ));
         
         return scriptId;

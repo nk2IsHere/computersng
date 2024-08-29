@@ -1,4 +1,5 @@
 using Computers.Computer.Boundary;
+using Computers.Computer.Utils;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using StardewValley;
@@ -11,15 +12,19 @@ public class RenderComputerState {
     private readonly Color[] _rawForeground;
     
     private readonly Configuration _configuration;
+    private readonly BmFont _font;
+    
     private readonly Action _onBegin;
     private readonly Action<List<IRenderCommand>, Color[], Color[]> _onEnd;
     
     public RenderComputerState(
         Configuration configuration,
+        BmFont font,
         Action onBegin,
         Action<List<IRenderCommand>, Color[], Color[]> onEnd
     ) {
         _configuration = configuration;
+        _font = font;
         _onBegin = onBegin;
         _onEnd = onEnd;
         
@@ -38,81 +43,68 @@ public class RenderComputerState {
     }
 
     public void End() {
-        lock (_commands) {
-            _onEnd(_commands, _rawBackground, _rawForeground);
-        }
-    }
-    
-    public void ClearCommands() {
-        lock (_commands) {
-            _commands.Clear();
-        }
+        var commandsCopy = new List<IRenderCommand>();
+        commandsCopy.AddRange(_commands);
+        
+        // Clear the commands to avoid concurrent modification from main thread of computer
+        // Background and foreground are not cleared because it seems the concurrent modification is not a problem 
+        // (I hope it is not a problem)
+        _onEnd(commandsCopy, _rawBackground, _rawForeground);
     }
     
     public void Text(string text, int x, int y, int size, int[] textColor) {
         var (textColorR, textColorG, textColorB, textColorA) = (textColor[0], textColor[1], textColor[2], textColor[3]);
-        lock (_commands) {
-            _commands.Add(new TextRenderCommand(
-                text,
-                x,
-                y, 
-                size, 
-                Game1.dialogueFont, 
-                new Color(textColorR, textColorG, textColorB, textColorA)
-            ));
-        }
+        _commands.Add(new TextRenderCommand(
+            text,
+            x,
+            y, 
+            size,
+            _font,
+            new Color(textColorR, textColorG, textColorB, textColorA)
+        ));
     }
     
     public void Rectangle(int x, int y, int width, int height, int[] color) {
         var (r, g, b, a) = (color[0], color[1], color[2], color[3]);
-        lock (_commands) {
-            _commands.Add(new RectangleRenderCommand(x, y, width, height, new Color(r, g, b, a)));
-        }
+        _commands.Add(new RectangleRenderCommand(x, y, width, height, new Color(r, g, b, a)));
+
     }
     
     public void BorderRectangle(int x, int y, int width, int height, int borderWidth, int[] color) {
         var (r, g, b, a) = (color[0], color[1], color[2], color[3]);
-        lock (_commands) {
-            _commands.Add(new BorderRectangleRenderCommand(x, y, width, height, borderWidth, new Color(r, g, b, a)));
-        }
+        _commands.Add(new BorderRectangleRenderCommand(x, y, width, height, borderWidth, new Color(r, g, b, a)));
     }
     
     public void Circle(int x, int y, int radius, int[] color) {
         var (r, g, b, a) = (color[0], color[1], color[2], color[3]);
-        lock (_commands) {
-            _commands.Add(new CircleRenderCommand(x, y, radius, new Color(r, g, b, a)));
-        }
+        _commands.Add(new CircleRenderCommand(x, y, radius, new Color(r, g, b, a)));
+
     }
     
     public void BorderCircle(int x, int y, int radius, int borderWidth, int[] color) {
         var (r, g, b, a) = (color[0], color[1], color[2], color[3]);
-        lock (_commands) {
-            _commands.Add(new BorderCircleRenderCommand(x, y, radius, borderWidth, new Color(r, g, b, a)));
-        }
+        _commands.Add(new BorderCircleRenderCommand(x, y, radius, borderWidth, new Color(r, g, b, a)));
     }
     
     public void Line(int x1, int y1, int x2, int y2, int[] color) {
         var (r, g, b, a) = (color[0], color[1], color[2], color[3]);
-        lock (_commands) {
-            _commands.Add(new LineRenderCommand(x1, y1, x2, y2, new Color(r, g, b, a)));
-        }
+        _commands.Add(new LineRenderCommand(x1, y1, x2, y2, new Color(r, g, b, a)));
+    }
+    
+    public void ClearCommands() {
+        _commands.Clear();
     }
     
     public void ClearBackground(int[]? color = null) {
         var backgroundColor = color ?? new[] { 0, 0, 0, 255 };
-        
-        lock(_rawBackground) {
-            for (var i = 0; i < _rawBackground.Length; i++) {
-                _rawBackground[i] = new Color(backgroundColor[0], backgroundColor[1], backgroundColor[2], backgroundColor[3]);
-            }
+        for (var i = 0; i < _rawBackground.Length; i++) {
+            _rawBackground[i] = new Color(backgroundColor[0], backgroundColor[1], backgroundColor[2], backgroundColor[3]);
         }
     }
     
     public void ClearForeground() {
-        lock(_rawForeground) {
-            for (var i = 0; i < _rawForeground.Length; i++) {
-                _rawForeground[i] = Color.Transparent;
-            }
+        for (var i = 0; i < _rawForeground.Length; i++) {
+            _rawForeground[i] = Color.Transparent;
         }
     }
     
@@ -122,9 +114,7 @@ public class RenderComputerState {
         }
         
         var (r, g, b, a) = (color[0], color[1], color[2], color[3]);
-        lock (_rawBackground) {
-            _rawBackground[y * _configuration.CanvasWidth + x] = new Color(r, g, b, a);
-        }
+        _rawBackground[y * _configuration.CanvasWidth + x] = new Color(r, g, b, a);
     }
 
     public void SetForeground(int x, int y, int[] color) {
@@ -133,9 +123,7 @@ public class RenderComputerState {
         }
 
         var (r, g, b, a) = (color[0], color[1], color[2], color[3]);
-        lock (_rawForeground) {
-            _rawForeground[y * _configuration.CanvasWidth + x] = new Color(r, g, b, a);
-        }
+        _rawForeground[y * _configuration.CanvasWidth + x] = new Color(r, g, b, a);
     }
 }
 
@@ -157,7 +145,8 @@ public class RenderComputerApi: IComputerApi {
     private readonly Texture2D _renderTexture;
     
     public RenderComputerApi(
-        Configuration configuration
+        Configuration configuration,
+        BmFont font
     ) {
         _configuration = configuration;
         _renderData = new Color[configuration.CanvasWidth * configuration.CanvasHeight];
@@ -170,6 +159,7 @@ public class RenderComputerApi: IComputerApi {
         
         _state = new RenderComputerState(
             configuration,
+            font,
             () => { },
             (commands, background, foreground) => {
                 // Copy the render data to avoid concurrent modification from main thread of computer
@@ -195,7 +185,9 @@ public class RenderComputerApi: IComputerApi {
     }
     
     public void ReceiveEvent(IComputerEvent computerEvent) {
-        var (rectangle, batch) = computerEvent.Data<(Rectangle, SpriteBatch)>();
+        var (destinationRectangle, batch) = computerEvent.Data<(Rectangle, SpriteBatch)>();
+        var sourceRectangle = new Rectangle(0, 0, _configuration.CanvasWidth, _configuration.CanvasHeight);
+        
         // Fill the render data with the raw background
         lock (_renderBackgroundCopy) {
             for (var i = 0; i < _renderBackgroundCopy.Length; i++) {
@@ -218,13 +210,13 @@ public class RenderComputerApi: IComputerApi {
         
         _renderTexture.SetData(
             0,
-            new Rectangle(0, 0, _configuration.CanvasWidth, _configuration.CanvasHeight),
+            sourceRectangle,
             _renderData,
             0,
             _configuration.CanvasWidth * _configuration.CanvasHeight
         );
         
-        batch.Draw(_renderTexture, rectangle, Color.White);
+        batch.Draw(_renderTexture, destinationRectangle, sourceRectangle, Color.White);
     }
 
     public void Reset() {

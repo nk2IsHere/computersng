@@ -1,6 +1,8 @@
 using Computers.Computer.Boundary;
+using Computers.Computer.Utils;
 using Computers.Core;
 using Computers.Game.Boundary;
+using Microsoft.Xna.Framework.Graphics;
 using MoonSharp.Interpreter;
 using Context = Computers.Core.Context;
 
@@ -16,13 +18,14 @@ public class ComputerStatefulDataContextEntry : IContextEntry.StatefulDataContex
     public ComputerStatefulDataContextEntry(
         string id,
         ITargetLoader<string> entryPointLoader,
-        Configuration configuration
+        Configuration configuration,
+        BmFont font
     ) : base(id) {
         _configuration = configuration;
         _entryPointLoader = entryPointLoader;
         _computerApis = new List<IComputerApi> {
             new EntryComputerApi(this),
-            new RenderComputerApi(_configuration)
+            new RenderComputerApi(_configuration, font)
         };
         
         ResetScriptWith(_entryPointLoader.Load());
