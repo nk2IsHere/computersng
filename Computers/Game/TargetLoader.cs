@@ -5,15 +5,16 @@ using StardewModdingAPI;
 namespace Computers.Game;
 
 public class TargetLoader<T> : ITargetLoader<T> where T : notnull {
+    
+    private static readonly string[] PathSplitters = {"/", "\\"};
 
     private readonly IModHelper _helper;
     private readonly string _assetName;
-
+    
     public TargetLoader(IModHelper helper, string assetName) {
         _helper = helper;
         _assetName = assetName;
     }
-
 
     public T Load() {
         try {
@@ -27,7 +28,9 @@ public class TargetLoader<T> : ITargetLoader<T> where T : notnull {
             }
             
             var directory = _helper.DirectoryPath;
-            var path = Path.Combine(directory, _assetName);
+            var assetNameParts = _assetName.Split(PathSplitters, StringSplitOptions.RemoveEmptyEntries);
+            
+            var path = Path.Combine(directory, Path.Combine(assetNameParts));
             return File.Exists(path) 
                 ? (T) (object) File.ReadAllText(path) 
                 : throw e;

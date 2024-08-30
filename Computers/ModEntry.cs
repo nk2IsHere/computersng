@@ -263,6 +263,8 @@ public class ModEntry : Mod {
     }
 
     private static string MakeNewComputerState() {
+        var monitor = _context.GetSingle<IMonitor>("tools.kot.nk2.computers.Monitor");
+        
         var uuid = Guid.NewGuid().ToString();
         var scriptId = $"tools.kot.nk2.computers.Script.{uuid}";
         
@@ -283,13 +285,16 @@ public class ModEntry : Mod {
             .Load<Texture2D>($"assets/{configuration.FontTexturePath}");
 
         var font = BmFont.Load(fontDefinitionLoader.Load(), fontTexture)!;
-        
-        _context.Store(new ComputerStatefulDataContextEntry(
+
+        var computer = new ComputerStatefulDataContextEntry(
             scriptId,
-            targetLoader,
+            monitor,
             configuration,
+            targetLoader,
             font
-        ));
+        );
+        computer.Start();
+        _context.Store(computer);
         
         return scriptId;
     }

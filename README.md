@@ -2,7 +2,7 @@
 
 Programmable computers for Stardew Valley. Fourth attempt.
 
-![title](https://github.com/nk2IsHere/computersng/blob/main/docs/readme/title.png?raw=true)
+![title](https://github.com/nk2IsHere/computersng/blob/main/Docs/Readme/Title.png?raw=true)
 
 ## Goals.
 

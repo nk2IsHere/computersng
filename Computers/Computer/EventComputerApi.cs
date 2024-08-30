@@ -2,33 +2,6 @@ using Computers.Computer.Boundary;
 
 namespace Computers.Computer;
 
-internal record Event(string Type, object[] Data);
-
-internal class EventComputerState {
-    
-    private readonly Queue<Event> _events = new();
-    
-    public void Enqueue(Event @event) {
-        lock (_events) {
-            _events.Enqueue(@event);
-        }
-    }
-    
-    public List<Event> Poll() {
-        lock (_events) {
-            var events = _events.ToList();
-            _events.Clear();
-            return events;
-        }
-    }
-    
-    public void Clear() {
-        lock (_events) {
-            _events.Clear();
-        }
-    }
-}
-
 public class EventComputerApi : IComputerApi {
     public string Name => "Event";
     public bool ShouldExpose => true;
@@ -81,5 +54,32 @@ public class EventComputerApi : IComputerApi {
 
     public void Reset() {
         _state.Clear();
+    }
+}
+
+internal record Event(string Type, object[] Data);
+
+internal class EventComputerState {
+    
+    private readonly Queue<Event> _events = new();
+    
+    public void Enqueue(Event @event) {
+        lock (_events) {
+            _events.Enqueue(@event);
+        }
+    }
+    
+    public List<Event> Poll() {
+        lock (_events) {
+            var events = _events.ToList();
+            _events.Clear();
+            return events;
+        }
+    }
+    
+    public void Clear() {
+        lock (_events) {
+            _events.Clear();
+        }
     }
 }

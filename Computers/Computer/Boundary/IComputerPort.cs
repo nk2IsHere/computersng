@@ -7,5 +7,7 @@ public interface IComputerPort {
     void Call(string functionName, params object[] args);
     void Set(string variableName, object value);
     T Get<T>(string variableName);
-    void Reset();
+    void Reload();
+    void Start();
+    void Stop();
 }

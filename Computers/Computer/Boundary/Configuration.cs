@@ -6,6 +6,7 @@ public record Configuration(
     int CanvasWidth,
     int CanvasHeight,
     string EntryPointPath,
+    string EntryPointName,
     string FontDefinitionPath,
     string FontTexturePath,
     float FontDefaultScale,
