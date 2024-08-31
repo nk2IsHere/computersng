@@ -43,15 +43,15 @@ public class BmFont {
         _materializedScaledTexture = new Color[fontTexture.Width * fontTexture.Height * (int) (_maxScale * _maxScale)];
     }
     
-    public (int, int) Measure(string text, float size) {
+    public (int, int) Measure(string text, float scale) {
         var width = 0;
         var height = 0;
         foreach (var c in text) {
             if (!_characterMap.TryGetValue(c, out var fc)) {
                 continue;
             }
-            width += (int) (fc.XAdvance * size);
-            height = Math.Max(height, (int)(fc.Height * size));
+            width += (int) (_info.Size * scale);
+            height = Math.Max(height, (int)(fc.Height * scale));
         }
         return (width, height);
     }
@@ -98,6 +98,9 @@ public class BmFont {
             var scaledWidth = (int) (fc.Width * scale);
             var scaledHeight = (int) (fc.Height * scale);
             var scaledLength = scaledWidth * scaledHeight;
+
+            var scaledSize = (int) (_info.Size * scale);
+            var padding = (scaledWidth - scaledSize) / 2;
             
             // Scale the texture data using nearest neighbor
             for (var i = 0; i < scaledLength; i++) {
@@ -121,7 +124,7 @@ public class BmFont {
                 var col = i % scaledWidth;
                 
                 var dataRow = y + row; // Y never changes
-                var dataCol = dx + col;
+                var dataCol = dx + col - padding;
                 
                 if (dataRow < 0 || dataRow >= canvasHeight || dataCol < 0 || dataCol >= canvasWidth) {
                     continue;
@@ -131,7 +134,7 @@ public class BmFont {
                 colorData[index] = Color.Lerp(colorData[index], _materializedScaledTexture[i], _materializedScaledTexture[i].A / 255f);
             }
             
-            dx += scaledWidth;
+            dx += (int) (_info.Size * scale);
         }
     }
 }

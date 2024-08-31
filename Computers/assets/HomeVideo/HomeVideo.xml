@@ -1,6 +1,6 @@
 <?xml version='1.0'?>
    <font>
-       <info aa='1' size='10' smooth='1' stretchH='100' bold='0' padding='0,0,0,0' spacing='0,0' charset='' italic='0' unicode='0' face='Home Video'/>
+       <info aa='1' size='9' smooth='1' stretchH='100' bold='0' padding='0,0,0,0' spacing='0,0' charset='' italic='0' unicode='0' face='Home Video'/>
        <common scaleW='128' packed='0' pages='1' lineHeight='10' scaleH='192' base='10'/>
        <pages>
             <page id='0' file='HomeVideo.png'/>

@@ -71,28 +71,30 @@ function Entry()
 
     -- Main loop
     while true do
-        local ok, err = pcall(Loop, screenWidth, screenHeight, defaultFontSize)
+        local latestEvents = Event.Poll()
+        for _, event in ipairs(latestEvents) do
+            if event.Type == "KeyPressed" then
+                local key = table.unpack(event.Data)
+                if key == 112 then -- F1
+                    error("Reload")
+                end
+            end
+        end
+        
+        local ok, err = pcall(Loop, screenWidth, screenHeight, defaultFontSize, latestEvents)
         if not ok then
             print("Error: " .. err)
-            error(err)
         end
     end
 end
 
-function Loop(screenWidth, screenHeight, defaultFontSize)
-    local latestEvents = Event.Poll()
-    for i = 1, #latestEvents do
-        local event = latestEvents[i]
-        if event.Type == "KeyPressed" then
-            local key = table.unpack(event.Data)
-            if key == 112 then -- F1
-                error("Reload")
-            end
-        end
-    end
-
+function Loop(screenWidth, screenHeight, defaultFontSize, latestEvents)
+    local charCount = math.ceil(screenWidth / defaultFontSize)
+    local fullWidthChar = string.rep("=", charCount)
+    
     Render.Begin()
-    Render.Text("Hello from lua! Rendering on " .. screenWidth .. "x" .. screenHeight .. " screen", 0, 0, defaultFontSize, Colors.White)
+    Render.Text("Hello from lua! Rendering on " .. screenWidth .. "x" .. screenHeight, 0, 0, defaultFontSize, Colors.White)
     Render.Text("Current time: " .. System.Time(), 0, defaultFontSize, defaultFontSize, Colors.White)
+    Render.Text(fullWidthChar, 0, defaultFontSize * 2, defaultFontSize, Colors.White)
     Render.End()
 end
