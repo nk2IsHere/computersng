@@ -25,6 +25,8 @@ declare type EventData = {
         | "MouseLeftClicked"
         | "MouseRightClicked"
         | "MouseWheel"
+        | "ButtonHeld"
+        | "ButtonUnheld"
     Data: any[]
 }
 

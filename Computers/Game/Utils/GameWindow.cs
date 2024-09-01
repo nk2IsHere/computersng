@@ -91,10 +91,15 @@ public class GameWindow : IClickableMenu {
         if (key == Keys.E) {
             return;
         }
+
+        // HACK: do not open chat on "T" key press. Too lazy to implement proper handling.
+        if (key == Keys.T) {
+            return;
+        }
         
         base.receiveKeyPress(key);
     }
-
+    
     public override void receiveScrollWheelAction(int direction) {
         _onReceiveScrollWheelAction?.Invoke(direction);
         base.receiveScrollWheelAction(direction);

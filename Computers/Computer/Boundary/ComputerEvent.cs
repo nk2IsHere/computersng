@@ -1,6 +1,7 @@
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
+using StardewModdingAPI;
 
 namespace Computers.Computer.Boundary;
 
@@ -27,6 +28,17 @@ public record KeyPressedEvent(string ComputerId, Keys Key) : IComputerEvent {
     public bool Global => false;
     public bool BelongsTo(string id) => ComputerId == id;
 }
+
+public record ButtonHeldEvent(SButton Key) : IComputerEvent {
+    public T Data<T>() => (T) (object) Key;
+    public bool Global => true;
+}
+
+public record ButtonUnheldEvent(SButton Key) : IComputerEvent {
+    public T Data<T>() => (T) (object) Key;
+    public bool Global => true;
+}
+
 public record MouseLeftClickedEvent(string ComputerId, int X, int Y) : IComputerEvent {
     public T Data<T>() => (T) (object) (X, Y);
     public bool Global => false;

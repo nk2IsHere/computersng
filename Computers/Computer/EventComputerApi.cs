@@ -1,4 +1,6 @@
+using System.Collections.Immutable;
 using Computers.Computer.Boundary;
+using StardewModdingAPI;
 
 namespace Computers.Computer;
 
@@ -7,12 +9,16 @@ public class EventComputerApi : IComputerApi {
     public bool ShouldExpose => true;
     public object Api => _state;
     
+    private ISet<SButton> _heldButtons = new HashSet<SButton>();
+    
     public ISet<Type> ReceivableEvents => new HashSet<Type> {
         typeof(TickComputerEvent),
         typeof(KeyPressedEvent),
         typeof(MouseLeftClickedEvent),
         typeof(MouseRightClickedEvent), 
-        typeof(MouseWheelEvent)
+        typeof(MouseWheelEvent),
+        typeof(ButtonHeldEvent),
+        typeof(ButtonUnheldEvent)
     };
 
     public ISet<Type> RegisterableApiTypes => new HashSet<Type> {
@@ -34,11 +40,24 @@ public class EventComputerApi : IComputerApi {
 
     public void ReceiveEvent(IComputerEvent computerEvent) {
        switch (computerEvent) {
+           case ButtonHeldEvent buttonHeldEvent:
+               _heldButtons.Add(buttonHeldEvent.Key);
+               _state.Enqueue(new Event("ButtonHeld", new object[] { (int) buttonHeldEvent.Key }));
+               break;
+            case ButtonUnheldEvent buttonUnheldEvent:
+                _heldButtons.Remove(buttonUnheldEvent.Key);
+                _state.Enqueue(new Event("ButtonUnheld", new object[] { (int) buttonUnheldEvent.Key }));
+                break;
            case TickComputerEvent tickComputerEvent:
                _state.Enqueue(new Event("Tick", new object[] { tickComputerEvent.Ticks }));
                break;
            case KeyPressedEvent keyPressedEvent:
-               _state.Enqueue(new Event("KeyPressed", new object[] { keyPressedEvent.Key }));
+               _state.Enqueue(new Event("KeyPressed", new object[] {
+                   (int) keyPressedEvent.Key,
+                   _heldButtons
+                       .Cast<int>()
+                       .ToArray()
+               }));
                break;
            case MouseLeftClickedEvent mouseLeftClickedEvent:
                _state.Enqueue(new Event("MouseLeftClicked", new object[] { mouseLeftClickedEvent.X, mouseLeftClickedEvent.Y }));

@@ -207,15 +207,28 @@ public class ModEntry : Mod {
                 initializer => new ComputerStopDispatcher(
                     initializer.Lookup<IComputerPort>()
                 )
+            ),
+            new IContextEntry.ServiceContextEntry(
+                "tools.kot.nk2.computers.Service.ComputerButtonDispatcher",
+                typeof(IEventHandler),
+                initializer => new ComputerButtonDispatcher(
+                    initializer.Lookup<IComputerPort>()
+                )
             )
         );
 
         var (_, eventBus) = _context.Get<IEventBus>("tools.kot.nk2.computers.Service.EventBus");
+        
         helper.Events.Content.AssetRequested += (sender, e) => eventBus.Publish(new AssetRequestedEvent(e));
+        
         helper.Events.GameLoop.GameLaunched += (sender, e) => eventBus.Publish(new GameLaunchedEvent(e));
         helper.Events.GameLoop.UpdateTicked += (sender, e) => eventBus.Publish(new UpdateTickedEvent(e));
         helper.Events.GameLoop.ReturnedToTitle += (sender, e) => eventBus.Publish(new ReturnedToTitleEvent(e));
+        
         helper.Events.World.ObjectListChanged += (sender, e) => eventBus.Publish(new ObjectListChangedEvent(e));
+        
+        helper.Events.Input.ButtonPressed += (sender, e) => eventBus.Publish(new ButtonPressedEvent(e));
+        helper.Events.Input.ButtonReleased += (sender, e) => eventBus.Publish(new ButtonReleasedEvent(e));
     }
 
     private static void DrawScreen(IComputerPort computerPort) {
