@@ -1,11 +1,12 @@
+import { Keys } from "./Constants.js"
 
-const ConsoleLogLevel = Object.freeze({
+export const ConsoleLogLevel = Object.freeze({
     Info: "info",
     Warning: "warning",
     Error: "error"
 })
 
-class Console {
+export class Console {
     constructor({
         logHistory = 100,
         defaultLogLevel = ConsoleLogLevel.Info
@@ -43,7 +44,7 @@ class Console {
     }
 }
 
-class ConsoleView {
+export class ConsoleView {
     constructor(
         console,
         renderOptions,
@@ -149,10 +150,4 @@ class ConsoleView {
             }
         }
     }
-}
-
-Export = {
-    Console,
-    ConsoleView,
-    ConsoleLogLevel
 }

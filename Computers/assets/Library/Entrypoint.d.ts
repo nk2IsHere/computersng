@@ -38,5 +38,4 @@ declare const Event: {
 declare const System: {
     Sleep: (ms: number) => void
     Time: () => number
-    Require: (module: string) => any
 }

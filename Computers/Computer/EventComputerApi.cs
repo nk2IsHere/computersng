@@ -31,9 +31,9 @@ public class EventComputerApi : IComputerApi {
     
     private readonly EventComputerState _state;
 
-    public EventComputerApi(IComputerPort computerPort, Configuration configuration) {
+    public EventComputerApi(IComputerPort computerPort) {
         _computerPort = computerPort;
-        _configuration = configuration;
+        _configuration = computerPort.Configuration;
         
         _state = new EventComputerState();
     }

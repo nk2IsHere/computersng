@@ -71,5 +71,6 @@ Make processing of Stardew's resources a configurable function pipe-like process
 ## References/Used resources
 
 - HomeVideo CC0 font from https://ggbot.itch.io/home-video-font
-- MoonSharp library for C# from https://www.moonsharp.org
+- Monogram CC0 font from https://datagoblin.itch.io/monogram
+- Jint library from https://github.com/sebastienros/jint
 - Stardew Valley modding guide from https://stardewvalleywiki.com/Modding:Modder_Guide/Get_Started

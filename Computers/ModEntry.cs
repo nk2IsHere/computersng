@@ -284,28 +284,24 @@ public class ModEntry : Mod {
         // TODO: figure out context for computer state. Passing arguments like that is stupid.
         var configuration = _context.GetSingle<Configuration>("tools.kot.nk2.computers.Configuration");
         
-        var targetLoader = new TargetLoader<string>(
+        var coreLibraryLoader = new RedundantLoader(
             _context.GetSingle<IModHelper>(),
-            $"assets/{configuration.EntryPointPath}"
+            $"assets/{configuration.CoreLibraryPath}"
         );
 
-        var fontDefinitionLoader = new TargetLoader<string>(
+        var assetsLoader = new RedundantLoader(
             _context.GetSingle<IModHelper>(),
-            $"assets/{configuration.FontDefinitionPath}"
+            $"assets/{configuration.AssetsPath}"
         );
         
-        var fontTexture = _context.GetSingle<IModHelper>().ModContent
-            .Load<Texture2D>($"assets/{configuration.FontTexturePath}");
-
-        var font = BmFont.Load(fontDefinitionLoader.Load(), fontTexture)!;
-
         var computer = new ComputerStatefulDataContextEntry(
             scriptId,
             monitor,
             configuration,
-            targetLoader,
-            font
+            coreLibraryLoader,
+            assetsLoader
         );
+        
         computer.Start();
         _context.Store(computer);
         

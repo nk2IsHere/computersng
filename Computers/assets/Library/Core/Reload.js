@@ -1,5 +1,5 @@
 
-class ReloadView {
+export class ReloadView {
     constructor(onReload) {
         this.onReload = onReload
     }
@@ -15,8 +15,4 @@ class ReloadView {
     
     Render() {
     }
-}
-
-Export = {
-    ReloadView
 }

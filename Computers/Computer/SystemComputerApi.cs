@@ -11,15 +11,12 @@ public class SystemComputerApi : IComputerApi {
     
     public ISet<Type> RegisterableApiTypes => new HashSet<Type> { typeof(SystemComputerState) };
 
-
     private readonly IComputerPort _computerPort;
-    private readonly Configuration _configuration;
     
     private readonly SystemComputerState _state;
 
-    public SystemComputerApi(IComputerPort computerPort, Configuration configuration) {
+    public SystemComputerApi(IComputerPort computerPort) {
         _computerPort = computerPort;
-        _configuration = configuration;
         _state = new SystemComputerState();
     }
     

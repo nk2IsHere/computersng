@@ -1,5 +1,5 @@
 
-const Colors = {
+export const Colors = {
     Black: [0, 0, 0, 255],
     White: [255, 255, 255, 255],
     Red: [255, 0, 0, 255],
@@ -11,7 +11,7 @@ const Colors = {
     Transparent: [0, 0, 0, 0]
 }
 
-const Keys = Object.freeze({
+export const Keys = Object.freeze({
     0: {
         isSpecial: true,
         name: "None"
@@ -783,8 +783,3 @@ const Keys = Object.freeze({
         name: "OemClear"
     }
 })
-
-Export = {
-    Colors,
-    Keys
-}

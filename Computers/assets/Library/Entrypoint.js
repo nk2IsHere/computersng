@@ -1,9 +1,8 @@
-const { Colors } = System.Require("Core/Constants")
-const { Keys } = System.Require("Core/Input")
-const { Console, ConsoleLogLevel, ConsoleView } = System.Require("Core/Console")
-const { ReloadView } = System.Require("Core/Reload")
+import { Colors } from "./Core/Constants.js"
+import { Console, ConsoleLogLevel, ConsoleView } from "./Core/Console.js"
+import { ReloadView } from "./Core/Reload.js"
 
-const Entry = () => {
+export function Main() {
     const [screenWidth, screenHeight] = Render.GetScreenBoundaries()
     const defaultFontSize = Render.GetDefaultFontSize()
     const [fontCharacterWidth, fontCharacterHeight] = Render.MeasureGlyphSize('A', defaultFontSize)

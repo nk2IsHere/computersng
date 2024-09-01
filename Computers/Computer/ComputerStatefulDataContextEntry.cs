@@ -1,24 +1,21 @@
 using Computers.Computer.Boundary;
-using Computers.Computer.Utils;
 using Computers.Core;
 using Computers.Game.Boundary;
 using Jint;
-using Jint.Constraints;
 using Jint.Native;
 using Jint.Runtime;
+using Jint.Runtime.Modules;
 using StardewModdingAPI;
 using Context = Computers.Core.Context;
 
 namespace Computers.Computer;
 
-public class
-    ComputerStatefulDataContextEntry : IContextEntry.StatefulDataContextEntry<ComputerStatefulDataContextEntry>,
-    IComputerPort {
+public class ComputerStatefulDataContextEntry : IContextEntry.StatefulDataContextEntry<ComputerStatefulDataContextEntry>, IComputerPort {
     private readonly IMonitor _monitor;
-    private readonly Configuration _configuration;
-    private readonly ITargetLoader<string> _entryPointLoader;
+    private readonly IRedundantLoader _coreLibraryLoader;
+    private readonly IRedundantLoader _assetLoader;
+    
     private readonly List<IComputerApi> _computerApis;
-
     private readonly Thread _computerThread;
     
     private Engine? _engine;
@@ -28,16 +25,18 @@ public class
         string id,
         IMonitor monitor,
         Configuration configuration,
-        ITargetLoader<string> entryPointLoader,
-        BmFont font
+        IRedundantLoader coreLibraryLoader,
+        IRedundantLoader assetLoader
     ) : base(id) {
         _monitor = monitor;
-        _configuration = configuration;
-        _entryPointLoader = entryPointLoader;
+        Configuration = configuration;
+        _coreLibraryLoader = coreLibraryLoader;
+        _assetLoader = assetLoader;
+        
         _computerApis = new List<IComputerApi> {
-            new RenderComputerApi(this, _configuration, font),
-            new EventComputerApi(this, _configuration),
-            new SystemComputerApi(this, _configuration)
+            new RenderComputerApi(this),
+            new EventComputerApi(this),
+            new SystemComputerApi(this)
         };
         
         _computerThread = new Thread(ComputerThreadBody);
@@ -56,6 +55,12 @@ public class
         throw new NotImplementedException();
     }
 
+    public Configuration Configuration { get; }
+
+    public T LoadAsset<T>(string assetPath) {
+        return _assetLoader.Load<T>(assetPath);
+    }
+
     public void Fire(IComputerEvent computerEvent) {
         _computerApis
             .Where(api => api.ReceivableEvents.Contains(computerEvent.GetType()))
@@ -64,15 +69,6 @@ public class
         if (computerEvent is StopComputerEvent) {
             Stop();
         }
-    }
-
-    public void Call(string functionName, params object[] args) {
-        _engine?.Call(
-            functionName, 
-            args
-                .Select(arg => JsValue.FromObject(_engine, arg))
-                .ToArray()
-        );
     }
 
     public void Set(string variableName, object value) {
@@ -91,9 +87,10 @@ public class
             options => {
                 options.Strict();
                 options.CancellationToken(_cancellationTokenSource.Token);
+                options.EnableModules(new ComputerModuleLoader(Configuration, _monitor, _coreLibraryLoader));
             }
         );
-        _engine.Execute(_entryPointLoader.Load());
+
         _computerApis.ForEach(RegisterApi);
     }
 
@@ -124,7 +121,12 @@ public class
                     Reload();
                 }
 
-                Call(_configuration.EntryPointName);
+                if (_engine == null) {
+                    break;
+                }
+                
+                var entryPointModule = _engine.Modules.Import(Configuration.EntryPointModule);
+                entryPointModule.Get("Main").Call();
             }
             catch (Exception e) {
                 if (e is ExecutionCanceledException) {
@@ -133,14 +135,76 @@ public class
                 }
 
                 if (e is not JavaScriptException javaScriptException) {
-                    throw;
+                    _monitor.Log($"Exception occured: {e}");
+                    break;
                 }
 
                 _monitor.Log($"Script exception occured: {javaScriptException}");
-                if (!_configuration.ShouldResetScriptOnFatalError) {
+                if (!Configuration.ShouldResetScriptOnFatalError) {
                     break;
                 }
             }
         }
+    }
+}
+
+internal class ComputerModuleLoader : ModuleLoader {
+
+    private readonly Configuration _configuration;
+    private readonly IMonitor _monitor;
+    private readonly IRedundantLoader _coreLibraryLoader;
+    
+    public ComputerModuleLoader(Configuration configuration, IMonitor monitor, IRedundantLoader coreLibraryLoader) {
+        _configuration = configuration;
+        _monitor = monitor;
+        _coreLibraryLoader = coreLibraryLoader;
+    }
+
+    public override ResolvedSpecifier Resolve(string? referencingModuleLocation, ModuleRequest moduleRequest) {
+        _monitor.Log($"Resolving module: module location is {referencingModuleLocation} request is {moduleRequest}");
+        
+        var specifier = moduleRequest.Specifier;
+        if (string.IsNullOrEmpty(specifier)) {
+            throw new InvalidOperationException($"Invalid Module Specifier for module request: {moduleRequest}");
+        }
+
+        var resolvedUri = new Uri("/");
+        if (Uri.TryCreate(specifier, UriKind.Absolute, out var uri)) {
+            resolvedUri = uri;
+        } else if(IsRelative(specifier)) {
+            var baseUri = BuildBaseUri(referencingModuleLocation);
+            resolvedUri = new Uri(baseUri, specifier);
+        }
+        
+        return new ResolvedSpecifier(
+            moduleRequest,
+            resolvedUri.AbsoluteUri,
+            resolvedUri,
+            SpecifierType.RelativeOrAbsolute
+        );
+    }
+
+    protected override string LoadModuleContents(Engine engine, ResolvedSpecifier resolved) {
+        _monitor.Log($"Loading module: {resolved}");
+        if (resolved.Uri is null) {
+            throw new InvalidOperationException($"Invalid Module Specifier for module request: {resolved}");
+        }
+        
+        var fileName = Uri.UnescapeDataString(resolved.Uri.AbsolutePath);
+        return _coreLibraryLoader.Load<string>(fileName);
+    }
+
+    private static bool IsRelative(string specifier) {
+        return specifier.StartsWith('.') || specifier.StartsWith('/');
+    }
+    
+    private static Uri BuildBaseUri(string? referencingModuleLocation) {
+        if (referencingModuleLocation is null) {
+            return new Uri("/");
+        }
+        
+        return Uri.TryCreate(referencingModuleLocation, UriKind.Absolute, out var referencingLocation) 
+            ? referencingLocation
+            : new Uri("/");
     }
 }

@@ -27,22 +27,25 @@ public class RenderComputerApi: IComputerApi {
     private readonly Texture2D _renderTexture;
     
     public RenderComputerApi(
-        IComputerPort computerPort,
-        Configuration configuration,
-        BmFont font
+        IComputerPort computerPort
     ) {
-        _configuration = configuration;
-        _renderData = new Color[configuration.CanvasWidth * configuration.CanvasHeight];
+        _configuration = computerPort.Configuration;
+        _renderData = new Color[_configuration.CanvasWidth * _configuration.CanvasHeight];
         
         _renderCommandsCopy = new List<IRenderCommand>();
-        _renderBackgroundCopy = new Color[configuration.CanvasWidth * configuration.CanvasHeight];
-        _renderForegroundCopy = new Color[configuration.CanvasWidth * configuration.CanvasHeight];
+        _renderBackgroundCopy = new Color[_configuration.CanvasWidth * _configuration.CanvasHeight];
+        _renderForegroundCopy = new Color[_configuration.CanvasWidth * _configuration.CanvasHeight];
 
-        _renderTexture = new Texture2D(Game1.graphics.GraphicsDevice, configuration.CanvasWidth, configuration.CanvasHeight, false, SurfaceFormat.Color);
+        _renderTexture = new Texture2D(Game1.graphics.GraphicsDevice, _configuration.CanvasWidth, _configuration.CanvasHeight, false, SurfaceFormat.Color);
+        
+        var font = BmFont.Load(
+            computerPort.LoadAsset<string>(_configuration.FontDefinitionPath),
+            computerPort.LoadAsset<Texture2D>(_configuration.FontTexturePath)
+        );
         
         _state = new RenderComputerState(
-            configuration,
-            font,
+            _configuration,
+            font!,
             () => { },
             (commands, background, foreground) => {
                 // Copy the render data to avoid concurrent modification from main thread of computer
