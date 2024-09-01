@@ -295,6 +295,7 @@ public class ModEntry : Mod {
         );
         
         var computer = new ComputerStatefulDataContextEntry(
+            null,
             scriptId,
             monitor,
             configuration,
@@ -303,7 +304,7 @@ public class ModEntry : Mod {
         );
         
         computer.Start();
-        _context.Store(computer);
+        _context.PutSingle(computer);
         
         return scriptId;
     }

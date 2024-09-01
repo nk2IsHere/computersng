@@ -5,7 +5,7 @@ public interface IComputerPort {
     Configuration Configuration { get; }
     
     // Assets
-    T LoadAsset<T>(string assetPath);
+    T LoadAsset<T>(string assetPath) where T : notnull;
     
     // Engine
     void Fire(IComputerEvent computerEvent);

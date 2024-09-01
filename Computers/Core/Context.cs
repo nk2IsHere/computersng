@@ -20,23 +20,6 @@ public class Context {
         return context;
     }
 
-    private T _GetOrAddCached<T>(string id, Func<T> factory) {
-        if (_cache.TryGetValue(id, out var value) && value is T cachedResult) {
-            return cachedResult;
-        }
-
-        value = factory();
-        _cache[id] = value;
-        
-        // Invalidate lookups
-        foreach (var lookup in _lookups) {
-            lookup.Invalidate();
-        }
-        
-        if (value is T result) return result;
-        throw new InvalidCastException();
-    }
-
     public ContextEntry<T> Get<T>(string id) {
         if (!_entries.TryGetValue(id, out var entry)) {
             throw new KeyNotFoundException($"Context entry with id '{id}' not found.");
@@ -78,9 +61,51 @@ public class Context {
         return Get<T>(id).Value;
     }
 
-    public T Store<T>(IContextEntry.StatefulDataContextEntry<T> entry) {
+    public T PutSingle<T>(IContextEntry.StatefulDataContextEntry<T> entry) {
         _entries[entry.Id] = entry;
         return _GetOrAddCached(entry.Id, () => (T)entry.GetValue(this));
+    }
+    
+    public Dictionary<string, object> Store() {
+        var state = new Dictionary<string, object>();
+        foreach (var entry in _entries.Values) {
+            state[entry.Id] = entry.Store(this).Serialize();
+        }
+
+        return state;
+    }
+    
+    public void Restore(Dictionary<string, object> state) {
+        foreach (var (id, data) in state) {
+            var entryState = ContextEntryState.Deserialize((Dictionary<string, object>)data);
+            
+            if (!_entries.TryGetValue(id, out var entry)) {
+                // Find factory for the entry
+                var factoryId = entryState.GetFactoryId() ?? throw new KeyNotFoundException($"Factory id for entry '{id}' not found.");
+                var factory = GetSingle<IContextEntry.StatefulDataFactoryContextEntry>(factoryId);
+                
+                entry = factory.ProduceValue(this, entryState);
+            }
+
+            entry.Restore(this, entryState);
+        }
+    }
+    
+    private T _GetOrAddCached<T>(string id, Func<T> factory) {
+        if (_cache.TryGetValue(id, out var value) && value is T cachedResult) {
+            return cachedResult;
+        }
+
+        value = factory();
+        _cache[id] = value;
+        
+        // Invalidate lookups
+        foreach (var lookup in _lookups) {
+            lookup.Invalidate();
+        }
+        
+        if (value is T result) return result;
+        throw new InvalidCastException();
     }
 }
 
@@ -147,24 +172,53 @@ public interface IContextEntry {
 
         public ContextEntryType Type => ContextEntryType.StatefulData;
 
-        protected StatefulDataContextEntry(string id) {
+        protected StatefulDataContextEntry(string factoryId, string id) {
+            FactoryId = factoryId;
             Id = id;
         }
 
-        public string Id { get; }
+        public string FactoryId { get; }
 
+        public string Id { get; }
+        
         public abstract object GetValue(Context context);
 
         public abstract void Restore(Context context, ContextEntryState state);
 
         public abstract ContextEntryState Store(Context context);
     }
+    
+    public abstract class StatefulDataFactoryContextEntry : IContextEntry {
+        public Type ValueType => typeof(StatefulDataFactoryContextEntry);
+        
+        public ContextEntryType Type => ContextEntryType.StatefulDataFactory;
+
+        protected StatefulDataFactoryContextEntry(string id) {
+            Id = id;
+        }
+
+        public string Id { get; }
+        
+        public abstract IContextEntry ProduceValue(Context context, ContextEntryState state);
+
+        public object GetValue(Context context) {
+            return this;
+        }
+
+        public void Restore(Context context, ContextEntryState state) {
+        }
+
+        public ContextEntryState Store(Context context) {
+            return ContextEntryState.Empty;
+        }
+    }
 }
 
 public enum ContextEntryType {
     Service,
     StatelessData,
-    StatefulData
+    StatefulData,
+    StatefulDataFactory
 }
 
 public class ContextEntryState {
@@ -175,6 +229,27 @@ public class ContextEntryState {
     public T Get<T>(string key) => (T)_data[key];
 
     public void Set<T>(string key, T value) => _data[key] = value ?? throw new ArgumentNullException(nameof(value));
+    
+    public string? GetFactoryId() {
+        return Get<string?>("FactoryId");
+    }
+    
+    public void SetFactoryId(string factoryId) {
+        Set("FactoryId", factoryId);
+    }
+    
+    public Dictionary<string, object> Serialize() {
+        return _data.ToDictionary(pair => pair.Key, pair => pair.Value);
+    }
+    
+    public static ContextEntryState Deserialize(Dictionary<string, object> data) {
+        var state = new ContextEntryState();
+        foreach (var (key, value) in data) {
+            state.Set(key, value);
+        }
+
+        return state;
+    }
 }
 
 internal interface IInvalidatable {

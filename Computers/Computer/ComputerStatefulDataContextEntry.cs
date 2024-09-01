@@ -2,7 +2,7 @@ using Computers.Computer.Boundary;
 using Computers.Core;
 using Computers.Game.Boundary;
 using Jint;
-using Jint.Native;
+using Jint.Native.Object;
 using Jint.Runtime;
 using Jint.Runtime.Modules;
 using StardewModdingAPI;
@@ -19,15 +19,17 @@ public class ComputerStatefulDataContextEntry : IContextEntry.StatefulDataContex
     private readonly Thread _computerThread;
     
     private Engine? _engine;
+    private ObjectInstance? _entryPointModule;
     private CancellationTokenSource? _cancellationTokenSource;
 
     public ComputerStatefulDataContextEntry(
+        string factoryId,
         string id,
         IMonitor monitor,
         Configuration configuration,
         IRedundantLoader coreLibraryLoader,
         IRedundantLoader assetLoader
-    ) : base(id) {
+    ) : base(factoryId, id) {
         _monitor = monitor;
         Configuration = configuration;
         _coreLibraryLoader = coreLibraryLoader;
@@ -48,16 +50,24 @@ public class ComputerStatefulDataContextEntry : IContextEntry.StatefulDataContex
     }
 
     public override void Restore(Context context, ContextEntryState state) {
-        throw new NotImplementedException();
+        var computerState = state.Get<object>("Storage");
+        _engine?.SetValue("Storage", computerState);
     }
 
     public override ContextEntryState Store(Context context) {
-        throw new NotImplementedException();
+        var state = ContextEntryState.Empty;
+        
+        state.SetFactoryId(FactoryId);
+        
+        var computerState = _engine?.GetValue("Storage").ToObject();
+        state.Set("Storage", computerState);
+        
+        return state;
     }
 
     public Configuration Configuration { get; }
 
-    public T LoadAsset<T>(string assetPath) {
+    public T LoadAsset<T>(string assetPath) where T : notnull {
         return _assetLoader.Load<T>(assetPath);
     }
 
@@ -92,6 +102,8 @@ public class ComputerStatefulDataContextEntry : IContextEntry.StatefulDataContex
         );
 
         _computerApis.ForEach(RegisterApi);
+        _engine.SetValue("Storage", new Dictionary<string, object>());
+        _entryPointModule = _engine.Modules.Import(Configuration.EntryPointModule);
     }
 
     public void Start() {
@@ -121,12 +133,11 @@ public class ComputerStatefulDataContextEntry : IContextEntry.StatefulDataContex
                     Reload();
                 }
 
-                if (_engine == null) {
+                if (_entryPointModule == null) {
                     break;
                 }
                 
-                var entryPointModule = _engine.Modules.Import(Configuration.EntryPointModule);
-                entryPointModule.Get("Main").Call();
+                _entryPointModule.Get("Main").Call();
             }
             catch (Exception e) {
                 if (e is ExecutionCanceledException) {

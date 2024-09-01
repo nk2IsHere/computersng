@@ -39,3 +39,8 @@ declare const System: {
     Sleep: (ms: number) => void
     Time: () => number
 }
+
+// @ts-ignore
+declare const Storage: {
+    [key: string]: any
+}
