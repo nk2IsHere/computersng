@@ -33,6 +33,10 @@ public class SystemComputerApi : IComputerApi {
 internal class SystemComputerState {
     
     public void Sleep(int milliseconds) {
+        if (milliseconds < 0) {
+            throw new ArgumentOutOfRangeException(nameof(milliseconds), "Sleep time cannot be negative");
+        }
+        
         Thread.Sleep(milliseconds);
     }
     

@@ -64,6 +64,10 @@ internal class EventComputerState {
     private readonly Queue<Event> _events = new();
     
     public void Enqueue(Event @event) {
+        if (@event == null) {
+            throw new ArgumentNullException(nameof(@event));
+        }
+        
         lock (_events) {
             _events.Enqueue(@event);
         }

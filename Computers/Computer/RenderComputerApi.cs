@@ -156,6 +156,26 @@ internal class RenderComputerState {
     }
     
     public void Text(int x, int y, string text, int size, int[] textColor) {
+        if (x < 0 || y < 0) {
+            return;
+        }
+        
+        if (size <= 0) {
+            size = GetDefaultFontSize();
+        }
+        
+        if (size > GetMaximalFontSize()) {
+            size = GetMaximalFontSize();
+        }
+        
+        if (textColor is not { Length: 4 }) {
+            return;
+        }
+        
+        if (string.IsNullOrEmpty(text)) {
+            return;
+        }
+        
         var (textColorR, textColorG, textColorB, textColorA) = (textColor[0], textColor[1], textColor[2], textColor[3]);
         _commands.Add(new TextRenderCommand(
             text,
@@ -167,29 +187,97 @@ internal class RenderComputerState {
         ));
     }
     
-    public void Rectangle(int x, int y, int width, int height, int[] color) {
+    public void Rectangle(int x, int y, int width, int height, int[]? color) {
+        if (x < 0 || y < 0) {
+            return;
+        }
+        
+        if (width <= 0 || height <= 0) {
+            return;
+        }
+        
+        if (color is not { Length: 4 }) {
+            return;
+        }
+        
         var (r, g, b, a) = (color[0], color[1], color[2], color[3]);
         _commands.Add(new RectangleRenderCommand(x, y, width, height, new Color(r, g, b, a)));
 
     }
     
     public void BorderRectangle(int x, int y, int width, int height, int borderWidth, int[] color) {
+        if (x < 0 || y < 0) {
+            return;
+        }
+        
+        if (width <= 0 || height <= 0) {
+            return;
+        }
+        
+        if (borderWidth <= 0) {
+            return;
+        }
+        
+        if (color is not { Length: 4 }) {
+            return;
+        }
+        
         var (r, g, b, a) = (color[0], color[1], color[2], color[3]);
         _commands.Add(new BorderRectangleRenderCommand(x, y, width, height, borderWidth, new Color(r, g, b, a)));
     }
     
     public void Circle(int x, int y, int radius, int[] color) {
+        if (x < 0 || y < 0) {
+            return;
+        }
+        
+        if (radius <= 0) {
+            return;
+        }
+        
+        if (color is not { Length: 4 }) {
+            return;
+        }
+        
         var (r, g, b, a) = (color[0], color[1], color[2], color[3]);
         _commands.Add(new CircleRenderCommand(x, y, radius, new Color(r, g, b, a)));
 
     }
     
     public void BorderCircle(int x, int y, int radius, int borderWidth, int[] color) {
+        if (x < 0 || y < 0) {
+            return;
+        }
+        
+        if (radius <= 0) {
+            return;
+        }
+        
+        if (borderWidth <= 0) {
+            return;
+        }
+        
+        if (color is not { Length: 4 }) {
+            return;
+        }
+        
         var (r, g, b, a) = (color[0], color[1], color[2], color[3]);
         _commands.Add(new BorderCircleRenderCommand(x, y, radius, borderWidth, new Color(r, g, b, a)));
     }
     
     public void Line(int x1, int y1, int x2, int y2, int[] color) {
+        if (x1 < 0 || y1 < 0) {
+            return;
+        }
+        
+        if (x2 < 0 || y2 < 0) {
+            return;
+        }
+        
+        if (color is not { Length: 4 }) {
+            return;
+        }
+        
         var (r, g, b, a) = (color[0], color[1], color[2], color[3]);
         _commands.Add(new LineRenderCommand(x1, y1, x2, y2, new Color(r, g, b, a)));
     }
@@ -234,15 +322,44 @@ internal class RenderComputerState {
     }
 
     public int GetMaximalFontSize() {
-        return _font.GlyphSize();
+        return (int) (_font.GlyphSize() * _font.MaxScale());
     }
     
     public int GetDefaultFontSize() {
-        return (int) (GetMaximalFontSize() * _configuration.FontDefaultScale);
+        return (int) (_font.GlyphSize() * _configuration.FontDefaultScale);
+    }
+    
+    public int[] MeasureGlyphSize(char c, int size) {
+        if (size <= 0) {
+            size = GetDefaultFontSize();
+        }
+        
+        if (size > GetMaximalFontSize()) {
+            size = GetMaximalFontSize();
+        }
+
+        var scale = size * 1.0f / _font.GlyphSize();
+        var (width, height) = _font.MeasureGlyph(c, scale);
+        
+        return new[] { width, height };
     }
     
     public int[] MeasureTextWidth(string text, int size) {
-        var (textWidth, textHeight) = _font.Measure(text, size);
+        if (size <= 0) {
+            size = GetDefaultFontSize();
+        }
+        
+        if (size > GetMaximalFontSize()) {
+            size = GetMaximalFontSize();
+        }
+        
+        if (string.IsNullOrEmpty(text)) {
+            return new[] { 0, 0 };
+        }
+        
+        var scale = size * 1.0f / _font.GlyphSize();
+        var (textWidth, textHeight) = _font.Measure(text, scale);
+        
         return new[] { textWidth, textHeight };
     }
 }

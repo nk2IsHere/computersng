@@ -16,6 +16,7 @@ declare const Render: {
     GetMaximalFontSize: () => number
     GetDefaultFontSize: () => number
     MeasureTextWidth: (text: string, size: number) => [number, number]
+    MeasureGlyphSize: (char: string, size: number) => [number, number]
 }
 
 declare type EventData = {
