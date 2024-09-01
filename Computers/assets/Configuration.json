@@ -3,10 +3,10 @@
   "windowHeight": 472,
   "canvasWidth": 376,
   "canvasHeight": 212,
-  "entryPointPath": "Library/Entrypoint.lua",
+  "entryPointPath": "Library/Entrypoint.js",
   "entryPointName": "Entry",
-  "fontDefinitionPath": "HomeVideo/HomeVideo.xml",
-  "fontTexturePath": "HomeVideo/HomeVideo.png",
+  "fontDefinitionPath": "Monogram/Monogram.xml",
+  "fontTexturePath": "Monogram/Monogram.png",
   "fontDefaultScale": 1,
   "shouldResetScriptOnFatalError": true
 }

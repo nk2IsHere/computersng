@@ -155,7 +155,7 @@ internal class RenderComputerState {
         _onEnd(commandsCopy, _rawBackground, _rawForeground);
     }
     
-    public void Text(string text, int x, int y, int size, int[] textColor) {
+    public void Text(int x, int y, string text, int size, int[] textColor) {
         var (textColorR, textColorG, textColorB, textColorA) = (textColor[0], textColor[1], textColor[2], textColor[3]);
         _commands.Add(new TextRenderCommand(
             text,
