@@ -1,15 +1,34 @@
 
-export const Colors = {
-    Black: [0, 0, 0, 255],
-    White: [255, 255, 255, 255],
-    Red: [255, 0, 0, 255],
-    Green: [0, 255, 0, 255],
-    Blue: [0, 0, 255, 255],
-    Yellow: [255, 255, 0, 255],
-    Cyan: [0, 255, 255, 255],
-    Magenta: [255, 0, 255, 255],
-    Transparent: [0, 0, 0, 0]
-}
+export const Color = Object.freeze({
+    black: [0, 0, 0, 255],
+    while: [255, 255, 255, 255],
+    red: [255, 0, 0, 255],
+    green: [0, 255, 0, 255],
+    blue: [0, 0, 255, 255],
+    yellow: [255, 255, 0, 255],
+    cyan: [0, 255, 255, 255],
+    magenta: [255, 0, 255, 255],
+    transparent: [0, 0, 0, 0],
+    
+    fromHex(hex) {
+        if (hex.length === 7) {
+            hex = hex + "FF"
+        }
+        return [
+            parseInt(hex.slice(1, 3), 16),
+            parseInt(hex.slice(3, 5), 16),
+            parseInt(hex.slice(5, 7), 16),
+            parseInt(hex.slice(7, 9), 16)
+        ]
+    },
+    
+    fromString(str) {
+        if (str.startsWith("#")) {
+            return Color.fromHex(str)
+        }
+        return Color[str]
+    }
+})
 
 export const Keys = Object.freeze({
     0: {
@@ -57,8 +76,10 @@ export const Keys = Object.freeze({
         name: "ImeNoConvert"
     },
     32: {
-        isSpecial: true,
-        name: "Space"
+        isSpecial: false,
+        name: "Space",
+        lowerCase: " ",
+        upperCase: " "
     },
     33: {
         isSpecial: true,
@@ -781,5 +802,11 @@ export const Keys = Object.freeze({
     254: {
         isSpecial: true,
         name: "OemClear"
+    },
+    
+    fromName(name) {
+        return Object
+            .values(Keys)
+            .find(key => key.name === name)
     }
 })

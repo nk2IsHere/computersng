@@ -1,4 +1,4 @@
-import { Colors } from "./Core/Constants.js"
+import { Color } from "./Core/Constants.js"
 import { Console, ConsoleLogLevel, ConsoleView } from "./Core/Console.js"
 import { ReloadView } from "./Core/Reload.js"
 
@@ -22,8 +22,8 @@ export function Main() {
             fontSize: defaultFontSize,
             fontCharacterWidth: fontCharacterWidth,
             fontCharacterHeight: fontCharacterHeight,
-            textColor: Colors.White,
-            backgroundColor: Colors.Black
+            textColor: Color.while,
+            backgroundColor: Color.black
         },
         {
             allowInput: true,
@@ -33,9 +33,17 @@ export function Main() {
         (input) => {
             try {
                 const result = eval(input)
-                console.Info(`${input} = ${result}`)
+                const resultString = `${input} = ${result}`
+                const resultByLine = resultString.split('\n')
+                for (const line of resultByLine) {
+                    console.Info(line)
+                }
             } catch (e) {
-                console.Error(e.message)
+                const errorString = `${input} = ${e}`
+                const errorByLine = errorString.split('\n')
+                for (const line of errorByLine) {
+                    console.Error(line)
+                }
             }
         }
     )
@@ -55,7 +63,7 @@ export function Main() {
         }
         
         Render.Begin()
-        Render.Rectangle(0, 0, screenWidth, screenHeight, Colors.Black)
+        Render.Rectangle(0, 0, screenWidth, screenHeight, Color.black)
         consoleView.Render()
         Render.End()
     }

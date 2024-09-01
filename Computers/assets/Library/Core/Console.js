@@ -75,11 +75,9 @@ export class ConsoleView {
         
         const maxLines = Math.floor(height / fontCharacterHeight)
         const maxCharactersPerLine = Math.floor(width / fontCharacterWidth)
-        
-        // Take last `maxLines` lines from the console offset by `scrollOffset`
-        const logs = this.console.Logs().slice(-maxLines + this.scrollOffset)
-        
+
         // Split the logs into lines by width
+        const logs = this.console.Logs()
         const lines = []
         
         for (const log of logs) {
@@ -92,9 +90,14 @@ export class ConsoleView {
         let currentY = y
         
         // Choose top lines to render based on scrollOffset
-        const minScrollOffset = 0
-        const maxScrollOffset = Math.max(0, lines.length - maxLines)
+        const minScrollOffset = -Math.max(0, lines.length - maxLines)
+        const maxScrollOffset = 0
         const scrollOffset = Math.min(maxScrollOffset, Math.max(minScrollOffset, this.scrollOffset))
+        
+        // Reset scrollOffset if it's out of bounds
+        if (this.scrollOffset !== scrollOffset) {
+            this.scrollOffset = scrollOffset
+        }
         
         const linesCount = Math.floor(maxLines) - (allowInput ? 1 : 0) // input line takes 1 line
         const linesStart = lines.length - linesCount + scrollOffset
@@ -134,7 +137,7 @@ export class ConsoleView {
             
             if (!key.isSpecial) {
                 this.currentInput += (
-                    currentlyHeldKeys.includes(Keys[160])
+                    currentlyHeldKeys.includes(Keys.fromName("LeftShift"))
                         ? key.upperCase
                         : key.lowerCase
                 )

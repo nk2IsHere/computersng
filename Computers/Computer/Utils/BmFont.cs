@@ -58,7 +58,7 @@ public class BmFont {
     
     public (int, int) MeasureGlyph(char c, float scale) {
         return _characterMap.TryGetValue(c, out var fc) 
-            ? ((int) (fc.Width * scale), (int) (fc.Height * scale)) 
+            ? ((int) (fc.XAdvance * scale), (int) (fc.Height * scale)) 
             : (0, 0);
     }
     

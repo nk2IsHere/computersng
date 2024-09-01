@@ -1,3 +1,4 @@
+import { Keys } from "./Constants.js"
 
 export class ReloadView {
     constructor(onReload) {
@@ -6,8 +7,9 @@ export class ReloadView {
 
     Fire(event) {
         if(event.Type === "KeyPressed") {
-            const [key] = event.Data
-            if (key === 112) { // F1
+            const [keyRaw] = event.Data
+            const key = Keys[keyRaw]
+            if (key.name === "F1") {
                 this.onReload()
             }
         }
