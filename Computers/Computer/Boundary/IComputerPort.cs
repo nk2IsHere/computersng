@@ -1,7 +1,9 @@
+using Computers.Core;
+
 namespace Computers.Computer.Boundary;
 
 public interface IComputerPort {
-    string Id { get; }
+    Id Id { get; }
     Configuration Configuration { get; }
     
     // Assets

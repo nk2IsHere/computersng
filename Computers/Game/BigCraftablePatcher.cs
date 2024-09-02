@@ -28,7 +28,7 @@ public class BigCraftablePatcherService : IPatcherService {
         _monitor.Log("Patching BigCraftables data.", LogLevel.Debug);
         var assetData = asset.GetData<Dictionary<string, BigCraftableData>>();
         foreach (var data in _patchData) {
-            assetData.Add(data.Id, data.Value);
+            assetData.Add(data.Id.Value, data.Value);
         }
     }
 }

@@ -27,4 +27,20 @@ public static class Utils {
     public static string Serialize<T>(this T value) {
         return JsonConvert.SerializeObject(value, _serializerSettings);
     }
+    
+    // From: https://stackoverflow.com/questions/8094867/good-gethashcode-override-for-list-of-foo-objects-respecting-the-order
+    public static int GetSequenceHashCode<TItem>(this IEnumerable<TItem>? list)
+    {
+        if (list == null) return 0;
+        const int seedValue = 0x2D2816FE;
+        const int primeNumber = 397;
+        return list.Aggregate(
+            seedValue, 
+            (current, item) => current * primeNumber + (
+                Equals(item, default(TItem)) 
+                    ? 0
+                    : item!.GetHashCode()
+            )
+        );
+    }
 }

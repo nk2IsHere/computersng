@@ -23,11 +23,11 @@ public class ComputerStatefulDataContextEntry : IContextEntry.StatefulDataContex
     private ObjectInstance? _entryPointModule;
     private CancellationTokenSource? _cancellationTokenSource;
     
-    private IDictionary<string, object> _storage = new ConcurrentDictionary<string, object>();
+    private readonly IDictionary<string, object> _storage = new ConcurrentDictionary<string, object>();
 
     public ComputerStatefulDataContextEntry(
-        string factoryId,
-        string id,
+        Id factoryId,
+        Id id,
         IMonitor monitor,
         Configuration configuration,
         IRedundantLoader coreLibraryLoader,

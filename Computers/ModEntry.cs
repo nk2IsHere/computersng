@@ -17,14 +17,40 @@ namespace Computers;
 
 public class ModEntry : Mod {
     private static Core.Context _context = null!; // This will be initialized in Entry
-
+    
+    // Base Id
+    private static readonly Id BaseId = "tools.kot.nk2.computers".AsId();
+    
+    // Game Base Id
+    private static readonly Id GameBigCraftableBaseId = BaseId / "BigCraftable";
+    private static readonly Id GameRecipeBaseId = BaseId / "Recipe";
+    private static readonly Id GameTileSheetBaseId = BaseId / "TileSheet";
+    private static readonly Id GameItemBaseId = BaseId / "Item";
+    private static readonly Id GameMachineBaseId = BaseId / "Machine";
+    
+    // Service Base Id
+    private static readonly Id ServiceBaseId = BaseId / "Service";
+    
+    // Computer-related Base Id
+    private static readonly Id ComputerBaseId = BaseId / "Data" / "Computer";
+    
+    // Game-related Ids
+    private static readonly Id ComputerBigCraftableId = GameBigCraftableBaseId / "Computer";
+    private static readonly Id ComputerRecipeId = GameRecipeBaseId / "Computer";
+    private static readonly Id ComputerTileSheetId = GameTileSheetBaseId / "Computer";
+    private static readonly Id DiskTileSheetId = GameTileSheetBaseId / "Disk";
+    private static readonly Id DiskItemId = GameItemBaseId / "Disk";
+    private static readonly Id DiskRecipeId = GameRecipeBaseId / "Disk";
+    private static readonly Id ComputerMachineId = GameMachineBaseId / "Computer";
+    private static readonly Id ComputerMachineOutputRuleId = ComputerMachineId / "OutputRule";
+    
     public override void Entry(IModHelper helper) {
         _context = Core.Context.Create(
             new IContextEntry.StatelessDataContextEntry(
-                "tools.kot.nk2.computers.BigCraftable.Computer",
+                ComputerBigCraftableId,
                 typeof(BigCraftableData),
                 new BigCraftableData {
-                    Name = "tools.kot.nk2.computers.BigCraftable.Computer",
+                    Name = ComputerBigCraftableId.Value,
                     DisplayName = "Computer",
                     Description = "A computer.",
                     Price = 1000,
@@ -32,17 +58,17 @@ public class ModEntry : Mod {
                     CanBePlacedOutdoors = true,
                     CanBePlacedIndoors = true,
                     IsLamp = false,
-                    Texture = "tools.kot.nk2.computers.TileSheet.Computer",
+                    Texture = ComputerTileSheetId.Value,
                     SpriteIndex = 0,
                     ContextTags = null,
                     CustomFields = null
                 }
             ),
             new IContextEntry.StatelessDataContextEntry(
-                "tools.kot.nk2.computers.Recipe.Computer",
+                ComputerRecipeId,
                 typeof(Recipe),
                 new Recipe(
-                    "tools.kot.nk2.computers.BigCraftable.Computer",
+                    ComputerBigCraftableId.Value,
                     new Dictionary<string, int> {
                         { "380", 5 }
                     },
@@ -52,41 +78,35 @@ public class ModEntry : Mod {
                 )
             ),
             new IContextEntry.StatelessDataContextEntry(
-                "tools.kot.nk2.computers.TileSheet.Computer",
+                ComputerTileSheetId,
                 typeof(TileSheet),
-                new TileSheet(
-                    "tools.kot.nk2.computers.TileSheet.Computer",
-                    "assets/Computer.png"
-                )
+                new TileSheet(ComputerTileSheetId.Value, "assets/Computer.png")
             ),
             new IContextEntry.StatelessDataContextEntry(
-                "tools.kot.nk2.computers.TileSheet.Disk",
+                DiskTileSheetId,
                 typeof(TileSheet),
-                new TileSheet(
-                    "tools.kot.nk2.computers.TileSheet.Disk",
-                    "assets/Disk.png"
-                )
+                new TileSheet(DiskTileSheetId.Value, "assets/Disk.png")
             ),
             new IContextEntry.StatelessDataContextEntry(
-                "tools.kot.nk2.computers.Item.Disk",
+                DiskItemId,
                 typeof(ObjectData),
                 new ObjectData {
-                    Name = "tools.kot.nk2.computers.Item.Disk",
+                    Name = DiskItemId.Value,
                     DisplayName = "Disk",
                     Description = "A disk.",
                     Price = 100,
                     Type = "Crafting",
                     Category = Object.CraftingCategory,
-                    Texture = "tools.kot.nk2.computers.TileSheet.Disk",
+                    Texture = DiskTileSheetId.Value,
                     SpriteIndex = 0,
                     CanBeGivenAsGift = false
                 }
             ),
             new IContextEntry.StatelessDataContextEntry(
-                "tools.kot.nk2.computers.Recipe.Disk",
+                DiskRecipeId,
                 typeof(Recipe),
                 new Recipe(
-                    "tools.kot.nk2.computers.Item.Disk",
+                    DiskItemId.Value,
                     new Dictionary<string, int> {
                         { "380", 1 }
                     },
@@ -96,10 +116,10 @@ public class ModEntry : Mod {
                 )
             ),
             new IContextEntry.StatelessDataContextEntry(
-                "tools.kot.nk2.computers.Machine.Computer",
+                ComputerMachineId,
                 typeof(Machine),
                 new Machine(
-                    "(BC)tools.kot.nk2.computers.BigCraftable.Computer",
+                    $"(BC){ComputerBigCraftableId}",
                     new MachineData {
                         HasInput = true,
                         HasOutput = true,
@@ -112,11 +132,11 @@ public class ModEntry : Mod {
                         InteractMethod = "Computers.ModEntry, Computers: ComputerMachineInteractMethod",
                         OutputRules = new List<MachineOutputRule> {
                             new() {
-                                Id = "tools.kot.nk2.computers.Machine.Computer.OutputRule",
+                                Id = ComputerMachineOutputRuleId.Value,
                                 Triggers = new List<MachineOutputTriggerRule> {
                                     new() {
                                         Trigger = MachineOutputTrigger.ItemPlacedInMachine,
-                                        RequiredItemId = "(O)tools.kot.nk2.computers.Item.Disk",
+                                        RequiredItemId = $"(O){DiskItemId}",
                                         RequiredCount = 1
                                     }
                                 },
@@ -134,17 +154,17 @@ public class ModEntry : Mod {
                 )
             ),
             new IContextEntry.ServiceContextEntry(
-                "tools.kot.nk2.computers.Monitor",
+                ServiceBaseId / "Monitor",
                 typeof(IMonitor),
                 _ => Monitor
             ),
             new IContextEntry.ServiceContextEntry(
-                "tools.kot.nk2.computers.ModHelper",
+                ServiceBaseId / "ModHelper",
                 typeof(IModHelper),
                 _ => helper
             ),
             new IContextEntry.ServiceContextEntry(
-                "tools.kot.nk2.computers.Service.BigCraftablePatchService",
+                ServiceBaseId / "BigCraftablePatcherService",
                 typeof(IPatcherService),
                 initializer => new BigCraftablePatcherService(
                     initializer.GetSingle<IMonitor>(),
@@ -152,7 +172,7 @@ public class ModEntry : Mod {
                 )
             ),
             new IContextEntry.ServiceContextEntry(
-                "tools.kot.nk2.computers.Service.TileSheetLoaderService",
+                ServiceBaseId / "TileSheetLoaderService",
                 typeof(ILoaderService),
                 initializer => new TileSheetLoader(
                     initializer.GetSingle<IMonitor>(),
@@ -161,7 +181,7 @@ public class ModEntry : Mod {
                 )
             ),
             new IContextEntry.ServiceContextEntry(
-                "tools.kot.nk2.computers.Service.RecipePatcherService",
+                ServiceBaseId / "RecipePatcherService",
                 typeof(IPatcherService),
                 initializer => new RecipePatcherService(
                     initializer.GetSingle<IMonitor>(),
@@ -169,7 +189,7 @@ public class ModEntry : Mod {
                 )
             ),
             new IContextEntry.ServiceContextEntry(
-                "tools.kot.nk2.computers.Service.MachinePatcherService",
+                ServiceBaseId / "MachinePatcherService",
                 typeof(IPatcherService),
                 initializer => new MachinePatcherService(
                     initializer.GetSingle<IMonitor>(),
@@ -177,7 +197,7 @@ public class ModEntry : Mod {
                 )
             ),
             new IContextEntry.ServiceContextEntry(
-                "tools.kot.nk2.computers.Service.ObjectPatcherService",
+                ServiceBaseId / "ObjectPatcherService",
                 typeof(IPatcherService),
                 initializer => new ObjectPatcherService(
                     initializer.GetSingle<IMonitor>(),
@@ -185,7 +205,7 @@ public class ModEntry : Mod {
                 )
             ),
             new IContextEntry.ServiceContextEntry(
-                "tools.kot.nk2.computers.Service.AssetDispatcher",
+                ServiceBaseId / "AssetDispatcher",
                 typeof(IEventHandler),
                 initializer => new AssetDispatcher(
                     initializer.GetSingle<IMonitor>(),
@@ -194,7 +214,7 @@ public class ModEntry : Mod {
                 )
             ),
             new IContextEntry.ServiceContextEntry(
-                "tools.kot.nk2.computers.Service.EventBus",
+                ServiceBaseId / "EventBus",
                 typeof(IEventBus),
                 initializer => new EventBus(
                     initializer.GetSingle<IMonitor>(),
@@ -202,33 +222,33 @@ public class ModEntry : Mod {
                 )
             ),
             new IContextEntry.StatelessDataContextEntry(
-                "tools.kot.nk2.computers.Configuration",
+                ServiceBaseId / "Configuration",
                 typeof(Configuration),
                 helper.ModContent.Load<Configuration>("assets/Configuration.json")
             ),
             new IContextEntry.ServiceContextEntry(
-                "tools.kot.nk2.computers.Service.ComputerTickDispatcher",
+                ServiceBaseId / "ComputerTickDispatcher",
                 typeof(IEventHandler),
                 initializer => new ComputerTickDispatcher(
                     initializer.Lookup<IComputerPort>()
                 )
             ),
             new IContextEntry.ServiceContextEntry(
-                "tools.kot.nk2.computers.Service.ComputerStopDispatcher",
+                ServiceBaseId / "ComputerStopDispatcher",
                 typeof(IEventHandler),
                 initializer => new ComputerStopDispatcher(
                     initializer.Lookup<IComputerPort>()
                 )
             ),
             new IContextEntry.ServiceContextEntry(
-                "tools.kot.nk2.computers.Service.ComputerButtonDispatcher",
+                ServiceBaseId / "ComputerButtonDispatcher",
                 typeof(IEventHandler),
                 initializer => new ComputerButtonDispatcher(
                     initializer.Lookup<IComputerPort>()
                 )
             ),
             new IContextEntry.ServiceContextEntry(
-                "tools.kot.nk2.computers.Service.CoreLibraryLoader",
+                ServiceBaseId / "RedundantLoader",
                 typeof(IRedundantLoader),
                 initializer => new RedundantLoader(
                     initializer.GetSingle<IModHelper>(),
@@ -236,7 +256,7 @@ public class ModEntry : Mod {
                 )
             ),
             new IContextEntry.ServiceContextEntry(
-                "tools.kot.nk2.computers.Service.AssetsLoader",
+                ServiceBaseId / "AssetsLoader",
                 typeof(IRedundantLoader),
                 initializer => new RedundantLoader(
                     initializer.GetSingle<IModHelper>(),
@@ -244,19 +264,19 @@ public class ModEntry : Mod {
                 )
             ),
             new IContextEntry.ServiceContextEntry(
-                "tools.kot.nk2.computers.Service.ComputerFactory",
+                ServiceBaseId / "ComputerFactory",
                 typeof(IStatefulDataContextEntryFactory),
                 initializer => new ComputerStatefulDataContextEntryFactory(
-                    "tools.kot.nk2.computers.Service.ComputerFactory",
-                    "tools.kot.nk2.computers.Data.Computer",
+                    ServiceBaseId / "ComputerFactory",
+                    ComputerBaseId,
                     initializer.GetSingle<IMonitor>(),
                     initializer.GetSingle<Configuration>(),
-                    initializer.GetSingle<IRedundantLoader>("tools.kot.nk2.computers.Service.CoreLibraryLoader"),
-                    initializer.GetSingle<IRedundantLoader>("tools.kot.nk2.computers.Service.AssetsLoader")
+                    initializer.GetSingle<IRedundantLoader>(ServiceBaseId / "RedundantLoader"),
+                    initializer.GetSingle<IRedundantLoader>(ServiceBaseId / "AssetsLoader")
                 )
             ),
             new IContextEntry.ServiceContextEntry(
-                "tools.kot.nk2.computers.Service.ComputerStartDispatcher",
+                ServiceBaseId / "ComputerStartDispatcher",
                 typeof(IEventHandler),
                 initializer => new ComputerStartDispatcher(
                     initializer.Lookup<IComputerPort>()
@@ -264,7 +284,7 @@ public class ModEntry : Mod {
             )
         );
 
-        var eventBus = _context.GetSingle<IEventBus>("tools.kot.nk2.computers.Service.EventBus");
+        var eventBus = _context.GetSingle<IEventBus>(ServiceBaseId / "EventBus");
         
         helper.Events.Content.AssetRequested += (_, e) => eventBus.Publish(new AssetRequestedEvent(e));
         
@@ -286,7 +306,7 @@ public class ModEntry : Mod {
         GameLocation location,
         Farmer player
     ) {
-        var monitor = _context.GetSingle<IMonitor>("tools.kot.nk2.computers.Monitor");
+        var monitor = _context.GetSingle<IMonitor>(ServiceBaseId / "Monitor");
         monitor.Log($"Interacted with computer machine. Machine: {machine}, Location: {location}, Player: {player}, Held Object: {machine.heldObject}");
 
         var modData = machine.HeldObjectModData();
@@ -300,7 +320,7 @@ public class ModEntry : Mod {
             return false;
         }
         
-        var computerId = modData["ComputerId"];
+        var computerId = modData["ComputerId"].AsId();
         monitor.Log($"Computer has id: {computerId}");
         
         var computerState = _context.GetSingle<IComputerPort>(computerId);
@@ -315,7 +335,7 @@ public class ModEntry : Mod {
         MachineItemOutput outputData, 
         out int? overrideMinutesUntilReady
     ) {
-        var monitor = _context.GetSingle<IMonitor>("tools.kot.nk2.computers.Monitor");
+        var monitor = _context.GetSingle<IMonitor>(ServiceBaseId / "Monitor");
         monitor.Log($"Preparing output from computer machine. Machine: {machine}, InputItem: {inputItem}, Probe: {probe}, OutputData: {outputData}");
         
         overrideMinutesUntilReady = null;
@@ -328,12 +348,12 @@ public class ModEntry : Mod {
         IComputerPort computer;
         if (outputItem.modData.ContainsKey("ComputerId")) {
             monitor.Log("ComputerId already exists.");
-            computer = _context.GetSingle<IComputerPort>(outputItem.modData["ComputerId"]);
+            computer = _context.GetSingle<IComputerPort>(outputItem.modData["ComputerId"].AsId());
         }
         else {
-            computer = _context.ProduceSingle<ComputerStatefulDataContextEntry>("tools.kot.nk2.computers.Service.ComputerFactory");
+            computer = _context.ProduceSingle<ComputerStatefulDataContextEntry>(ServiceBaseId / "ComputerFactory");
             monitor.Log($"Setting ComputerId to {computer.Id}");
-            outputItem.modData["ComputerId"] = computer.Id;
+            outputItem.modData["ComputerId"] = computer.Id.Value;
         }
         
         computer.Start();
@@ -341,8 +361,8 @@ public class ModEntry : Mod {
     }
 
     private static void HandleSave() {
-        var helper = _context.GetSingle<IModHelper>("tools.kot.nk2.computers.ModHelper");
-        var monitor = _context.GetSingle<IMonitor>("tools.kot.nk2.computers.Monitor");
+        var helper = _context.GetSingle<IModHelper>(ServiceBaseId / "ModHelper");
+        var monitor = _context.GetSingle<IMonitor>(ServiceBaseId / "Monitor");
         
         monitor.Log("Saving data.");
         var data = _context.Store();
@@ -350,9 +370,9 @@ public class ModEntry : Mod {
     }
     
     private static void HandleLoad(SaveLoadedEventArgs args) {
-        var helper = _context.GetSingle<IModHelper>("tools.kot.nk2.computers.ModHelper");
-        var monitor = _context.GetSingle<IMonitor>("tools.kot.nk2.computers.Monitor");
-        var eventBus = _context.GetSingle<IEventBus>("tools.kot.nk2.computers.Service.EventBus");
+        var helper = _context.GetSingle<IModHelper>(ServiceBaseId / "ModHelper");
+        var monitor = _context.GetSingle<IMonitor>(ServiceBaseId / "Monitor");
+        var eventBus = _context.GetSingle<IEventBus>(ServiceBaseId / "EventBus");
         
         var data = helper.Data.ReadSaveData<string>("tools.kot.nk2.computers");
         if (data is null) {
@@ -360,7 +380,7 @@ public class ModEntry : Mod {
             return;
         }
 
-        var deserializedData = data.Deserialize<Dictionary<string, Dictionary<string, object>>>();
+        var deserializedData = data.Deserialize<Dictionary<Id, Dictionary<string, object>>>();
         if (deserializedData is null) {
             monitor.Log("Data could not be deserialized.");
             return;
@@ -372,7 +392,7 @@ public class ModEntry : Mod {
     }
 
     private static void HandleObjectListChanged(ObjectListChangedEventArgs args) {
-        var monitor = _context.GetSingle<IMonitor>("tools.kot.nk2.computers.Monitor");
+        var monitor = _context.GetSingle<IMonitor>(ServiceBaseId / "Monitor");
         foreach(var (position, obj) in args.Removed) {
             monitor.Log($"Removed object at {position}: {obj}");
             if (obj.heldObject.Value is null) {
@@ -387,7 +407,7 @@ public class ModEntry : Mod {
             }
             
             monitor.Log($"Stopping computer with id {modData["ComputerId"]}");
-            var computerId = modData["ComputerId"];
+            var computerId = modData["ComputerId"].AsId();
             
             // Stop computer
             var computerState = _context.GetSingle<IComputerPort>(computerId);
@@ -404,8 +424,8 @@ public class ModEntry : Mod {
     }
     
     private static void DrawScreen(IComputerPort computerPort) {
-        var monitor = _context.GetSingle<IMonitor>("tools.kot.nk2.computers.Monitor");
-        var configuration = _context.GetSingle<Configuration>("tools.kot.nk2.computers.Configuration");
+        var monitor = _context.GetSingle<IMonitor>(ServiceBaseId / "Monitor");
+        var configuration = _context.GetSingle<Configuration>(ServiceBaseId / "Configuration");
         monitor.Log("Drawing screen.");
         
         Game1.InUIMode(() => {

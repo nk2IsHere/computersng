@@ -5,8 +5,8 @@ public class Context {
     private Context() {
     }
 
-    private readonly Dictionary<string, IContextEntry> _entries = new();
-    private readonly Dictionary<string, object?>  _cache = new();
+    private readonly Dictionary<Id, IContextEntry> _entries = new();
+    private readonly Dictionary<Id, object?>  _cache = new();
     private readonly List<IInvalidatable> _lookups = new();
 
     public static Context Empty { get; } = new();
@@ -17,11 +17,11 @@ public class Context {
             entry.Restore(context, ContextEntryState.Empty);
             context._entries[entry.Id] = entry;
         }
-
+a
         return context;
     }
 
-    public ContextEntry<T> Get<T>(string id) {
+    public ContextEntry<T> Get<T>(Id id) {
         if (!_entries.TryGetValue(id, out var entry)) {
             throw new KeyNotFoundException($"Context entry with id '{id}' not found.");
         }
@@ -58,7 +58,7 @@ public class Context {
         return Get<T>().Single().Value;
     }
     
-    public T GetSingle<T>(string id) {
+    public T GetSingle<T>(Id id) {
         return Get<T>(id).Value;
     }
 
@@ -67,14 +67,14 @@ public class Context {
         return _GetOrAddCached(entry.Id, () => (T)entry.GetValue(this));
     }
 
-    public T ProduceSingle<T>(string factoryId) where T : IContextEntry.StatefulDataContextEntry<T> {
+    public T ProduceSingle<T>(Id factoryId) where T : IContextEntry.StatefulDataContextEntry<T> {
         var factory = GetSingle<IStatefulDataContextEntryFactory>(factoryId);
         var entry = (T) factory.ProduceValue();
         return PutSingle(entry);
     }
     
-    public Dictionary<string, Dictionary<string, object>> Store() {
-        var state = new Dictionary<string, Dictionary<string, object>>();
+    public Dictionary<Id, Dictionary<string, object>> Store() {
+        var state = new Dictionary<Id, Dictionary<string, object>>();
         foreach (var entry in _entries.Values) {
             state[entry.Id] = entry.Store(this).Serialize();
         }
@@ -82,7 +82,7 @@ public class Context {
         return state;
     }
     
-    public void Restore(Dictionary<string, Dictionary<string, object>> state) {
+    public void Restore(Dictionary<Id, Dictionary<string, object>> state) {
         foreach (var (id, data) in state) {
             var entryState = ContextEntryState.Deserialize(data);
             if (!_entries.TryGetValue(id, out var entry)) {
@@ -98,7 +98,7 @@ public class Context {
         }
     }
 
-    private T _GetOrAddCached<T>(string id, Func<T> factory) {
+    private T _GetOrAddCached<T>(Id id, Func<T> factory) {
         if (_cache.TryGetValue(id, out var value) && value is T cachedResult) {
             return cachedResult;
         }
@@ -116,14 +116,14 @@ public class Context {
     }
 }
 
-public record ContextEntry<T>(string Id, T Value) {
-    public static implicit operator ContextEntry<T>((string Id, T Value) tuple) {
+public record ContextEntry<T>(Id Id, T Value) {
+    public static implicit operator ContextEntry<T>((Id Id, T Value) tuple) {
         return new ContextEntry<T>(tuple.Id, tuple.Value);
     }
 }
 
 public interface IContextEntry {
-    public string Id { get; }
+    public Id Id { get; }
     public Type ValueType { get; }
     public ContextEntryType Type { get; }
 
@@ -135,7 +135,7 @@ public interface IContextEntry {
 
 
     public record ServiceContextEntry(
-        string Id,
+        Id Id,
         Type ValueType,
         Func<Context, object> ValueFactory
     ) : IContextEntry {
@@ -156,7 +156,7 @@ public interface IContextEntry {
     }
 
     public record StatelessDataContextEntry(
-        string Id,
+        Id Id,
         Type ValueType,
         object Value
     ) : IContextEntry {
@@ -179,14 +179,14 @@ public interface IContextEntry {
 
         public ContextEntryType Type => ContextEntryType.StatefulData;
 
-        protected StatefulDataContextEntry(string factoryId, string id) {
+        protected StatefulDataContextEntry(Id factoryId, Id id) {
             FactoryId = factoryId;
             Id = id;
         }
 
-        public string FactoryId { get; }
+        public Id FactoryId { get; }
 
-        public string Id { get; }
+        public Id Id { get; }
         
         public abstract object GetValue(Context context);
 
@@ -209,19 +209,19 @@ public class ContextEntryState {
 
     public T Get<T>(string key) => (T)_data[key];
     
-    public T GetOrDefault<T>(string id, T value) {
-        return _data.TryGetValue(id, out var result) ? (T)result : value;
+    public T GetOrDefault<T>(string key, T value) {
+        return _data.TryGetValue(key, out var result) ? (T)result : value;
     }
 
     public void Set<T>(string key, T value) => _data[key] = value ?? throw new ArgumentNullException(nameof(value));
     
-    public string? Id {
-        get => GetOrDefault<string?>("Id", null);
+    public Id? Id {
+        get => GetOrDefault<Id?>("Id", null);
         set => Set("Id", value);
     }
     
-    public string? FactoryId {
-        get => GetOrDefault<string?>("FactoryId", null);
+    public Id? FactoryId {
+        get => GetOrDefault<Id?>("FactoryId", null);
         set => Set("FactoryId", value);
     }
     
@@ -274,7 +274,7 @@ public class ContextLookup<T> : IInvalidatable {
 
 public interface IStatefulDataContextEntryFactory {
     
-    public string FactoryId { get; }
+    public Id FactoryId { get; }
     
     public IContextEntry ProduceValue();
     

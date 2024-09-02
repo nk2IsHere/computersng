@@ -27,7 +27,7 @@ public class ObjectPatcherService: IPatcherService {
         var assetData = asset.GetData<Dictionary<string, ObjectData>>();
         
         foreach (var obj in _objects) {
-            assetData.Add(obj.Id, obj.Value);
+            assetData.Add(obj.Id.Value, obj.Value);
         }
     }
 }

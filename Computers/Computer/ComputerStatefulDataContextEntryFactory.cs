@@ -6,8 +6,8 @@ using StardewModdingAPI;
 namespace Computers.Computer;
 
 public class ComputerStatefulDataContextEntryFactory : IStatefulDataContextEntryFactory {
-    
-    private readonly string _computerIdPrefix;
+
+    private readonly Id _baseComputerId;
     
     private readonly IMonitor _monitor;
     private readonly Configuration _configuration;
@@ -15,29 +15,29 @@ public class ComputerStatefulDataContextEntryFactory : IStatefulDataContextEntry
     private readonly IRedundantLoader _assetLoader;
     
     public ComputerStatefulDataContextEntryFactory(
-        string id, 
-        string computerIdPrefix,
+        Id id, 
+        Id baseComputerId,
         IMonitor monitor,
         Configuration configuration,
         IRedundantLoader coreLibraryLoader,
         IRedundantLoader assetLoader
     ) {
         FactoryId = id;
-        _computerIdPrefix = computerIdPrefix;
+        _baseComputerId = baseComputerId;
         _monitor = monitor;
         _configuration = configuration;
         _coreLibraryLoader = coreLibraryLoader;
         _assetLoader = assetLoader;
     }
 
-    public string FactoryId { get; }
+    public Id FactoryId { get; }
     
     public IContextEntry ProduceValue() {
         return ProduceValue(ContextEntryState.Empty);
     }
 
     public IContextEntry ProduceValue(ContextEntryState state) {
-        var id = state.Id ?? $"{_computerIdPrefix}.{Guid.NewGuid().ToString()}";
+        var id = state.Id ?? _baseComputerId / Guid.NewGuid().ToString();
         return new ComputerStatefulDataContextEntry(
             FactoryId,
             id,
