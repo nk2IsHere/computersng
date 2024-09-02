@@ -17,7 +17,7 @@ public class Context {
             entry.Restore(context, ContextEntryState.Empty);
             context._entries[entry.Id] = entry;
         }
-a
+
         return context;
     }
 
