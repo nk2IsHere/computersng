@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using Computers.Computer.Boundary;
 using Computers.Core;
 using Computers.Game.Boundary;
@@ -16,11 +17,13 @@ public class ComputerStatefulDataContextEntry : IContextEntry.StatefulDataContex
     private readonly IRedundantLoader _assetLoader;
     
     private readonly List<IComputerApi> _computerApis;
-    private readonly Thread _computerThread;
     
+    private Thread? _computerThread;
     private Engine? _engine;
     private ObjectInstance? _entryPointModule;
     private CancellationTokenSource? _cancellationTokenSource;
+    
+    private IDictionary<string, object> _storage = new ConcurrentDictionary<string, object>();
 
     public ComputerStatefulDataContextEntry(
         string factoryId,
@@ -41,7 +44,6 @@ public class ComputerStatefulDataContextEntry : IContextEntry.StatefulDataContex
             new SystemComputerApi(this)
         };
         
-        _computerThread = new Thread(ComputerThreadBody);
         Reload();
     }
 
@@ -50,18 +52,19 @@ public class ComputerStatefulDataContextEntry : IContextEntry.StatefulDataContex
     }
 
     public override void Restore(Context context, ContextEntryState state) {
-        var computerState = state.Get<object>("Storage");
-        _engine?.SetValue("Storage", computerState);
+        var computerState = state.GetOrDefault("Storage", new Dictionary<string, object>());
+        
+        _storage.Clear();
+        computerState.ForEach(pair => _storage.Add(pair.Key, pair.Value));
     }
 
     public override ContextEntryState Store(Context context) {
         var state = ContextEntryState.Empty;
         
-        state.SetFactoryId(FactoryId);
+        state.Id = Id;
+        state.FactoryId = FactoryId;
         
-        var computerState = _engine?.GetValue("Storage").ToObject();
-        state.Set("Storage", computerState);
-        
+        state.Set("Storage", _storage.ToDictionary(pair => pair.Key, pair => pair.Value));
         return state;
     }
 
@@ -91,7 +94,6 @@ public class ComputerStatefulDataContextEntry : IContextEntry.StatefulDataContex
 
     public void Reload() {
         _cancellationTokenSource = new CancellationTokenSource();
-        
         _engine?.Dispose();
         _engine = new Engine(
             options => {
@@ -102,15 +104,24 @@ public class ComputerStatefulDataContextEntry : IContextEntry.StatefulDataContex
         );
 
         _computerApis.ForEach(RegisterApi);
-        _engine.SetValue("Storage", new Dictionary<string, object>());
+        _engine.SetValue("Storage", _storage);
         _entryPointModule = _engine.Modules.Import(Configuration.EntryPointModule);
     }
 
     public void Start() {
+        if (_computerThread?.IsAlive == true) {
+            return;
+        }
+        
+        _computerThread = new Thread(ComputerThreadBody);
         _computerThread.Start();
     }
 
     public void Stop() {
+        if (_computerThread is null || !_computerThread.IsAlive) {
+            return;
+        }
+        
         _cancellationTokenSource?.Cancel();
         _computerThread.Interrupt();
         _computerThread.Join();

@@ -19,8 +19,11 @@ public record RenderComputerEvent(Rectangle Rectangle, SpriteBatch Batch) : ICom
     public T Data<T>() => (T) (object) (Rectangle, Batch);
 }
 
-public record StopComputerEvent : IComputerEvent {
+public record StopComputerEvent(string? ComputerId) : IComputerEvent {
+     
     public T Data<T>() => default!;
+    public bool Global => !string.IsNullOrEmpty(ComputerId);
+    public bool BelongsTo(string id) => string.IsNullOrEmpty(ComputerId) || ComputerId == id;
 }
 
 public record KeyPressedEvent(string ComputerId, Keys Key) : IComputerEvent {

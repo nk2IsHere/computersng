@@ -1,17 +1,16 @@
 using Computers.Computer;
 using Computers.Computer.Boundary;
-using Computers.Computer.Utils;
 using Computers.Core;
 using Computers.Game;
 using Computers.Game.Boundary;
 using Computers.Game.Utils;
-using Microsoft.Xna.Framework.Graphics;
 using StardewValley;
 using StardewValley.GameData.BigCraftables;
 using StardewValley.GameData.Machines;
 using StardewValley.GameData.Objects;
 using Object = StardewValley.Object;
 using StardewModdingAPI;
+using StardewModdingAPI.Events;
 using GameWindow = Computers.Game.Utils.GameWindow;
 
 namespace Computers;
@@ -84,6 +83,20 @@ public class ModEntry : Mod {
                 }
             ),
             new IContextEntry.StatelessDataContextEntry(
+                "tools.kot.nk2.computers.Recipe.Disk",
+                typeof(Recipe),
+                new Recipe(
+                    "tools.kot.nk2.computers.Recipe.Disk",
+                    "tools.kot.nk2.computers.Item.Disk",
+                    new Dictionary<string, int> {
+                        { "380", 1 }
+                    },
+                    false,
+                    new IRecipeRequirement.NoneRequired(),
+                    "Disk"
+                )
+            ),
+            new IContextEntry.StatelessDataContextEntry(
                 "tools.kot.nk2.computers.Machine.Computer",
                 typeof(Machine),
                 new Machine(
@@ -124,12 +137,12 @@ public class ModEntry : Mod {
             new IContextEntry.ServiceContextEntry(
                 "tools.kot.nk2.computers.Monitor",
                 typeof(IMonitor),
-                initializer => Monitor
+                _ => Monitor
             ),
             new IContextEntry.ServiceContextEntry(
                 "tools.kot.nk2.computers.ModHelper",
                 typeof(IModHelper),
-                initializer => helper
+                _ => helper
             ),
             new IContextEntry.ServiceContextEntry(
                 "tools.kot.nk2.computers.Service.BigCraftablePatchService",
@@ -214,37 +227,49 @@ public class ModEntry : Mod {
                 initializer => new ComputerButtonDispatcher(
                     initializer.Lookup<IComputerPort>()
                 )
+            ),
+            new IContextEntry.ServiceContextEntry(
+                "tools.kot.nk2.computers.Service.CoreLibraryLoader",
+                typeof(IRedundantLoader),
+                initializer => new RedundantLoader(
+                    initializer.GetSingle<IModHelper>(),
+                    $"assets/{initializer.GetSingle<Configuration>().CoreLibraryPath}"
+                )
+            ),
+            new IContextEntry.ServiceContextEntry(
+                "tools.kot.nk2.computers.Service.AssetsLoader",
+                typeof(IRedundantLoader),
+                initializer => new RedundantLoader(
+                    initializer.GetSingle<IModHelper>(),
+                    $"assets/{initializer.GetSingle<Configuration>().AssetsPath}"
+                )
+            ),
+            new IContextEntry.ServiceContextEntry(
+                "tools.kot.nk2.computers.Service.ComputerFactory",
+                typeof(IStatefulDataContextEntryFactory),
+                initializer => new ComputerStatefulDataContextEntryFactory(
+                    "tools.kot.nk2.computers.Service.ComputerFactory",
+                    "tools.kot.nk2.computers.Data.Computer",
+                    initializer.GetSingle<IMonitor>(),
+                    initializer.GetSingle<Configuration>(),
+                    initializer.GetSingle<IRedundantLoader>("tools.kot.nk2.computers.Service.CoreLibraryLoader"),
+                    initializer.GetSingle<IRedundantLoader>("tools.kot.nk2.computers.Service.AssetsLoader")
+                )
             )
         );
 
-        var (_, eventBus) = _context.Get<IEventBus>("tools.kot.nk2.computers.Service.EventBus");
+        var eventBus = _context.GetSingle<IEventBus>("tools.kot.nk2.computers.Service.EventBus");
         
-        helper.Events.Content.AssetRequested += (sender, e) => eventBus.Publish(new AssetRequestedEvent(e));
+        helper.Events.Content.AssetRequested += (_, e) => eventBus.Publish(new AssetRequestedEvent(e));
         
-        helper.Events.GameLoop.GameLaunched += (sender, e) => eventBus.Publish(new GameLaunchedEvent(e));
-        helper.Events.GameLoop.UpdateTicked += (sender, e) => eventBus.Publish(new UpdateTickedEvent(e));
-        helper.Events.GameLoop.ReturnedToTitle += (sender, e) => eventBus.Publish(new ReturnedToTitleEvent(e));
+        helper.Events.GameLoop.GameLaunched += (_, e) => eventBus.Publish(new GameLaunchedEvent(e));
+        helper.Events.GameLoop.UpdateTicked += (_, e) => eventBus.Publish(new UpdateTickedEvent(e));
+        helper.Events.GameLoop.ReturnedToTitle += (_, e) => eventBus.Publish(new ReturnedToTitleEvent(e));
         
-        helper.Events.World.ObjectListChanged += (sender, e) => eventBus.Publish(new ObjectListChangedEvent(e));
+        helper.Events.Input.ButtonPressed += (_, e) => eventBus.Publish(new ButtonPressedEvent(e));
+        helper.Events.Input.ButtonReleased += (_, e) => eventBus.Publish(new ButtonReleasedEvent(e));
         
-        helper.Events.Input.ButtonPressed += (sender, e) => eventBus.Publish(new ButtonPressedEvent(e));
-        helper.Events.Input.ButtonReleased += (sender, e) => eventBus.Publish(new ButtonReleasedEvent(e));
-    }
-
-    private static void DrawScreen(IComputerPort computerPort) {
-        var monitor = _context.GetSingle<IMonitor>("tools.kot.nk2.computers.Monitor");
-        var configuration = _context.GetSingle<Configuration>("tools.kot.nk2.computers.Configuration");
-        monitor.Log("Drawing screen.");
-        
-        Game1.activeClickableMenu = new GameWindow(
-            configuration.WindowWidth,
-            configuration.WindowHeight,
-            (rectangle, batch) => computerPort.Fire(new RenderComputerEvent(rectangle, batch)),
-            onReceiveLeftClick: (x, y) => computerPort.Fire(new MouseLeftClickedEvent(computerPort.Id, x, y)),
-            onReceiveRightClick: (x, y) => computerPort.Fire(new MouseRightClickedEvent(computerPort.Id, x, y)),
-            onReceiveKeyPress: key => computerPort.Fire(new KeyPressedEvent(computerPort.Id, key)),
-            onReceiveScrollWheelAction: direction => computerPort.Fire(new MouseWheelEvent(computerPort.Id, direction))
-        );
+        helper.Events.World.ObjectListChanged += (_, e) => HandleObjectListChanged(e);
     }
 
     public static bool ComputerMachineInteractMethod(
@@ -261,52 +286,17 @@ public class ModEntry : Mod {
             return false;
         }
         
-        if (!modData.ContainsKey("ScriptId")) {
+        if (!modData.ContainsKey("ComputerId")) {
             monitor.Log("Computer does not have a script id - cannot infer script.");
             return false;
         }
         
-        var scriptId = modData["ScriptId"];
-        monitor.Log($"Computer has script id: {scriptId}");
+        var computerId = modData["ComputerId"];
+        monitor.Log($"Computer has id: {computerId}");
         
-        var computerState = _context.GetSingle<IComputerPort>(scriptId);
-        
+        var computerState = _context.GetSingle<IComputerPort>(computerId);
         DrawScreen(computerState);
         return true;
-    }
-
-    private static string MakeNewComputerState() {
-        var monitor = _context.GetSingle<IMonitor>("tools.kot.nk2.computers.Monitor");
-        
-        var uuid = Guid.NewGuid().ToString();
-        var scriptId = $"tools.kot.nk2.computers.Script.{uuid}";
-        
-        // TODO: figure out context for computer state. Passing arguments like that is stupid.
-        var configuration = _context.GetSingle<Configuration>("tools.kot.nk2.computers.Configuration");
-        
-        var coreLibraryLoader = new RedundantLoader(
-            _context.GetSingle<IModHelper>(),
-            $"assets/{configuration.CoreLibraryPath}"
-        );
-
-        var assetsLoader = new RedundantLoader(
-            _context.GetSingle<IModHelper>(),
-            $"assets/{configuration.AssetsPath}"
-        );
-        
-        var computer = new ComputerStatefulDataContextEntry(
-            null,
-            scriptId,
-            monitor,
-            configuration,
-            coreLibraryLoader,
-            assetsLoader
-        );
-        
-        computer.Start();
-        _context.PutSingle(computer);
-        
-        return scriptId;
     }
     
     public static Item ComputerMachineOutputMethod(
@@ -326,15 +316,66 @@ public class ModEntry : Mod {
             return outputItem;
         }
 
-        if (outputItem.modData.ContainsKey("ScriptId")) {
-            monitor.Log("ScriptId already exists.");
-            return outputItem;
+        IComputerPort computer;
+        if (outputItem.modData.ContainsKey("ComputerId")) {
+            monitor.Log("ComputerId already exists.");
+            computer = _context.GetSingle<IComputerPort>(outputItem.modData["ComputerId"]);
+        }
+        else {
+            computer = _context.ProduceSingle<ComputerStatefulDataContextEntry>("tools.kot.nk2.computers.Service.ComputerFactory");
+            monitor.Log($"Setting ComputerId to {computer.Id}");
+            outputItem.modData["ComputerId"] = computer.Id;
         }
         
-        var scriptId = MakeNewComputerState();
-        monitor.Log($"Setting ScriptId to {scriptId}");
-        outputItem.modData["ScriptId"] = scriptId;
-
+        computer.Start();
         return outputItem;
+    }
+
+    private static void HandleObjectListChanged(ObjectListChangedEventArgs args) {
+        var monitor = _context.GetSingle<IMonitor>("tools.kot.nk2.computers.Monitor");
+        foreach(var (position, obj) in args.Removed) {
+            monitor.Log($"Removed object at {position}: {obj}");
+            if (obj.heldObject.Value is null) {
+                monitor.Log("Object does not have a held object.");
+                continue;
+            }
+
+            var modData = obj.HeldObjectModData();
+            if (modData is null || !modData.ContainsKey("ComputerId")) {
+                monitor.Log("Object does not have a computer id.");
+                continue;
+            }
+            
+            monitor.Log($"Stopping computer with id {modData["ComputerId"]}");
+            var computerId = modData["ComputerId"];
+            
+            // Stop computer
+            var computerState = _context.GetSingle<IComputerPort>(computerId);
+            computerState.Fire(new StopComputerEvent(computerState.Id));
+            
+            // Make a disk with the script
+            Game1.createItemDebris(
+                obj.heldObject.Value,
+                position * Game1.tileSize,
+                Game1.random.Next(4),
+                Game1.player.currentLocation
+            );
+        }
+    }
+    
+    private static void DrawScreen(IComputerPort computerPort) {
+        var monitor = _context.GetSingle<IMonitor>("tools.kot.nk2.computers.Monitor");
+        var configuration = _context.GetSingle<Configuration>("tools.kot.nk2.computers.Configuration");
+        monitor.Log("Drawing screen.");
+        
+        Game1.activeClickableMenu = new GameWindow(
+            configuration.WindowWidth,
+            configuration.WindowHeight,
+            (rectangle, batch) => computerPort.Fire(new RenderComputerEvent(rectangle, batch)),
+            onReceiveLeftClick: (x, y) => computerPort.Fire(new MouseLeftClickedEvent(computerPort.Id, x, y)),
+            onReceiveRightClick: (x, y) => computerPort.Fire(new MouseRightClickedEvent(computerPort.Id, x, y)),
+            onReceiveKeyPress: key => computerPort.Fire(new KeyPressedEvent(computerPort.Id, key)),
+            onReceiveScrollWheelAction: direction => computerPort.Fire(new MouseWheelEvent(computerPort.Id, direction))
+        );
     }
 }

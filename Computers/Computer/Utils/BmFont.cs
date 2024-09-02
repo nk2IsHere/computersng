@@ -1,7 +1,8 @@
-using System.Buffers;
 using System.Xml.Serialization;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+
+#pragma warning disable CS8618
 
 namespace Computers.Computer.Utils;
 

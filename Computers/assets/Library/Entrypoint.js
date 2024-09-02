@@ -33,7 +33,7 @@ export function Main() {
         (input) => {
             try {
                 const result = eval(input)
-                const resultString = `${input} = ${result}`
+                const resultString = `${input} := ${result}`
                 const resultByLine = resultString.split('\n')
                 for (const line of resultByLine) {
                     console.Info(line)
@@ -65,6 +65,7 @@ export function Main() {
         Render.Begin()
         Render.Rectangle(0, 0, screenWidth, screenHeight, Color.black)
         consoleView.Render()
+        reloadView.Render()
         Render.End()
     }
 }
