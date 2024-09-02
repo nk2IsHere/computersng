@@ -82,6 +82,10 @@ public class ComputerStatefulDataContextEntry : IContextEntry.StatefulDataContex
         if (computerEvent is StopComputerEvent) {
             Stop();
         }
+
+        if (computerEvent is StartComputerEvent) {
+            Start();
+        }
     }
 
     public void Set(string variableName, object value) {

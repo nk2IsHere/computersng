@@ -78,7 +78,8 @@ public class ModEntry : Mod {
                     Type = "Crafting",
                     Category = Object.CraftingCategory,
                     Texture = "tools.kot.nk2.computers.TileSheet.Disk",
-                    SpriteIndex = 0
+                    SpriteIndex = 0,
+                    CanBeGivenAsGift = false
                 }
             ),
             new IContextEntry.StatelessDataContextEntry(
@@ -106,7 +107,7 @@ public class ModEntry : Mod {
                         WobbleWhileWorking = false,
                         LightWhileWorking = new MachineLight {
                             Color = "ForestGreen",
-                            Radius = 5f
+                            Radius = 2f
                         },
                         InteractMethod = "Computers.ModEntry, Computers: ComputerMachineInteractMethod",
                         OutputRules = new List<MachineOutputRule> {
@@ -253,6 +254,13 @@ public class ModEntry : Mod {
                     initializer.GetSingle<IRedundantLoader>("tools.kot.nk2.computers.Service.CoreLibraryLoader"),
                     initializer.GetSingle<IRedundantLoader>("tools.kot.nk2.computers.Service.AssetsLoader")
                 )
+            ),
+            new IContextEntry.ServiceContextEntry(
+                "tools.kot.nk2.computers.Service.ComputerStartDispatcher",
+                typeof(IEventHandler),
+                initializer => new ComputerStartDispatcher(
+                    initializer.Lookup<IComputerPort>()
+                )
             )
         );
 
@@ -268,6 +276,9 @@ public class ModEntry : Mod {
         helper.Events.Input.ButtonReleased += (_, e) => eventBus.Publish(new ButtonReleasedEvent(e));
         
         helper.Events.World.ObjectListChanged += (_, e) => HandleObjectListChanged(e);
+        helper.Events.GameLoop.SaveCreating += (_, _) => HandleSave();
+        helper.Events.GameLoop.Saving += (_, _) => HandleSave();
+        helper.Events.GameLoop.SaveLoaded += (_, e) => HandleLoad(e);
     }
 
     public static bool ComputerMachineInteractMethod(
@@ -327,6 +338,37 @@ public class ModEntry : Mod {
         
         computer.Start();
         return outputItem;
+    }
+
+    private static void HandleSave() {
+        var helper = _context.GetSingle<IModHelper>("tools.kot.nk2.computers.ModHelper");
+        var monitor = _context.GetSingle<IMonitor>("tools.kot.nk2.computers.Monitor");
+        
+        monitor.Log("Saving data.");
+        var data = _context.Store();
+        helper.Data.WriteSaveData("tools.kot.nk2.computers", data.Serialize());
+    }
+    
+    private static void HandleLoad(SaveLoadedEventArgs args) {
+        var helper = _context.GetSingle<IModHelper>("tools.kot.nk2.computers.ModHelper");
+        var monitor = _context.GetSingle<IMonitor>("tools.kot.nk2.computers.Monitor");
+        var eventBus = _context.GetSingle<IEventBus>("tools.kot.nk2.computers.Service.EventBus");
+        
+        var data = helper.Data.ReadSaveData<string>("tools.kot.nk2.computers");
+        if (data is null) {
+            monitor.Log("No data found.");
+            return;
+        }
+
+        var deserializedData = data.Deserialize<Dictionary<string, Dictionary<string, object>>>();
+        if (deserializedData is null) {
+            monitor.Log("Data could not be deserialized.");
+            return;
+        }
+        
+        monitor.Log("Loading data.");
+        _context.Restore(deserializedData);
+        eventBus.Publish(new SaveLoadedEvent(args));
     }
 
     private static void HandleObjectListChanged(ObjectListChangedEventArgs args) {

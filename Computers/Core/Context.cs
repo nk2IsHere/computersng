@@ -1,3 +1,4 @@
+
 namespace Computers.Core;
 
 public class Context {
@@ -5,7 +6,7 @@ public class Context {
     }
 
     private readonly Dictionary<string, IContextEntry> _entries = new();
-    private readonly Dictionary<string, object?> _cache = new();
+    private readonly Dictionary<string, object?>  _cache = new();
     private readonly List<IInvalidatable> _lookups = new();
 
     public static Context Empty { get; } = new();
@@ -72,8 +73,8 @@ public class Context {
         return PutSingle(entry);
     }
     
-    public Dictionary<string, object> Store() {
-        var state = new Dictionary<string, object>();
+    public Dictionary<string, Dictionary<string, object>> Store() {
+        var state = new Dictionary<string, Dictionary<string, object>>();
         foreach (var entry in _entries.Values) {
             state[entry.Id] = entry.Store(this).Serialize();
         }
@@ -81,22 +82,22 @@ public class Context {
         return state;
     }
     
-    public void Restore(Dictionary<string, object> state) {
+    public void Restore(Dictionary<string, Dictionary<string, object>> state) {
         foreach (var (id, data) in state) {
-            var entryState = ContextEntryState.Deserialize((Dictionary<string, object>)data);
-            
+            var entryState = ContextEntryState.Deserialize(data);
             if (!_entries.TryGetValue(id, out var entry)) {
                 // Find factory for the entry
                 var factoryId = entryState.FactoryId ?? throw new KeyNotFoundException($"Factory id for entry '{id}' not found.");
                 var factory = GetSingle<IStatefulDataContextEntryFactory>(factoryId);
                 
                 entry = factory.ProduceValue(entryState);
+                _entries[id] = entry;
             }
 
             entry.Restore(this, entryState);
         }
     }
-    
+
     private T _GetOrAddCached<T>(string id, Func<T> factory) {
         if (_cache.TryGetValue(id, out var value) && value is T cachedResult) {
             return cachedResult;

@@ -18,4 +18,10 @@
       <Folder Include="assets\Assets\" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Reference Include="Newtonsoft.Json">
+        <HintPath>..\..\..\SVDev.app\Contents\MacOS\smapi-internal\Newtonsoft.Json.dll</HintPath>
+      </Reference>
+    </ItemGroup>
+
 </Project>

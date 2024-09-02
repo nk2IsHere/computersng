@@ -56,8 +56,8 @@ Make processing of Stardew's resources a configurable function pipe-like process
 - [x] Add VMs (sandboxes) for each computer instance in world
 - [x] Add save state mechanism for computers, make them movable and attach id tag for any obtained computer
 - [x] Add basic console interpreter for each computer
-- [ ] Add per-save state for computers
-- [ ] Add basic stdlib apis for computers
+- [x] Add basic stdlib apis for computers
+- [x] Add per-save state for computers
 
 ### Interactability with world (TODO)
 

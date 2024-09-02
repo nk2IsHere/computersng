@@ -1,4 +1,3 @@
-using System.Collections.Immutable;
 using Computers.Computer.Boundary;
 using StardewModdingAPI;
 
@@ -9,7 +8,7 @@ public class EventComputerApi : IComputerApi {
     public bool ShouldExpose => true;
     public object Api => _state;
     
-    private ISet<SButton> _heldButtons = new HashSet<SButton>();
+    private readonly ISet<SButton> _heldButtons = new HashSet<SButton>();
     
     public ISet<Type> ReceivableEvents => new HashSet<Type> {
         typeof(TickComputerEvent),

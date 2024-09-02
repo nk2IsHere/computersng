@@ -19,7 +19,7 @@ public record RenderComputerEvent(Rectangle Rectangle, SpriteBatch Batch) : ICom
     public T Data<T>() => (T) (object) (Rectangle, Batch);
 }
 
-public record StopComputerEvent(string? ComputerId) : IComputerEvent {
+public record StopComputerEvent(string? ComputerId = null) : IComputerEvent {
      
     public T Data<T>() => default!;
     public bool Global => !string.IsNullOrEmpty(ComputerId);
@@ -58,4 +58,11 @@ public record MouseWheelEvent(string ComputerId, int Direction) : IComputerEvent
     public T Data<T>() => (T) (object) Direction;
     public bool Global => false;
     public bool BelongsTo(string id) => ComputerId == id;
+}
+
+public record StartComputerEvent(string? ComputerId = null) : IComputerEvent {
+     
+    public T Data<T>() => default!;
+    public bool Global => !string.IsNullOrEmpty(ComputerId);
+    public bool BelongsTo(string id) => string.IsNullOrEmpty(ComputerId) || ComputerId == id;
 }
