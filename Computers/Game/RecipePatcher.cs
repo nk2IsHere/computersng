@@ -25,7 +25,7 @@ public class RecipePatcherService : IPatcherService {
         _monitor.Log("Patching crafting recipes data.", LogLevel.Debug);
         var assetData = asset.GetData<Dictionary<string, string>>();
         foreach (var data in _patchData) {
-            assetData.Add(data.Id, data.Value.PatchString);
+            assetData.Add(data.Value.PatchKey, data.Value.PatchString);
         }
     }
 }

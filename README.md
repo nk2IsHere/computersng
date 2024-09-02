@@ -53,9 +53,10 @@ Make processing of Stardew's resources a configurable function pipe-like process
     - [x] Make displayed window render custom graphics in batch using commands
     - [x] Make an abstraction over stardew's code
 - [x] Add support for interpretable language in-library
-- [ ] Add VMs (sandboxes) for each computer instance in world
-- [ ] Add save state mechanism for computers, make them movable and attach id tag for any obtained computer
-- [ ] Add basic console interpreter for each computer
+- [x] Add VMs (sandboxes) for each computer instance in world
+- [x] Add save state mechanism for computers, make them movable and attach id tag for any obtained computer
+- [x] Add basic console interpreter for each computer
+- [ ] Add per-save state for computers
 - [ ] Add basic stdlib apis for computers
 
 ### Interactability with world (TODO)

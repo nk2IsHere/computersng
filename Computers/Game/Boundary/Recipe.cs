@@ -6,7 +6,7 @@ public interface IRecipeRequirement {
     public string PatchString { get; }
 
     public record NoneRequired : IRecipeRequirement {
-        public string PatchString => "none";
+        public string PatchString => "default";
     }
     
     public record SkillRequired(SkillType Skill, int Level) : IRecipeRequirement {
@@ -15,18 +15,27 @@ public interface IRecipeRequirement {
 }
 
 public record Recipe(
-    string Id,
     string YieldId,
     Dictionary<string, int> Ingredients,
     bool IsBigCraftable,
     IRecipeRequirement SkillRequirement,
-    string DisplayName
+    string DisplayName,
+    string? Description = null
 ) {
+    
+    //[Wood Fence, 388 2/Field/322/false/default/]
+
+    public string PatchKey {
+        get {
+            return DisplayName;
+        }
+    }
+    
     public string PatchString {
         get {
             var ingredients = string.Join(" ", Ingredients.Select(pair => $"{pair.Key} {pair.Value}"));
             var skillRequirement = SkillRequirement.PatchString;
-            return $"{ingredients}/Field/{YieldId}/{IsBigCraftable}/{skillRequirement}/{DisplayName}";
+            return $"{ingredients}/Field/{YieldId}/{IsBigCraftable}/{skillRequirement}/{Description}";
         }
     }
 }

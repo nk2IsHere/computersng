@@ -42,7 +42,6 @@ public class ModEntry : Mod {
                 "tools.kot.nk2.computers.Recipe.Computer",
                 typeof(Recipe),
                 new Recipe(
-                    "tools.kot.nk2.computers.Recipe.Computer",
                     "tools.kot.nk2.computers.BigCraftable.Computer",
                     new Dictionary<string, int> {
                         { "380", 5 }
@@ -86,7 +85,6 @@ public class ModEntry : Mod {
                 "tools.kot.nk2.computers.Recipe.Disk",
                 typeof(Recipe),
                 new Recipe(
-                    "tools.kot.nk2.computers.Recipe.Disk",
                     "tools.kot.nk2.computers.Item.Disk",
                     new Dictionary<string, int> {
                         { "380", 1 }
@@ -368,14 +366,16 @@ public class ModEntry : Mod {
         var configuration = _context.GetSingle<Configuration>("tools.kot.nk2.computers.Configuration");
         monitor.Log("Drawing screen.");
         
-        Game1.activeClickableMenu = new GameWindow(
-            configuration.WindowWidth,
-            configuration.WindowHeight,
-            (rectangle, batch) => computerPort.Fire(new RenderComputerEvent(rectangle, batch)),
-            onReceiveLeftClick: (x, y) => computerPort.Fire(new MouseLeftClickedEvent(computerPort.Id, x, y)),
-            onReceiveRightClick: (x, y) => computerPort.Fire(new MouseRightClickedEvent(computerPort.Id, x, y)),
-            onReceiveKeyPress: key => computerPort.Fire(new KeyPressedEvent(computerPort.Id, key)),
-            onReceiveScrollWheelAction: direction => computerPort.Fire(new MouseWheelEvent(computerPort.Id, direction))
-        );
+        Game1.InUIMode(() => {
+            Game1.activeClickableMenu = new GameWindow(
+                configuration.WindowWidth,
+                configuration.WindowHeight,
+                (rectangle, batch) => computerPort.Fire(new RenderComputerEvent(rectangle, batch)),
+                onReceiveLeftClick: (x, y) => computerPort.Fire(new MouseLeftClickedEvent(computerPort.Id, x, y)),
+                onReceiveRightClick: (x, y) => computerPort.Fire(new MouseRightClickedEvent(computerPort.Id, x, y)),
+                onReceiveKeyPress: key => computerPort.Fire(new KeyPressedEvent(computerPort.Id, key)),
+                onReceiveScrollWheelAction: direction => computerPort.Fire(new MouseWheelEvent(computerPort.Id, direction))
+            );
+        });
     }
 }
