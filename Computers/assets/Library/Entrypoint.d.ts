@@ -41,18 +41,18 @@ declare const System: {
 }
 
 declare enum StorageErrorType {
-    FileNotFound = "FileNotFound",
-    DirectoryNotFound = "DirectoryNotFound",
-    FileAlreadyExists = "FileAlreadyExists",
-    DirectoryAlreadyExists = "DirectoryAlreadyExists",
-    DirectoryNotEmpty = "DirectoryNotEmpty",
-    PathIsNotDirectory = "PathIsNotDirectory",
-    PathIsNotFile = "PathIsNotFile",
+    FileNotFound,
+    DirectoryNotFound,
+    FileAlreadyExists,
+    DirectoryAlreadyExists,
+    DirectoryNotEmpty,
+    PathIsNotDirectory,
+    PathIsNotFile
 }
 
 declare enum StorageResponseType {
-    Success = "Success",
-    Error = "Error",
+    Success,
+    Error
 }
 
 declare type StorageResponse<T> = 
@@ -60,8 +60,8 @@ declare type StorageResponse<T> =
     | { Type: StorageResponseType.Error, Error: StorageErrorType }
 
 declare enum StorageFileType {
-    File = "File",
-    Directory = "Directory",
+    File,
+    Directory
 }
 
 declare type StorageFileMetadata = {

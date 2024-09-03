@@ -27,6 +27,10 @@ export class Console {
         }
     }
     
+    Clear() {
+        this.logs = []
+    }
+    
     Info(message) {
         this.Log(message, ConsoleLogLevel.Info)
     }
