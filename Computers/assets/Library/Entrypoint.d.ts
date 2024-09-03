@@ -40,7 +40,47 @@ declare const System: {
     Time: () => number
 }
 
+declare enum StorageErrorType {
+    FileNotFound = "FileNotFound",
+    DirectoryNotFound = "DirectoryNotFound",
+    FileAlreadyExists = "FileAlreadyExists",
+    DirectoryAlreadyExists = "DirectoryAlreadyExists",
+    DirectoryNotEmpty = "DirectoryNotEmpty",
+    PathIsNotDirectory = "PathIsNotDirectory",
+    PathIsNotFile = "PathIsNotFile",
+}
+
+declare enum StorageResponseType {
+    Success = "Success",
+    Error = "Error",
+}
+
+declare type StorageResponse<T> = 
+    | { Type: StorageResponseType.Success, Data: T }
+    | { Type: StorageResponseType.Error, Error: StorageErrorType }
+
+declare enum StorageFileType {
+    File = "File",
+    Directory = "Directory",
+}
+
+declare type StorageFileMetadata = {
+    Name: string
+    Type: StorageFileType
+    Size: number
+}
+
+declare type StorageFile = {
+    Metadata: StorageFileMetadata
+    Data: Array<number>
+}
+
 // @ts-ignore
 declare const Storage: {
-    [key: string]: any
+    Exists: (path: string) => boolean
+    List: (path: string) => StorageResponse<StorageFileMetadata[]>
+    Read: (path: string) => StorageResponse<StorageFile>
+    Write: (path: string, data: Array<number>) => StorageResponse<never>
+    Delete: (path: string, recursive: boolean) => StorageResponse<never>
+    MakeDirectory: (path: string) => StorageResponse<never>
 }

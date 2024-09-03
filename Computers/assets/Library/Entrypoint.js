@@ -38,8 +38,9 @@ export function Main() {
                 for (const line of resultByLine) {
                     console.Info(line)
                 }
+                consoleView.SetInputPrefixData("> ")
             } catch (e) {
-                const errorString = `${input} = ${e}`
+                const errorString = `${input} := ${e}`
                 const errorByLine = errorString.split('\n')
                 for (const line of errorByLine) {
                     console.Error(line)
