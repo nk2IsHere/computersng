@@ -41,7 +41,8 @@ public class ComputerStatefulDataContextEntry : IContextEntry.StatefulDataContex
         _computerApis = new List<IComputerApi> {
             new RenderComputerApi(this),
             new EventComputerApi(this),
-            new SystemComputerApi(this)
+            new SystemComputerApi(this),
+            new StorageComputerApi(this),
         };
         
         Reload();
@@ -96,6 +97,16 @@ public class ComputerStatefulDataContextEntry : IContextEntry.StatefulDataContex
         return (T?) _engine?.GetValue(variableName).ToObject();
     }
 
+    public IDictionary<string, object> GetStorage(IComputerApi api) {
+        if(_storage.TryGetValue(api.Name, out var value)) {
+            return (IDictionary<string, object>) value;
+        }
+        
+        var storage = new ConcurrentDictionary<string, object>();
+        _storage.Add(api.Name, storage);
+        return storage;
+    }
+
     public void Reload() {
         _cancellationTokenSource = new CancellationTokenSource();
         _engine?.Dispose();
@@ -108,7 +119,6 @@ public class ComputerStatefulDataContextEntry : IContextEntry.StatefulDataContex
         );
 
         _computerApis.ForEach(RegisterApi);
-        _engine.SetValue("Storage", _storage);
         _entryPointModule = _engine.Modules.Import(Configuration.EntryPointModule);
     }
 

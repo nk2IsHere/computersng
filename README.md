@@ -43,7 +43,7 @@ Make processing of Stardew's resources a configurable function pipe-like process
 - [x] Add dictionary (Data/BigCraftablesInformation, Data/CraftingRecipes) patching
 - [x] Add tilesheet (TileSheets/Craftables) patching
 
-### Basic POC of computer in-game (IN PROGRESS)
+### Basic POC of computer in-game (DONE)
 
 - [x] Make computer bigcraftable interactable on use action
 - [x] Make computer interaction display centered window
@@ -59,9 +59,17 @@ Make processing of Stardew's resources a configurable function pipe-like process
 - [x] Add basic stdlib apis for computers
 - [x] Add per-save state for computers
 
+### Extensible Computer (IN PROGRESS)
+
+- [x] Add support for file system (storage encapsulation)
+- [ ] Add support for custom packages loading
+- [ ] Add support for public networking
+- [ ] Add support for computer-to-computer communication
+
 ### Interactability with world (TODO)
 
-- [ ] Add possibility of auto-discovering machine groups with computer as controller
+- [ ] Add peripherals support with network communication
+- [ ] Add possibility of auto-discovering machine groups with computer as controller using peripheral
 - [ ] ???
 
 ## Kudos/Inspiration

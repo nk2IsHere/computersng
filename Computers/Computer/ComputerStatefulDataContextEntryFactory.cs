@@ -37,7 +37,7 @@ public class ComputerStatefulDataContextEntryFactory : IStatefulDataContextEntry
     }
 
     public IContextEntry ProduceValue(ContextEntryState state) {
-        var id = state.Id ?? _baseComputerId / Guid.NewGuid().ToString();
+        var id = state.Id ?? _baseComputerId / Id.Random();
         return new ComputerStatefulDataContextEntry(
             FactoryId,
             id,

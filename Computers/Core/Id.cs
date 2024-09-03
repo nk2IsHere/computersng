@@ -13,6 +13,11 @@ public record Id(List<string> Parts) {
         return new Id(parts.ToList());
     }
 
+    public static Id Random(int length = 6) {
+        var guidString = Guid.NewGuid().ToString("N");
+        return new Id(new List<string> { guidString[..length] });
+    }
+
     public static Id operator /(Id id, string part) {
         var parts = id.Parts.ToList();
         parts.Add(part);

@@ -14,6 +14,9 @@ public interface IComputerPort {
     void Set(string variableName, object value);
     T? Get<T>(string variableName);
     
+    // Storage
+    IDictionary<string, object> GetStorage(IComputerApi api);
+    
     // Lifecycle
     void Reload();
     void Start();

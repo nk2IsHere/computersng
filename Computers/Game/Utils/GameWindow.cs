@@ -6,7 +6,7 @@ using StardewValley.Menus;
 
 namespace Computers.Game.Utils;
 
-public class GameWindow : IClickableMenu {
+public class GameWindow : IClickableMenu, IKeyboardSubscriber {
     private readonly Action<Rectangle, SpriteBatch> _render;
     private readonly Action<int, int>? _onReceiveLeftClick;
     private readonly Action<int, int>? _onReceiveRightClick;
@@ -43,8 +43,10 @@ public class GameWindow : IClickableMenu {
             new Rectangle(337, 494, 12, 12), 
             4f
         );
+        
+        Game1.keyboardDispatcher.Subscriber = this;
     }
-
+    
     public override void draw(SpriteBatch batch) {
         batch.Draw(
             Game1.fadeToBlackRect,
@@ -61,7 +63,7 @@ public class GameWindow : IClickableMenu {
             true
         );
 
-        // Values takes from dialog box code.
+        // Values taken from dialog box code.
         var boundsRectangle = new Rectangle(
             32 + xPositionOnScreen,
             96 + yPositionOnScreen,
@@ -83,30 +85,43 @@ public class GameWindow : IClickableMenu {
         _onReceiveRightClick?.Invoke(x, y);
         base.receiveRightClick(x, y, playSound);
     }
-
-    public override void receiveKeyPress(Keys key) {
-        _onReceiveKeyPress?.Invoke(key);
-        
-        // HACK: do not close on "E" key press. Too lazy to implement proper handling.
-        if (key == Keys.E) {
-            return;
-        }
-
-        // HACK: do not open chat on "T" key press. Too lazy to implement proper handling.
-        if (key == Keys.T) {
-            return;
-        }
-        
-        base.receiveKeyPress(key);
-    }
     
     public override void receiveScrollWheelAction(int direction) {
         _onReceiveScrollWheelAction?.Invoke(direction);
         base.receiveScrollWheelAction(direction);
     }
 
+    public override void receiveKeyPress(Keys key) {
+        _onReceiveKeyPress?.Invoke(key);
+        
+        if (key == Keys.Escape) {
+            Game1.exitActiveMenu();
+        }
+        
+        // From code for gamepad controls.
+        if (!Game1.options.snappyMenus || !Game1.options.gamepadControls || overrideSnappyMenuCursorMovementBan())
+            return;
+        
+        applyMovementKey(key);
+    }
+
     protected override void cleanupBeforeExit() {
         _onClose?.Invoke();
+        Game1.keyboardDispatcher.Subscriber = null;
         base.cleanupBeforeExit();
+    }
+    
+    public bool Selected { get; set; }
+    
+    public void RecieveTextInput(char inputChar) {
+    }
+
+    public void RecieveTextInput(string text) {
+    }
+
+    public void RecieveCommandInput(char command) {
+    }
+
+    public void RecieveSpecialInput(Keys key) {
     }
 }
