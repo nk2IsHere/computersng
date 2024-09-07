@@ -53,6 +53,7 @@ export class ConsoleView {
         console,
         renderOptions,
         inputOptions,
+        initialCommandContext,
         onInput
     ) {
         this.console = console
@@ -69,7 +70,10 @@ export class ConsoleView {
         this.scrollOffset = 0
         
         this.currentInput = ""
-        this.currentInputPrefixData = ""
+        
+        this.currentCommandContext = {
+            ...initialCommandContext
+        }
     }
     
     Render() {
@@ -120,12 +124,13 @@ export class ConsoleView {
         
         // Render the input line
         if (allowInput) {
+            const currentInputState = this.currentCommandContext.inputState?.toString() ?? ""
             const currentInputSliceStart = Math.max(
                 0, 
-                this.currentInput.length - maxCharactersPerLine + inputPrefix.length + this.currentInputPrefixData.length
+                this.currentInput.length - maxCharactersPerLine + inputPrefix.length + currentInputState.length
             )
             const currentInputSliceEnd = this.currentInput.length
-            const currentInput = `${this.currentInputPrefixData}${inputPrefix}${this.currentInput.slice(currentInputSliceStart, currentInputSliceEnd)}`
+            const currentInput = `${currentInputState}${inputPrefix}${this.currentInput.slice(currentInputSliceStart, currentInputSliceEnd)}`
             
             Render.Text(x, currentY, currentInput, fontSize, textColor)
         }
@@ -156,13 +161,9 @@ export class ConsoleView {
             }
             
             if (key.name === "Enter") {
-                this.onInput(this.currentInput)
+                this.currentCommandContext = this.onInput(this.currentInput, this.currentCommandContext)
                 this.currentInput = ""
             }
         }
-    }
-
-    SetInputPrefixData(prefixData) {
-        this.currentInputPrefixData = `${prefixData}`
     }
 }

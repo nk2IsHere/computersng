@@ -39,7 +39,8 @@ export function ReadBytes(path) {
         throw new Error(StorageErrorType[response.Error])
     }
     
-    return response.Data
+    const file = response.Data
+    return file.Data
 }
 
 export function ReadString(path) {
