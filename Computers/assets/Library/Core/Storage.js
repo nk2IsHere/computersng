@@ -135,7 +135,7 @@ export function Copy(source, destination, { move = false, overwrite = false, rec
     }
     
     const sourceMetadata = ReadMetadata(source);
-    if (StorageFileType[sourceMetadata.Type] === "File" && !recursive) {
+    if (StorageFileType[sourceMetadata.Type] === "Directory" && !recursive) {
         throw new Error(`Source path is a directory and recursive copy is not enabled: ${source}`)
     }
     
@@ -148,6 +148,7 @@ export function Copy(source, destination, { move = false, overwrite = false, rec
         if (move) {
             Delete(source)
         }
+        return
     }
 
     if (Exists(destination)) {

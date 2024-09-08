@@ -99,7 +99,7 @@ export class ConsoleView {
         let currentY = y
         
         // Choose top lines to render based on scrollOffset
-        const minScrollOffset = -Math.max(0, lines.length - maxLines)
+        const minScrollOffset = -Math.max(0, lines.length - maxLines + (allowInput ? 1 : 0)) // input line takes 1 line
         const maxScrollOffset = 0
         const scrollOffset = Math.min(maxScrollOffset, Math.max(minScrollOffset, this.scrollOffset))
         

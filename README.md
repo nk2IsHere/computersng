@@ -62,7 +62,7 @@ Make processing of Stardew's resources a configurable function pipe-like process
 ### Extensible Computer (IN PROGRESS)
 
 - [x] Add support for file system (storage encapsulation)
-- [ ] Add support for custom packages loading
+- [x] Add support for custom packages loading
 - [ ] Add support for public networking
 - [ ] Add support for computer-to-computer communication
 
