@@ -39,14 +39,10 @@ function commandResultWithContext(
 
 function commandArguments(context, args) {
     const lastCommandResult = context.lastCommandResult ?? []
-
-    const argumentList = []
-    const maxArguments = Math.max(args.length, lastCommandResult.length)
-    for (let i = 0; i < maxArguments; i++) {
-        argumentList.push(args[i] ?? lastCommandResult[i])
-    }
-
-    return argumentList
+    return [
+        ...args,
+        ...lastCommandResult
+    ]
 }
 
 const ConsoleCommands = Object.freeze({
@@ -167,7 +163,44 @@ const ConsoleCommands = Object.freeze({
             return commandResult(context)
         }
     },
+    "exec": {
+        description: "Execute script",
+        action: (args, console, context) => {
+            const [script] = commandArguments(context, args)
+
+            if (!script) {
+                console.Error("Usage: .exec <script>")
+                return commandResult(context, null, false)
+            }
+
+            let scriptPath = JoinPaths(context.currentDirectory, script)
+            if (!scriptPath.endsWith(".js")) {
+                scriptPath += ".js"
+            }
+            
+            const scriptExists = Exists(scriptPath)
+            
+            if (!scriptExists) {
+                console.Error(`Script ${scriptPath} does not exist`)
+                return commandResult(context, null, false)
+            }
+
+            return EvaluateJsExecutable(console, context, scriptPath)
+        }
+    },
 })
+
+export function EvaluateJsExecutable(console, context, path) {
+    try {
+        const module = System.LoadModule(path)
+        module.Main(console, context)
+        
+        return commandResult(context, module)
+    } catch (e) {
+        console.Error(`Error while executing script: ${e}`)
+        return commandResult(context, null, false)
+    }
+}
 
 export function EvaluateJsCommand(console, context, input) {
     try {
@@ -230,5 +263,11 @@ export function EvaluateCommand(console, context, input) {
         }
     } catch (e) {
         console.Error(`Error while executing command: ${e}`)
+        return {
+            ...context,
+            lastCommandResult: null,
+            lastCommandSuccessful: false,
+            inputState: context.currentDirectory ?? context.inputState
+        }
     }
 }

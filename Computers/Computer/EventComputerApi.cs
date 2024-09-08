@@ -1,4 +1,5 @@
 using Computers.Computer.Boundary;
+using Computers.Game.Boundary;
 using StardewModdingAPI;
 
 namespace Computers.Computer;
@@ -20,10 +21,7 @@ public class EventComputerApi : IComputerApi {
         typeof(ButtonUnheldEvent)
     };
 
-    public ISet<Type> RegisterableApiTypes => new HashSet<Type> {
-        typeof(EventComputerState),
-        typeof(Event)
-    };
+    public IRedundantLoader? LibraryLoader => null;
 
     private readonly IComputerPort _computerPort;
     private readonly Configuration _configuration;
@@ -34,7 +32,7 @@ public class EventComputerApi : IComputerApi {
         _computerPort = computerPort;
         _configuration = computerPort.Configuration;
         
-        _state = new EventComputerState();
+        _state = new EventComputerState(computerPort);
     }
 
     public void ReceiveEvent(IComputerEvent computerEvent) {
@@ -79,8 +77,13 @@ internal record Event(string Type, object[] Data);
 
 internal class EventComputerState {
     
+    private readonly IComputerPort _computerPort;
     private readonly Queue<Event> _events = new();
-    
+
+    public EventComputerState(IComputerPort computerPort) {
+        _computerPort = computerPort;
+    }
+
     public void Enqueue(Event @event) {
         if (@event == null) {
             throw new ArgumentNullException(nameof(@event));
@@ -92,6 +95,13 @@ internal class EventComputerState {
     }
     
     public List<Event> Poll() {
+        // Since the engine expects main function to be an infinite loop, we need to process tasks somewhere, 
+        // where the code is executed every frame.
+        // Polling events is a good place to do that, unless any external script decides not to poll events.
+        // There is an explicit method to process tasks, so it can be called from the main function in such cases, but
+        // generally it won't be necessary.
+        _computerPort.ProcessTasks();
+        
         lock (_events) {
             var events = _events.ToList();
             _events.Clear();

@@ -18,4 +18,5 @@ public interface ITargetLoader<T> {
 
 public interface IRedundantLoader {
     public T Load<T>(string path) where T : notnull;
+    public bool Exists(string path);
 }

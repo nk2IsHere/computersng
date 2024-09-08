@@ -42,7 +42,7 @@ public class ComputerStatefulDataContextEntry : IContextEntry.StatefulDataContex
             new RenderComputerApi(this),
             new EventComputerApi(this),
             new SystemComputerApi(this),
-            new StorageComputerApi(this),
+            new StorageComputerApi(this)
         };
         
         Reload();
@@ -97,6 +97,14 @@ public class ComputerStatefulDataContextEntry : IContextEntry.StatefulDataContex
         return (T?) _engine?.GetValue(variableName).ToObject();
     }
 
+    public object? LoadModule(string moduleName) {
+        return _engine?.Modules.Import(moduleName);
+    }
+
+    public void ProcessTasks() {
+        _engine?.Advanced.ProcessTasks();
+    }
+
     public IDictionary<string, object> GetStorage(IComputerApi api) {
         if(_storage.TryGetValue(api.Name, out var value)) {
             return (IDictionary<string, object>) value;
@@ -110,11 +118,17 @@ public class ComputerStatefulDataContextEntry : IContextEntry.StatefulDataContex
     public void Reload() {
         _cancellationTokenSource = new CancellationTokenSource();
         _engine?.Dispose();
+
+        var libraryLoaders = _computerApis
+            .Select(api => api.LibraryLoader)
+            .OfType<IRedundantLoader>()
+            .ToList();
+        
         _engine = new Engine(
             options => {
                 options.Strict();
                 options.CancellationToken(_cancellationTokenSource.Token);
-                options.EnableModules(new ComputerModuleLoader(Configuration, _monitor, _coreLibraryLoader));
+                options.EnableModules(new ComputerModuleLoader(_monitor, _coreLibraryLoader, libraryLoaders));
             }
         );
 
@@ -186,14 +200,14 @@ public class ComputerStatefulDataContextEntry : IContextEntry.StatefulDataContex
 
 internal class ComputerModuleLoader : ModuleLoader {
 
-    private readonly Configuration _configuration;
     private readonly IMonitor _monitor;
     private readonly IRedundantLoader _coreLibraryLoader;
+    private readonly List<IRedundantLoader> _libraryLoaders;
     
-    public ComputerModuleLoader(Configuration configuration, IMonitor monitor, IRedundantLoader coreLibraryLoader) {
-        _configuration = configuration;
+    public ComputerModuleLoader(IMonitor monitor, IRedundantLoader coreLibraryLoader, List<IRedundantLoader> libraryLoaders) {
         _monitor = monitor;
         _coreLibraryLoader = coreLibraryLoader;
+        _libraryLoaders = libraryLoaders;
     }
 
     public override ResolvedSpecifier Resolve(string? referencingModuleLocation, ModuleRequest moduleRequest) {
@@ -227,7 +241,31 @@ internal class ComputerModuleLoader : ModuleLoader {
         }
         
         var fileName = Uri.UnescapeDataString(resolved.Uri.AbsolutePath);
-        return _coreLibraryLoader.Load<string>(fileName);
+        
+        var coreLibraryModule = TryLoadModuleUsing(_coreLibraryLoader, fileName);
+        
+        if (coreLibraryModule is not null) {
+            return coreLibraryModule;
+        }
+        
+        foreach (var libraryModule in _libraryLoaders.Select(loader => TryLoadModuleUsing(loader, fileName)).OfType<string>()) {
+            return libraryModule;
+        }
+        
+        throw new InvalidOperationException($"Module {fileName} not found.");
+    }
+    
+    private string? TryLoadModuleUsing(IRedundantLoader loader, string fileName) {
+        if (loader.Exists(fileName)) {
+            return loader.Load<string>(fileName);
+        }
+        
+        var fileNameWithExtension = fileName + ".js";
+        if (loader.Exists(fileNameWithExtension)) {
+            return loader.Load<string>(fileNameWithExtension);
+        }
+        
+        return null;
     }
 
     private static bool IsRelative(string specifier) {

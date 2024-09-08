@@ -40,4 +40,13 @@ public class RedundantLoader: IRedundantLoader {
             return (T) (object) File.ReadAllText(fullPath);
         }
     }
+
+    public bool Exists(string path) {
+        var directory = _helper.DirectoryPath;
+        var assetNameParts = path.Split(ILoader.PathSplitters, StringSplitOptions.RemoveEmptyEntries);
+        var assetPath = Path.Combine(Path.Combine(_basePath), Path.Combine(assetNameParts));
+        var fullPath = Path.Combine(directory, assetPath);
+        
+        return File.Exists(fullPath);
+    }
 }

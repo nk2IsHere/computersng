@@ -1,4 +1,5 @@
 using Computers.Computer.Boundary;
+using Computers.Game.Boundary;
 
 namespace Computers.Computer;
 
@@ -8,8 +9,8 @@ public class SystemComputerApi : IComputerApi {
     public object Api => _state;
     
     public ISet<Type> ReceivableEvents => new HashSet<Type>();
-    
-    public ISet<Type> RegisterableApiTypes => new HashSet<Type> { typeof(SystemComputerState) };
+    public IRedundantLoader? LibraryLoader => null;
+
 
     private readonly IComputerPort _computerPort;
     
@@ -17,7 +18,7 @@ public class SystemComputerApi : IComputerApi {
 
     public SystemComputerApi(IComputerPort computerPort) {
         _computerPort = computerPort;
-        _state = new SystemComputerState();
+        _state = new SystemComputerState(_computerPort);
     }
     
     public void ReceiveEvent(IComputerEvent computerEvent) {
@@ -29,6 +30,12 @@ public class SystemComputerApi : IComputerApi {
 
 internal class SystemComputerState {
     
+    private readonly IComputerPort _computerPort;
+    
+    public SystemComputerState(IComputerPort computerPort) {
+        _computerPort = computerPort;
+    }
+    
     public void Sleep(int milliseconds) {
         if (milliseconds < 0) {
             throw new ArgumentOutOfRangeException(nameof(milliseconds), "Sleep time cannot be negative");
@@ -39,5 +46,13 @@ internal class SystemComputerState {
     
     public long Time() {
         return DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+    }
+    
+    public object? LoadModule(string moduleName) {
+        return _computerPort.LoadModule(moduleName);
+    }
+    
+    public void ProcessTasks() {
+        _computerPort.ProcessTasks();
     }
 }

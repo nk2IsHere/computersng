@@ -1,5 +1,6 @@
-using System.Collections.Immutable;
+using System.Text;
 using Computers.Computer.Boundary;
+using Computers.Game.Boundary;
 
 namespace Computers.Computer;
 
@@ -9,9 +10,8 @@ public class StorageComputerApi: IComputerApi {
     public object Api => _state;
     
     public ISet<Type> ReceivableEvents => new HashSet<Type>();
+    public IRedundantLoader LibraryLoader => new StorageRedundantLoader(_state);
     
-    public ISet<Type> RegisterableApiTypes => new HashSet<Type> { typeof(StorageComputerState) };
-
     private readonly StorageComputerState _state;
 
     public StorageComputerApi(IComputerPort computerPort) {
@@ -361,5 +361,35 @@ internal class StorageComputerState {
             pathParts = pathParts[1..];
             storage = directory;
         }
+    }
+}
+
+internal class StorageRedundantLoader : IRedundantLoader {
+    
+    private readonly StorageComputerState _state;
+
+    public StorageRedundantLoader(StorageComputerState state) {
+        _state = state;
+    }
+    
+    public T Load<T>(string path) where T : notnull {
+        var response = _state.Read(path);
+        if (response.Type == StorageResponseType.Error) {
+            throw new InvalidOperationException($"Failed to load {typeof(T).Name} from {path}: {response.Error}");
+        }
+        
+        if (response.Data is not { } file) {
+            throw new InvalidOperationException($"Failed to load {typeof(T).Name} from {path}: Expected file, got {response.Data?.GetType().Name}");
+        }
+
+        return typeof(T) switch {
+            { } t when t == typeof(byte[]) => (T) (object) file.Data,
+            { } t when t == typeof(string) => (T) (object) Encoding.UTF8.GetString(file.Data),
+            _ => throw new InvalidOperationException($"Failed to load {typeof(T).Name} from {path}: Unsupported type")
+        };
+    }
+
+    public bool Exists(string path) {
+        return _state.Exists(path);
     }
 }

@@ -1,5 +1,6 @@
 using Computers.Computer.Boundary;
 using Computers.Computer.Utils;
+using Computers.Game.Boundary;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using StardewValley;
@@ -12,9 +13,8 @@ public class RenderComputerApi: IComputerApi {
     public object Api => _state;
     
     public ISet<Type> ReceivableEvents => new HashSet<Type> { typeof(RenderComputerEvent) };
-
-    public ISet<Type> RegisterableApiTypes => new HashSet<Type> { typeof(RenderComputerState) };
-
+    public IRedundantLoader? LibraryLoader => null;
+    
     private readonly Configuration _configuration;
     
     private readonly RenderComputerState _state;

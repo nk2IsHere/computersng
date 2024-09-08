@@ -13,6 +13,8 @@ public interface IComputerPort {
     void Fire(IComputerEvent computerEvent);
     void Set(string variableName, object value);
     T? Get<T>(string variableName);
+    object? LoadModule(string moduleName);
+    void ProcessTasks();
     
     // Storage
     IDictionary<string, object> GetStorage(IComputerApi api);

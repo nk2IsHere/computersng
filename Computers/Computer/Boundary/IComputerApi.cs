@@ -1,3 +1,5 @@
+using Computers.Game.Boundary;
+
 namespace Computers.Computer.Boundary;
 
 public interface IComputerApi {
@@ -5,7 +7,7 @@ public interface IComputerApi {
     public bool ShouldExpose { get; }
     public object Api { get; }
     public ISet<Type> ReceivableEvents { get; }
-    public ISet<Type> RegisterableApiTypes { get; }
+    public IRedundantLoader? LibraryLoader { get; }
     
     public void ReceiveEvent(IComputerEvent computerEvent);
     public void Reset();
