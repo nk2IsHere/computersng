@@ -1,4 +1,14 @@
-import { Delete, Exists, JoinPaths, List, ReadString, WriteString } from "./Storage.js"
+import {
+    Delete,
+    Exists,
+    JoinPaths,
+    List,
+    MakeDirectory,
+    ReadBytes,
+    ReadString,
+    WriteBytes,
+    WriteString
+} from "./Storage.js"
 
 function commandResult(
     context,
@@ -48,10 +58,11 @@ function commandArguments(context, args) {
 const ConsoleCommands = Object.freeze({
     "help": {
         description: "Prints this help message",
+        usage: ".help",
         action: (args, console, context) => {
             console.Info("Available commands:")
-            for (const [command, {description}] of Object.entries(ConsoleCommands)) {
-                console.Info(`-> .${command}: ${description}`)
+            for (const [command, { description, usage}] of Object.entries(ConsoleCommands)) {
+                console.Info(`-> .${command}: ${description} (${usage})`)
             }
 
             return commandResult(context, null)
@@ -59,6 +70,7 @@ const ConsoleCommands = Object.freeze({
     },
     "clear": {
         description: "Clear console",
+        usage: ".clear",
         action: (args, console, context) => {
             console.Clear()
             return commandResult(context)
@@ -66,6 +78,7 @@ const ConsoleCommands = Object.freeze({
     },
     "cd": {
         description: "Change directory",
+        usage: ".cd <directory>",
         action: (args, console, context) => {
             const [changeDirectory] = commandArguments(context, args)
 
@@ -85,6 +98,7 @@ const ConsoleCommands = Object.freeze({
     },
     "pwd": {
         description: "Print working directory",
+        usage: ".pwd",
         action: (args, console, context) => {
             console.Info(context.currentDirectory)
             return commandResult(context, context.currentDirectory)
@@ -92,6 +106,7 @@ const ConsoleCommands = Object.freeze({
     },
     "ls": {
         description: "List files in current directory",
+        usage: ".ls <directory>",
         action: (args, console, context) => {
             const [directory] = commandArguments(context, args)
             const directoryToList = directory ?? context.currentDirectory
@@ -103,7 +118,7 @@ const ConsoleCommands = Object.freeze({
 
             const files = List(directoryToList)
             if (files.length === 0) {
-                console.Info("")
+                console.Info(" ")
                 return commandResult(context, [])
             }
 
@@ -116,6 +131,7 @@ const ConsoleCommands = Object.freeze({
     },
     "cat": {
         description: "Print file content",
+        usage: ".cat <file>",
         action: (args, console, context) => {
             const [file] = commandArguments(context, args)
 
@@ -132,6 +148,7 @@ const ConsoleCommands = Object.freeze({
     },
     "rm": {
         description: "Remove file",
+        usage: ".rm [--recursive] <file>",
         action: (args, console, context) => {
             const parsedArguments = commandArguments(context, args)
             const file = parsedArguments.pop()
@@ -150,6 +167,7 @@ const ConsoleCommands = Object.freeze({
     },
     "write": {
         description: "Write content to file",
+        usage: ".write <file> <content>",
         action: (args, console, context) => {
             const [file, content] = commandArguments(context, args)
 
@@ -160,11 +178,14 @@ const ConsoleCommands = Object.freeze({
 
             const path = JoinPaths(context.currentDirectory, file)
             WriteString(path, content)
+            
+            console.Info(`Wrote content to ${path}`)
             return commandResult(context)
         }
     },
     "exec": {
         description: "Execute script",
+        usage: ".exec <script>",
         action: (args, console, context) => {
             const [script] = commandArguments(context, args)
 
@@ -188,14 +209,75 @@ const ConsoleCommands = Object.freeze({
             return EvaluateJsExecutable(console, context, scriptPath)
         }
     },
+    "echo": {
+        description: "Print message",
+        usage: ".echo <message>",
+        action: (args, console, context) => {
+            const [message] = commandArguments(context, args)
+
+            if (!message) {
+                console.Error("Usage: .echo <message>")
+                return commandResult(context, null, false)
+            }
+
+            console.Info(message)
+            return commandResult(context, message)
+        }
+    },
+    "mkdir": {
+        description: "Create directory",
+        usage: ".mkdir <directory>",
+        action: (args, console, context) => {
+            const [directory] = commandArguments(context, args)
+
+            if (!directory) {
+                console.Error("Usage: .mkdir <directory>")
+                return commandResult(context, null, false)
+            }
+
+            const path = JoinPaths(context.currentDirectory, directory)
+            if (Exists(path)) {
+                console.Error(`Directory ${path} already exists`)
+                return commandResult(context, null, false)
+            }
+
+            MakeDirectory(path)
+            console.Info(`Created directory ${path}`)
+            
+            return commandResult(context)
+        }
+    },
+    "touch": {
+        description: "Create file",
+        usage: ".touch <file>",
+        action: (args, console, context) => {
+            const [file] = commandArguments(context, args)
+
+            if (!file) {
+                console.Error("Usage: .touch <file>")
+                return commandResult(context, null, false)
+            }
+
+            const path = JoinPaths(context.currentDirectory, file)
+            if (Exists(path)) {
+                console.Error(`File ${path} already exists`)
+                return commandResult(context, null, false)
+            }
+
+            WriteString(path, "")
+            console.Info(`Created file ${path}`)
+            
+            return commandResult(context)
+        }
+    }
 })
 
 export function EvaluateJsExecutable(console, context, path) {
     try {
         const module = System.LoadModule(path)
-        module.Main(console, context)
+        const result = module.Main(console, context)
         
-        return commandResult(context, module)
+        return commandResult(context, result)
     } catch (e) {
         console.Error(`Error while executing script: ${e}`)
         return commandResult(context, null, false)
@@ -223,14 +305,90 @@ export function EvaluateJsCommand(console, context, input) {
     }
 }
 
+function parseTokensForInput(input) {
+    // Example: .cd /a | .ls | .write file.txt
+    //        : .write file.txt "Hello, World!"
+    
+    const tokens = []
+    let currentToken = null
+    let inString = false
+    let escaped = false
+    
+    for (let i = 0; i < input.length; i++) {
+        const char = input[i]
+        
+        if (char === " " && !inString) {
+            if (currentToken !== null) {
+                tokens.push(currentToken)
+                currentToken = null
+            }
+            
+            continue
+        }
+        
+        if (char === "|" && !inString) {
+            if (currentToken !== null) {
+                tokens.push(currentToken)
+                currentToken = null
+            }
+            
+            continue
+        }
+        
+        if (char === "\\" && inString && !escaped) {
+            escaped = true
+            continue
+        }
+        
+        if (char === "\"" && !escaped) {
+            inString = !inString
+            continue
+        }
+        
+        if (currentToken === null) {
+            currentToken = ""
+        }
+        
+        if (escaped) {
+            escaped = false
+        }
+        
+        currentToken += char
+    }
+    
+    if (currentToken !== null) {
+        tokens.push(currentToken)
+    }
+    
+    return tokens
+}
+
+function groupTokensByCommandAndArguments(tokens) {
+    const commandGroups = []
+    let currentCommandGroup = []
+    
+    for (const token of tokens) {
+        if (token === "|") {
+            commandGroups.push(currentCommandGroup)
+            currentCommandGroup = []
+            continue
+        }
+        
+        currentCommandGroup.push(token)
+    }
+    
+    if (currentCommandGroup.length > 0) {
+        commandGroups.push(currentCommandGroup)
+    }
+    
+    return commandGroups
+}
+
 export function EvaluateCommand(console, context, input) {
-    const commands = input
-        .split('|')
-        .map(command => command.trim())
-        .filter(command => command.length > 0)
-        .filter(command => command[0] === '.') // Only allow commands starting with .
-        .map(commandPart => {
-            const [command, ...args] = commandPart.split(' ')
+    const commands = groupTokensByCommandAndArguments(parseTokensForInput(input))
+        .filter(commandGroup => commandGroup[0].startsWith(".")) // Only allow commands starting with .
+        .map(commandGroup => {
+            const [command, ...args] = commandGroup
             return {
                 command: command.slice(1),
                 args: args ?? []
