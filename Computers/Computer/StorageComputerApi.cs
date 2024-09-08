@@ -168,6 +168,11 @@ internal class StorageComputerState {
         return ReadRecursive(pathParts, _storage);
     }
     
+    public StorageResponse<StorageFileMetadata> ReadMetadata(string path) {
+        var pathParts = CleanPath(path);
+        return ReadMetadataRecursive(pathParts, _storage);
+    }
+    
     public StorageResponse<StorageFileMetadata[]> List(string path) {
         var pathParts = CleanPath(path);
         return ListRecursive(pathParts, _storage);
@@ -206,6 +211,34 @@ internal class StorageComputerState {
             
             if(storage[currentPart] is not IDictionary<string, object> directory) {
                 return StorageResponse<StorageFileMetadata[]>.OfError(StorageErrorType.PathIsNotDirectory);
+            }
+            
+            pathParts = pathParts[1..];
+            storage = directory;
+        }
+    }
+    
+    private static StorageResponse<StorageFileMetadata> ReadMetadataRecursive(string[] pathParts, IDictionary<string, object> storage) {
+        while (true) {
+            if (pathParts.Length == 0) {
+                return StorageResponse<StorageFileMetadata>.OfError(StorageErrorType.FileNotFound);
+            }
+            
+            var currentPart = pathParts[0];
+            if (!storage.ContainsKey(currentPart)) {
+                return StorageResponse<StorageFileMetadata>.OfError(StorageErrorType.FileNotFound);
+            }
+            
+            if (pathParts.Length == 1) {
+                return storage[currentPart] switch {
+                    IDictionary<string, object> => StorageResponse<StorageFileMetadata>.OfSuccess(StorageFileMetadata.Of(currentPart, StorageFileType.Directory, 0)),
+                    byte[] data => StorageResponse<StorageFileMetadata>.OfSuccess(StorageFileMetadata.Of(currentPart, StorageFileType.File, data.Length)),
+                    _ => StorageResponse<StorageFileMetadata>.OfError(StorageErrorType.PathIsNotFile)
+                };
+            }
+            
+            if (storage[currentPart] is not IDictionary<string, object> directory) {
+                return StorageResponse<StorageFileMetadata>.OfError(StorageErrorType.PathIsNotDirectory);
             }
             
             pathParts = pathParts[1..];

@@ -83,6 +83,7 @@ declare const Storage: {
     List: (path: string) => StorageResponse<StorageFileMetadata[]>
     Read: (path: string) => StorageResponse<StorageFile>
     Write: (path: string, data: Array<number>) => StorageResponse<never>
+    ReadMetadata: (path: string) => StorageResponse<StorageFileMetadata>
     Delete: (path: string, recursive: boolean) => StorageResponse<never>
     MakeDirectory: (path: string) => StorageResponse<never>
 }

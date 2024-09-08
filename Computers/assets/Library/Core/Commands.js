@@ -1,12 +1,11 @@
 import {
+    Copy,
     Delete,
     Exists,
     JoinPaths,
     List,
     MakeDirectory,
-    ReadBytes,
     ReadString,
-    WriteBytes,
     WriteString
 } from "./Storage.js"
 
@@ -160,7 +159,7 @@ const ConsoleCommands = Object.freeze({
 
             const recursive = parsedArguments.includes("--recursive")
             const path = JoinPaths(context.currentDirectory, file)
-            Delete(path, recursive)
+            Delete(path, { recursive })
 
             return commandResult(context)
         }
@@ -266,6 +265,52 @@ const ConsoleCommands = Object.freeze({
 
             WriteString(path, "")
             console.Info(`Created file ${path}`)
+            
+            return commandResult(context)
+        }
+    },
+    "cp": {
+        description: "Copy file or directory",
+        usage: ".cp [--recursive] [--overwrite] <source> <destination>",
+        action: (args, console, context) => {
+            const parsedArguments = commandArguments(context, args)
+            
+            const recursive = parsedArguments.includes("--recursive")
+            const overwrite = parsedArguments.includes("--overwrite")
+            
+            const source = parsedArguments[parsedArguments.length - 2]
+            const destination = parsedArguments[parsedArguments.length - 1]
+            
+            if (!source || !destination) {
+                console.Error("Usage: .cp [--recursive] [--overwrite] <source> <destination>")
+                return commandResult(context, null, false)
+            }
+
+            Copy(source, destination, { move: false, recursive, overwrite })
+            console.Info(`Copied ${source} to ${destination}`)
+            
+            return commandResult(context)
+        }
+    },
+    "mv": {
+        description: "Move file or directory",
+        usage: ".mv [--recursive] [--overwrite] <source> <destination>",
+        action: (args, console, context) => {
+            const parsedArguments = commandArguments(context, args)
+            
+            const recursive = parsedArguments.includes("--recursive")
+            const overwrite = parsedArguments.includes("--overwrite")
+            
+            const source = parsedArguments[parsedArguments.length - 2]
+            const destination = parsedArguments[parsedArguments.length - 1]
+            
+            if (!source || !destination) {
+                console.Error("Usage: .mv [--overwrite] <source> <destination>")
+                return commandResult(context, null, false)
+            }
+
+            Copy(source, destination, { move: true, overwrite, recursive })
+            console.Info(`Moved ${source} to ${destination}`)
             
             return commandResult(context)
         }
