@@ -1,5 +1,8 @@
 
 using Newtonsoft.Json;
+using YamlDotNet.Core;
+using YamlDotNet.Serialization;
+using YamlDotNet.Serialization.NamingConventions;
 
 namespace Computers.Core;
 
@@ -12,7 +15,7 @@ public static class Utils {
             action(element);
     }
     
-    private static readonly JsonSerializerSettings _serializerSettings = new() {
+    private static readonly JsonSerializerSettings JsonSerializerSettings = new() {
         TypeNameHandling = TypeNameHandling.All,
         TypeNameAssemblyFormatHandling = TypeNameAssemblyFormatHandling.Simple,
         PreserveReferencesHandling = PreserveReferencesHandling.All,
@@ -20,12 +23,24 @@ public static class Utils {
         MetadataPropertyHandling = MetadataPropertyHandling.ReadAhead
     };
     
+    private static readonly IDeserializer YamlDeserializer = new DeserializerBuilder()
+        .WithNamingConvention(CamelCaseNamingConvention.Instance)
+        .Build();
+    
     public static T? Deserialize<T>(this string value) {
-        return JsonConvert.DeserializeObject<T>(value, _serializerSettings);
+        return JsonConvert.DeserializeObject<T>(value, JsonSerializerSettings);
     }
     
     public static string Serialize<T>(this T value) {
-        return JsonConvert.SerializeObject(value, _serializerSettings);
+        return JsonConvert.SerializeObject(value, JsonSerializerSettings);
+    }
+
+    public static T DeserializeConfiguration<T>(this string value) {
+        try {
+            return YamlDeserializer.Deserialize<T>(value);
+        } catch (YamlException e) {
+            throw new Exception("Failed to deserialize configuration", e.InnerException);
+        }
     }
     
     // From: https://stackoverflow.com/questions/8094867/good-gethashcode-override-for-list-of-foo-objects-respecting-the-order

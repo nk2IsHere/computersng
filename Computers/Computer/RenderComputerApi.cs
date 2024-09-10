@@ -30,17 +30,23 @@ public class RenderComputerApi: IComputerApi {
         IComputerPort computerPort
     ) {
         _configuration = computerPort.Configuration;
-        _renderData = new Color[_configuration.CanvasWidth * _configuration.CanvasHeight];
+        _renderData = new Color[_configuration.Render.CanvasWidth * _configuration.Render.CanvasHeight];
         
         _renderCommandsCopy = new List<IRenderCommand>();
-        _renderBackgroundCopy = new Color[_configuration.CanvasWidth * _configuration.CanvasHeight];
-        _renderForegroundCopy = new Color[_configuration.CanvasWidth * _configuration.CanvasHeight];
+        _renderBackgroundCopy = new Color[_configuration.Render.CanvasWidth * _configuration.Render.CanvasHeight];
+        _renderForegroundCopy = new Color[_configuration.Render.CanvasWidth * _configuration.Render.CanvasHeight];
 
-        _renderTexture = new Texture2D(Game1.graphics.GraphicsDevice, _configuration.CanvasWidth, _configuration.CanvasHeight, false, SurfaceFormat.Color);
+        _renderTexture = new Texture2D(
+            Game1.graphics.GraphicsDevice,
+            _configuration.Render.CanvasWidth, 
+            _configuration.Render.CanvasHeight,
+            false,
+            SurfaceFormat.Color
+        );
         
         var font = BmFont.Load(
-            computerPort.LoadAsset<string>(_configuration.FontDefinitionPath),
-            computerPort.LoadAsset<Texture2D>(_configuration.FontTexturePath)
+            computerPort.LoadAsset<string>(_configuration.Resource.FontDefinitionPath),
+            computerPort.LoadAsset<Texture2D>(_configuration.Resource.FontTexturePath)
         );
         
         _state = new RenderComputerState(
@@ -72,7 +78,7 @@ public class RenderComputerApi: IComputerApi {
     
     public void ReceiveEvent(IComputerEvent computerEvent) {
         var (destinationRectangle, batch) = computerEvent.Data<(Rectangle, SpriteBatch)>();
-        var sourceRectangle = new Rectangle(0, 0, _configuration.CanvasWidth, _configuration.CanvasHeight);
+        var sourceRectangle = new Rectangle(0, 0, _configuration.Render.CanvasWidth, _configuration.Render.CanvasHeight);
         
         // Fill the render data with the raw background
         lock (_renderBackgroundCopy) {
@@ -83,7 +89,7 @@ public class RenderComputerApi: IComputerApi {
 
         lock (_renderCommandsCopy) {
             foreach (var command in _renderCommandsCopy) {
-                command.Draw(_renderData, _configuration.CanvasWidth, _configuration.CanvasHeight);
+                command.Draw(_renderData, _configuration.Render.CanvasWidth, _configuration.Render.CanvasHeight);
             }
         }
         
@@ -99,7 +105,7 @@ public class RenderComputerApi: IComputerApi {
             sourceRectangle,
             _renderData,
             0,
-            _configuration.CanvasWidth * _configuration.CanvasHeight
+            _configuration.Render.CanvasWidth * _configuration.Render.CanvasHeight
         );
         
         batch.Draw(_renderTexture, destinationRectangle, sourceRectangle, Color.White);
@@ -134,10 +140,10 @@ internal class RenderComputerState {
         _onBegin = onBegin;
         _onEnd = onEnd;
         
-        _rawBackground = new Color[configuration.CanvasWidth * configuration.CanvasHeight];
+        _rawBackground = new Color[configuration.Render.CanvasWidth * configuration.Render.CanvasHeight];
         ClearBackground();
         
-        _rawForeground = new Color[configuration.CanvasWidth * configuration.CanvasHeight];
+        _rawForeground = new Color[configuration.Render.CanvasWidth * configuration.Render.CanvasHeight];
         ClearForeground();
     }
     
@@ -303,25 +309,25 @@ internal class RenderComputerState {
     }
     
     public void SetBackground(int x, int y, int[] color) {
-        if (x < 0 || x >= _configuration.CanvasWidth || y < 0 || y >= _configuration.CanvasHeight) {
+        if (x < 0 || x >= _configuration.Render.CanvasWidth || y < 0 || y >= _configuration.Render.CanvasHeight) {
             return;
         }
         
         var (r, g, b, a) = (color[0], color[1], color[2], color[3]);
-        _rawBackground[y * _configuration.CanvasWidth + x] = new Color(r, g, b, a);
+        _rawBackground[y * _configuration.Render.CanvasWidth + x] = new Color(r, g, b, a);
     }
 
     public void SetForeground(int x, int y, int[] color) {
-        if (x < 0 || x >= _configuration.CanvasWidth || y < 0 || y >= _configuration.CanvasHeight) {
+        if (x < 0 || x >= _configuration.Render.CanvasWidth || y < 0 || y >= _configuration.Render.CanvasHeight) {
             return;
         }
 
         var (r, g, b, a) = (color[0], color[1], color[2], color[3]);
-        _rawForeground[y * _configuration.CanvasWidth + x] = new Color(r, g, b, a);
+        _rawForeground[y * _configuration.Render.CanvasWidth + x] = new Color(r, g, b, a);
     }
     
     public int[] GetScreenBoundaries() {
-        return new[] { _configuration.CanvasWidth, _configuration.CanvasHeight };
+        return new[] { _configuration.Render.CanvasWidth, _configuration.Render.CanvasHeight };
     }
 
     public int GetMaximalFontSize() {
@@ -329,7 +335,7 @@ internal class RenderComputerState {
     }
     
     public int GetDefaultFontSize() {
-        return (int) (_font.GlyphSize() * _configuration.FontDefaultScale);
+        return (int) (_font.GlyphSize() * _configuration.Render.FontDefaultScale);
     }
     
     public int[] MeasureGlyphSize(char c, int size) {

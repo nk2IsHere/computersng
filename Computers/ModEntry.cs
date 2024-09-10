@@ -224,7 +224,9 @@ public class ModEntry : Mod {
             new IContextEntry.StatelessDataContextEntry(
                 ServiceBaseId / "Configuration",
                 typeof(Configuration),
-                helper.ModContent.Load<Configuration>("assets/Configuration.json")
+                helper
+                    .LoadString("assets/Configuration.yml")
+                    .DeserializeConfiguration<Configuration>()
             ),
             new IContextEntry.ServiceContextEntry(
                 ServiceBaseId / "ComputerTickDispatcher",
@@ -252,7 +254,7 @@ public class ModEntry : Mod {
                 typeof(IRedundantLoader),
                 initializer => new RedundantLoader(
                     initializer.GetSingle<IModHelper>(),
-                    $"assets/{initializer.GetSingle<Configuration>().CoreLibraryPath}"
+                    $"assets/{initializer.GetSingle<Configuration>().Resource.CoreLibraryPath}"
                 )
             ),
             new IContextEntry.ServiceContextEntry(
@@ -260,7 +262,7 @@ public class ModEntry : Mod {
                 typeof(IRedundantLoader),
                 initializer => new RedundantLoader(
                     initializer.GetSingle<IModHelper>(),
-                    $"assets/{initializer.GetSingle<Configuration>().AssetsPath}"
+                    $"assets/{initializer.GetSingle<Configuration>().Resource.AssetsPath}"
                 )
             ),
             new IContextEntry.ServiceContextEntry(
@@ -430,8 +432,8 @@ public class ModEntry : Mod {
         
         Game1.InUIMode(() => {
             Game1.activeClickableMenu = new GameWindow(
-                configuration.WindowWidth,
-                configuration.WindowHeight,
+                configuration.Ui.WindowWidth,
+                configuration.Ui.WindowHeight,
                 (rectangle, batch) => computerPort.Fire(new RenderComputerEvent(rectangle, batch)),
                 onReceiveLeftClick: (x, y) => computerPort.Fire(new MouseLeftClickedEvent(computerPort.Id, x, y)),
                 onReceiveRightClick: (x, y) => computerPort.Fire(new MouseRightClickedEvent(computerPort.Id, x, y)),

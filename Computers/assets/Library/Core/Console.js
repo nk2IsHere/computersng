@@ -70,7 +70,6 @@ export class ConsoleView {
         this.scrollOffset = 0
         
         this.currentInput = ""
-        
         this.currentCommandContext = {
             ...initialCommandContext
         }

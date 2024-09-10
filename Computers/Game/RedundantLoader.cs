@@ -1,5 +1,5 @@
 using Computers.Game.Boundary;
-using Microsoft.Xna.Framework.Content;
+using Computers.Game.Utils;
 using StardewModdingAPI;
 
 namespace Computers.Game;
@@ -11,13 +11,14 @@ public class RedundantLoader: IRedundantLoader {
     
     public RedundantLoader(IModHelper helper, string basePath) {
         _helper = helper;
-        _basePath = basePath.Split(ILoader.PathSplitters, StringSplitOptions.RemoveEmptyEntries);
+        _basePath = basePath.Split(ResourceUtils.PathSplitters, StringSplitOptions.RemoveEmptyEntries);
     }
 
     public T Load<T>(string path) where T : notnull {
+        var assetNameParts = path.Split(ResourceUtils.PathSplitters, StringSplitOptions.RemoveEmptyEntries);
+        var assetPath = Path.Combine(Path.Combine(_basePath), Path.Combine(assetNameParts));
+        
         try {
-            var assetNameParts = path.Split(ILoader.PathSplitters, StringSplitOptions.RemoveEmptyEntries);
-            var assetPath = Path.Combine(Path.Combine(_basePath), Path.Combine(assetNameParts));
             return _helper.ModContent.Load<T>(assetPath);
         } catch (Exception e) {
             // Sometimes we want to load non-standard assets, like a .lua file
@@ -28,22 +29,13 @@ public class RedundantLoader: IRedundantLoader {
                 throw;
             }
             
-            var directory = _helper.DirectoryPath;
-            var assetNameParts = path.Split(ILoader.PathSplitters, StringSplitOptions.RemoveEmptyEntries);
-            var assetPath = Path.Combine(Path.Combine(_basePath), Path.Combine(assetNameParts));
-            var fullPath = Path.Combine(directory, assetPath);
-            
-            if (!File.Exists(fullPath)) {
-                throw new FileNotFoundException($"Asset not found: {fullPath}", e);
-            }
-            
-            return (T) (object) File.ReadAllText(fullPath);
+            return (T)(object)_helper.LoadString(assetPath);
         }
     }
 
     public bool Exists(string path) {
         var directory = _helper.DirectoryPath;
-        var assetNameParts = path.Split(ILoader.PathSplitters, StringSplitOptions.RemoveEmptyEntries);
+        var assetNameParts = path.Split(ResourceUtils.PathSplitters, StringSplitOptions.RemoveEmptyEntries);
         var assetPath = Path.Combine(Path.Combine(_basePath), Path.Combine(assetNameParts));
         var fullPath = Path.Combine(directory, assetPath);
         

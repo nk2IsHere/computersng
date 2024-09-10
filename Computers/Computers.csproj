@@ -12,6 +12,7 @@
     <ItemGroup>
       <PackageReference Include="Jint" Version="4.0.2" />
       <PackageReference Include="Pathoschild.Stardew.ModBuildConfig" Version="4.1.1" />
+      <PackageReference Include="YamlDotNet" Version="16.1.0" />
     </ItemGroup>
 
     <ItemGroup>

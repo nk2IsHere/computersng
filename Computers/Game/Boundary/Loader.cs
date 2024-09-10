@@ -3,8 +3,6 @@ using StardewModdingAPI;
 namespace Computers.Game.Boundary;
 
 public interface ILoader {
-    public static string[] PathSplitters { get; } = { "/", "\\" };
-
     public object Load(IAssetName assetName);
 }
 

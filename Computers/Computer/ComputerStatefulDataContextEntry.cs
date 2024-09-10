@@ -133,7 +133,7 @@ public class ComputerStatefulDataContextEntry : IContextEntry.StatefulDataContex
         );
 
         _computerApis.ForEach(RegisterApi);
-        _entryPointModule = _engine.Modules.Import(Configuration.EntryPointModule);
+        _entryPointModule = _engine.Modules.Import(Configuration.Resource.EntryPointModule);
     }
 
     public void Start() {
@@ -190,7 +190,7 @@ public class ComputerStatefulDataContextEntry : IContextEntry.StatefulDataContex
                 }
 
                 _monitor.Log($"Script exception occured: {javaScriptException}");
-                if (!Configuration.ShouldResetScriptOnFatalError) {
+                if (!Configuration.Engine.ShouldResetScriptOnFatalError) {
                     break;
                 }
             }
@@ -255,17 +255,15 @@ internal class ComputerModuleLoader : ModuleLoader {
         throw new InvalidOperationException($"Module {fileName} not found.");
     }
     
-    private string? TryLoadModuleUsing(IRedundantLoader loader, string fileName) {
+    private static string? TryLoadModuleUsing(IRedundantLoader loader, string fileName) {
         if (loader.Exists(fileName)) {
             return loader.Load<string>(fileName);
         }
         
         var fileNameWithExtension = fileName + ".js";
-        if (loader.Exists(fileNameWithExtension)) {
-            return loader.Load<string>(fileNameWithExtension);
-        }
-        
-        return null;
+        return loader.Exists(fileNameWithExtension) 
+            ? loader.Load<string>(fileNameWithExtension)
+            : null;
     }
 
     private static bool IsRelative(string specifier) {

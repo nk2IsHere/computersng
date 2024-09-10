@@ -1,4 +1,5 @@
 using Computers.Game.Boundary;
+using Computers.Game.Utils;
 using Microsoft.Xna.Framework.Content;
 using StardewModdingAPI;
 
@@ -25,13 +26,7 @@ public class TargetLoader<T> : ITargetLoader<T> where T : notnull {
                 throw;
             }
             
-            var directory = _helper.DirectoryPath;
-            var assetNameParts = _assetName.Split(ILoader.PathSplitters, StringSplitOptions.RemoveEmptyEntries);
-            
-            var path = Path.Combine(directory, Path.Combine(assetNameParts));
-            return File.Exists(path) 
-                ? (T) (object) File.ReadAllText(path) 
-                : throw e;
+            return (T)(object)_helper.LoadString(_assetName);
         }
     }
 }
