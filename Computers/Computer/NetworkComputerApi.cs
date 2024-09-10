@@ -1,3 +1,4 @@
+using System.Text;
 using Computers.Computer.Boundary;
 using Computers.Game.Boundary;
 
@@ -24,6 +25,18 @@ public class NetworkComputerApi : IComputerApi {
     }
 }
 
+internal record HttpResponseBytes(
+    int StatusCode,
+    IDictionary<string, string> Headers,
+    byte[] Body
+);
+
+internal record HttpResponseString(
+    int StatusCode,
+    IDictionary<string, string> Headers,
+    string Body
+);
+
 internal class NetworkComputerState {
     
     private readonly Configuration _configuration;
@@ -33,7 +46,7 @@ internal class NetworkComputerState {
         _configuration = configuration;
     }
 
-    public async Task<byte[]> RequestHttp(
+    public async Task<HttpResponseBytes> RequestHttpBytes(
         string url,
         string method,
         IDictionary<string, string>? headers,
@@ -54,7 +67,57 @@ internal class NetworkComputerState {
         }
         
         var response = await _client.SendAsync(request);
-        return await response.Content.ReadAsByteArrayAsync();
+        var responseBody = await response.Content.ReadAsByteArrayAsync();
+        
+        var headersDict = response.Headers
+            .Concat(response.Content.Headers)
+            .ToDictionary(
+                pair => pair.Key,
+                pair => string.Join(", ", pair.Value)
+            );
+        
+        return new HttpResponseBytes(
+            (int) response.StatusCode,
+            headersDict,
+            responseBody
+        );
+    }
+    
+    public async Task<HttpResponseString> RequestHttpString(
+        string url,
+        string method,
+        IDictionary<string, string>? headers,
+        string? body
+    ) {
+        EnsureUrlIsAllowed(url);
+        
+        var request = new HttpRequestMessage(new HttpMethod(method), url);
+        
+        if (headers != null) {
+            foreach (var header in headers) {
+                request.Headers.Add(header.Key, header.Value);
+            }
+        }
+        
+        if (body != null) {
+            request.Content = new StringContent(body, Encoding.UTF8);
+        }
+        
+        var response = await _client.SendAsync(request);
+        var responseBody = await response.Content.ReadAsStringAsync();
+        
+        var headersDict = response.Headers
+            .Concat(response.Content.Headers)
+            .ToDictionary(
+                pair => pair.Key,
+                pair => string.Join(", ", pair.Value)
+            );
+
+        return new HttpResponseString(
+            (int)response.StatusCode,
+            headersDict,
+            responseBody
+        );
     }
     
     private void EnsureUrlIsAllowed(string url) {

@@ -88,6 +88,19 @@ declare const Storage: {
     MakeDirectory: (path: string) => StorageResponse<never>
 }
 
+declare type HttpResponseBytes = {
+    StatusCode: number
+    Headers: { [key: string]: string }
+    Body: Array<number>
+}
+
+declare type HttpResponseString = {
+    StatusCode: number
+    Headers: { [key: string]: string }
+    Body: string
+}
+
 declare const Network: {
-    RequestHttp: (url: string, method: string, headers: { [key: string]: string }, body: Array<number>) => Promise<Array<number>>
+    RequestHttpBytes: (url: string, method: string, headers?: { [key: string]: string }, body?: Array<number>) => Promise<HttpResponseBytes>
+    RequestHttpString: (url: string, method: string, headers?: { [key: string]: string }, body?: string) => Promise<HttpResponseString>
 }
