@@ -42,7 +42,8 @@ public class ComputerStatefulDataContextEntry : IContextEntry.StatefulDataContex
             new RenderComputerApi(this),
             new EventComputerApi(this),
             new SystemComputerApi(this),
-            new StorageComputerApi(this)
+            new StorageComputerApi(this),
+            new NetworkComputerApi(this)
         };
         
         Reload();

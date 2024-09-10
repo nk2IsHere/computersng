@@ -87,3 +87,7 @@ declare const Storage: {
     Delete: (path: string, recursive: boolean) => StorageResponse<never>
     MakeDirectory: (path: string) => StorageResponse<never>
 }
+
+declare const Network: {
+    RequestHttp: (url: string, method: string, headers: { [key: string]: string }, body: Array<number>) => Promise<Array<number>>
+}
