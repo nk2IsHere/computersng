@@ -63,12 +63,13 @@ Make processing of Stardew's resources a configurable function pipe-like process
 
 - [x] Add support for file system (storage encapsulation)
 - [x] Add support for custom packages loading
-- [ ] Add support for public networking
-- [ ] Add support for computer-to-computer communication
+- [x] Add support for public networking
+- [ ] Add support for layered file system and package-based libraries
 
 ### Interactability with world (TODO)
 
 - [ ] Add peripherals support with network communication
+- [ ] Add support for computer-to-computer communication
 - [ ] Add possibility of auto-discovering machine groups with computer as controller using peripheral
 - [ ] ???
 

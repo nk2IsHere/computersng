@@ -1,8 +1,8 @@
 using Computers.Computer;
-using Computers.Computer.Boundary;
+using Computers.Computer.Domain;
 using Computers.Core;
 using Computers.Game;
-using Computers.Game.Boundary;
+using Computers.Game.Domain;
 using Computers.Game.Utils;
 using StardewValley;
 using StardewValley.GameData.BigCraftables;
