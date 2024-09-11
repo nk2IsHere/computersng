@@ -1,10 +1,11 @@
 import { Color } from "./Core/Constants.js"
 import { Console, ConsoleLogLevel, ConsoleView } from "./Core/Console.js"
 import { ReloadView } from "./Core/Reload.js"
-import { EvaluateCommand, EvaluateJsCommand } from "./Core/Commands.js"
+import {EvaluateCommand, EvaluateJsCommand, EvaluateJsExecutable} from "./Core/Commands.js"
 import { ChooseRandomFact } from "./Core/Facts.js"
+import {Exists} from "./Core/Storage";
 
-export function Main() {
+export async function Main() {
     const [screenWidth, screenHeight] = Render.GetScreenBoundaries()
     const defaultFontSize = Render.GetDefaultFontSize()
     const [fontCharacterWidth, fontCharacterHeight] = Render.MeasureGlyphSize('A', defaultFontSize)
@@ -57,6 +58,25 @@ export function Main() {
     
     console.Info("Hello from console!")
     console.Info("Type .help to see available commands")
+    
+    if(Exists("/Startup.js")) {
+        console.Info("Running startup script...")
+        try {
+            await EvaluateJsExecutable(
+                console,
+                {
+                    reloadView,
+                    consoleView
+                },
+                "/Startup.js"
+            )
+        } catch (e) {
+            console.Error(`Error while running startup script: ${e.message}`)
+        }
+    } else {
+        console.Warning("No startup script found. Proceeding with default behavior.")
+    }
+    
     console.Info(`Random fact of the day: ${ChooseRandomFact()}`)
     while (true) {
         const latestEvents = Event.Poll()

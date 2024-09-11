@@ -180,6 +180,7 @@ export class ConsoleView {
                         this.console.Error(error.message)
                     })
 
+                this.scrollOffset = 0 // scroll to bottom
                 this.currentInput = ""
             }
         }
