@@ -32,15 +32,27 @@ export class Console {
     }
     
     Info(message) {
-        this.Log(message, ConsoleLogLevel.Info)
+        message
+            .split("\n")
+            .forEach((line) => {
+                this.Log(line, ConsoleLogLevel.Info)
+            })
     }
     
     Warning(message) {
-        this.Log(message, ConsoleLogLevel.Warning)
+        message
+            .split("\n")
+            .forEach((line) => {
+                this.Log(line, ConsoleLogLevel.Warning)
+            })
     }
     
     Error(message) {
-        this.Log(message, ConsoleLogLevel.Error)
+        message
+            .split("\n")
+            .forEach((line) => {
+                this.Log(line, ConsoleLogLevel.Error)
+            })
     }
     
     Logs() {

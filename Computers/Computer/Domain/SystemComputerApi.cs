@@ -54,4 +54,8 @@ internal class SystemComputerState {
     public void ProcessTasks() {
         _computerPort.ProcessTasks();
     }
+
+    public string Id() {
+        return _computerPort.Id;
+    }
 }

@@ -4,6 +4,10 @@ namespace Computers.Game.Utils;
 
 public static class ResourceUtils {
     public static string[] PathSplitters { get; } = { "/", "\\" };
+    
+    public static string[] SplitPath(string path) {
+        return path.Split(PathSplitters, StringSplitOptions.RemoveEmptyEntries);
+    }
 
     public static string LoadString(this IModHelper helper, string path) {
         var directory = helper.DirectoryPath;

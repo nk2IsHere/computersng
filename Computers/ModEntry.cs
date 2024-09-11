@@ -266,6 +266,14 @@ public class ModEntry : Mod {
                 )
             ),
             new IContextEntry.ServiceContextEntry(
+                ServiceBaseId / "DataLoader",
+                typeof(IRedundantLoader),
+                initializer => new RedundantLoader(
+                    initializer.GetSingle<IModHelper>(),
+                    initializer.GetSingle<Configuration>().Storage.ExternalStorageFolder
+                )
+            ),
+            new IContextEntry.ServiceContextEntry(
                 ServiceBaseId / "ComputerFactory",
                 typeof(IStatefulDataContextEntryFactory),
                 initializer => new ComputerStatefulDataContextEntryFactory(
@@ -274,7 +282,8 @@ public class ModEntry : Mod {
                     initializer.GetSingle<IMonitor>(),
                     initializer.GetSingle<Configuration>(),
                     initializer.GetSingle<IRedundantLoader>(ServiceBaseId / "RedundantLoader"),
-                    initializer.GetSingle<IRedundantLoader>(ServiceBaseId / "AssetsLoader")
+                    initializer.GetSingle<IRedundantLoader>(ServiceBaseId / "AssetsLoader"),
+                    initializer.GetSingle<IRedundantLoader>(ServiceBaseId / "DataLoader")
                 )
             ),
             new IContextEntry.ServiceContextEntry(

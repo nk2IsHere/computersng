@@ -12,6 +12,7 @@ public class ComputerStatefulDataContextEntryFactory : IStatefulDataContextEntry
     private readonly Configuration _configuration;
     private readonly IRedundantLoader _coreLibraryLoader;
     private readonly IRedundantLoader _assetLoader;
+    private readonly IRedundantLoader _dataLoader;
     
     public ComputerStatefulDataContextEntryFactory(
         Id id, 
@@ -19,7 +20,8 @@ public class ComputerStatefulDataContextEntryFactory : IStatefulDataContextEntry
         IMonitor monitor,
         Configuration configuration,
         IRedundantLoader coreLibraryLoader,
-        IRedundantLoader assetLoader
+        IRedundantLoader assetLoader,
+        IRedundantLoader dataLoader
     ) {
         FactoryId = id;
         _baseComputerId = baseComputerId;
@@ -27,6 +29,7 @@ public class ComputerStatefulDataContextEntryFactory : IStatefulDataContextEntry
         _configuration = configuration;
         _coreLibraryLoader = coreLibraryLoader;
         _assetLoader = assetLoader;
+        _dataLoader = dataLoader;
     }
 
     public Id FactoryId { get; }
@@ -43,7 +46,8 @@ public class ComputerStatefulDataContextEntryFactory : IStatefulDataContextEntry
             _monitor,
             _configuration,
             _coreLibraryLoader,
-            _assetLoader
+            _assetLoader,
+            _dataLoader
         );
     }
 }

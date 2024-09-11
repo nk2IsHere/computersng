@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using Computers.Computer.Domain.Storage;
 using Computers.Core;
 using Computers.Game;
+using Computers.Game.Utils;
 using Jint;
 using Jint.Native.Object;
 using Jint.Runtime;
@@ -30,7 +31,8 @@ public class ComputerStatefulDataContextEntry : IContextEntry.StatefulDataContex
         IMonitor monitor,
         Configuration configuration,
         IRedundantLoader coreLibraryLoader,
-        IRedundantLoader assetLoader
+        IRedundantLoader assetLoader,
+        IRedundantLoader dataLoader
     ) : base(factoryId, id) {
         _monitor = monitor;
         Configuration = configuration;
@@ -52,7 +54,7 @@ public class ComputerStatefulDataContextEntry : IContextEntry.StatefulDataContex
                     }
         
                     if (configuration.Storage.EnableExternalStorage) {
-                        storageLayers.Add(new LoaderStorageLayer(new ComputerLoader(this)));
+                        storageLayers.Add(new LoaderStorageLayer(new ComputerLoader(this, dataLoader)));
                     }
                     
                     return storageLayers;
@@ -290,20 +292,25 @@ internal class ComputerModuleLoader : ModuleLoader {
 
 internal class ComputerLoader : IRedundantLoader {
     private readonly IComputerPort _computerPort;
+    private readonly IRedundantLoader _dataLoader;
 
-    public ComputerLoader(IComputerPort computerPort) {
+    public ComputerLoader(IComputerPort computerPort, IRedundantLoader dataLoader) {
         _computerPort = computerPort;
+        _dataLoader = dataLoader;
     }
 
     public T Load<T>(string path) where T : notnull {
-        throw new NotImplementedException();
+        var pathParts = ResourceUtils.SplitPath(path);
+        return _dataLoader.Load<T>(Path.Combine(_computerPort.Id, Path.Combine(pathParts)));
     }
 
     public IEnumerable<FileSystemEntry> List(string path) {
-        throw new NotImplementedException();
+        var pathParts = ResourceUtils.SplitPath(path);
+        return _dataLoader.List(Path.Combine(_computerPort.Id, Path.Combine(pathParts)));
     }
 
     public bool Exists(string path) {
-        throw new NotImplementedException();
+        var pathParts = ResourceUtils.SplitPath(path);
+        return _dataLoader.Exists(Path.Combine(_computerPort.Id, Path.Combine(pathParts)));
     }
 }

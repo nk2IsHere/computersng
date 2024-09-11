@@ -364,7 +364,15 @@ const ConsoleCommands = Object.freeze({
             console.Info(`Request successful with status code ${response.statusCode}`)
             return commandResult(context, response.body)
         }
-    }
+    },
+    "id": {
+        description: "Print system identification",
+        usage: ".id",
+        action: async (args, console, context) => {
+            console.Info(`System identification: ${System.Id()}`)
+            return commandResult(context)
+        }
+    },
 })
 
 export async function EvaluateJsExecutable(console, context, path) {

@@ -40,6 +40,7 @@ declare const System: {
     Time: () => number
     LoadModule: <T extends { [key: string]: any }>(path: string) => T
     ProcessTasks: () => void
+    Id: () => string
 }
 
 declare enum StorageErrorType {

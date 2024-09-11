@@ -49,7 +49,7 @@ storage:
   enableExternalStorage: true
   
   # The path to the directory containing the persistent storage files.
-  externalStorageFolder: "ExternalStorage/"
+  externalStorageFolder: "storage/"
 
 # Network configuration
 network:
