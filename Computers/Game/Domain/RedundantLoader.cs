@@ -32,13 +32,18 @@ public class RedundantLoader: IRedundantLoader {
         }
     }
 
-    public string[] List(string path) {
+    public IEnumerable<FileSystemEntry> List(string path) {
         var directory = _helper.DirectoryPath;
         var assetNameParts = path.Split(ResourceUtils.PathSplitters, StringSplitOptions.RemoveEmptyEntries);
         var assetPath = Path.Combine(Path.Combine(_basePath), Path.Combine(assetNameParts));
         var fullPath = Path.Combine(directory, assetPath);
+
+        var filesWithSize = Directory.GetFiles(fullPath).Select(file => new FileInfo(file));
+        var fileEntries = filesWithSize.Select(file => new FileSystemEntry(file.Name, FileSystemEntryType.File, file.Length));
         
-        return Directory.GetFiles(fullPath);
+        var directories = Directory.GetDirectories(fullPath);
+        var directoryEntries = directories.Select(directory => new FileSystemEntry(new DirectoryInfo(directory).Name, FileSystemEntryType.Directory, 0));
+        return fileEntries.Concat(directoryEntries);
     }
 
     public bool Exists(string path) {

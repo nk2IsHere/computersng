@@ -49,7 +49,15 @@ public class CoreLibraryStorageLayer: IStorageLayer {
     public StorageResponse<StorageFileMetadata[]> List(string path) {
         try {
             var metadata = _coreLibraryLoader.List(path)
-                .Select(file => StorageFileMetadata.Of(file, StorageFileType.File, 0))
+                .Select(entry => StorageFileMetadata.Of(
+                    entry.Name,
+                    entry.Type switch {
+                        FileSystemEntryType.File => StorageFileType.File,
+                        FileSystemEntryType.Directory => StorageFileType.Directory,
+                        _ => throw new ArgumentOutOfRangeException()
+                    },
+                    entry.Size
+                ))
                 .ToArray();
             
             return StorageResponse<StorageFileMetadata[]>.OfSuccess(metadata);

@@ -139,7 +139,7 @@ public class ComputerStatefulDataContextEntry : IContextEntry.StatefulDataContex
             options => {
                 options.Strict();
                 options.CancellationToken(_cancellationTokenSource.Token);
-                options.EnableModules(new ComputerModuleLoader(_monitor, _coreLibraryLoader, libraryLoaders));
+                options.EnableModules(new ComputerModuleLoader(_monitor, libraryLoaders));
             }
         );
 
@@ -212,12 +212,10 @@ public class ComputerStatefulDataContextEntry : IContextEntry.StatefulDataContex
 internal class ComputerModuleLoader : ModuleLoader {
 
     private readonly IMonitor _monitor;
-    private readonly IRedundantLoader _coreLibraryLoader;
     private readonly List<IRedundantLoader> _libraryLoaders;
     
-    public ComputerModuleLoader(IMonitor monitor, IRedundantLoader coreLibraryLoader, List<IRedundantLoader> libraryLoaders) {
+    public ComputerModuleLoader(IMonitor monitor, List<IRedundantLoader> libraryLoaders) {
         _monitor = monitor;
-        _coreLibraryLoader = coreLibraryLoader;
         _libraryLoaders = libraryLoaders;
     }
 
@@ -252,12 +250,6 @@ internal class ComputerModuleLoader : ModuleLoader {
         }
         
         var fileName = Uri.UnescapeDataString(resolved.Uri.AbsolutePath);
-        
-        var coreLibraryModule = TryLoadModuleUsing(_coreLibraryLoader, fileName);
-        
-        if (coreLibraryModule is not null) {
-            return coreLibraryModule;
-        }
         
         foreach (var libraryModule in _libraryLoaders.Select(loader => TryLoadModuleUsing(loader, fileName)).OfType<string>()) {
             return libraryModule;

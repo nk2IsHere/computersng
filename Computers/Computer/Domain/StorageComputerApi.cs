@@ -147,14 +147,22 @@ internal class StorageRedundantLoader : IRedundantLoader {
         };
     }
 
-    public string[] List(string path) {
+    public IEnumerable<FileSystemEntry> List(string path) {
         var response = _state.List(path);
         if (response is not { Type: StorageResponseType.Success, Data: not null }) {
             throw new InvalidOperationException($"Failed to list files in {path}: {response.Error}");
         }
 
         return response.Data
-            .Select(metadata => metadata.Name)
+            .Select(metadata => new FileSystemEntry(
+                metadata.Name,
+                metadata.Type switch {
+                    StorageFileType.File => FileSystemEntryType.File,
+                    StorageFileType.Directory => FileSystemEntryType.Directory,
+                    _ => throw new ArgumentOutOfRangeException()
+                },
+                metadata.Size
+            ))
             .ToArray();
     }
 

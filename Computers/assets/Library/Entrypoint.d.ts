@@ -49,7 +49,8 @@ declare enum StorageErrorType {
     DirectoryAlreadyExists,
     DirectoryNotEmpty,
     PathIsNotDirectory,
-    PathIsNotFile
+    PathIsNotFile,
+    ReadOnlyStorage
 }
 
 declare enum StorageResponseType {

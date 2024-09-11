@@ -6,7 +6,8 @@ const StorageErrorType = Object.freeze({
     3: "DirectoryAlreadyExists",
     4: "DirectoryNotEmpty",
     5: "PathIsNotDirectory",
-    6: "PathIsNotFile"
+    6: "PathIsNotFile",
+    7: "ReadOnlyStorage"
 })
 
 const StorageResponseType = Object.freeze({
