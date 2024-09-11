@@ -13,8 +13,8 @@ public class StorageComputerApi: IComputerApi {
     
     private readonly StorageComputerState _state;
 
-    public StorageComputerApi(IComputerPort computerPort, IEnumerable<IStorageLayer> layers) {
-        _state = new StorageComputerState(layers);
+    public StorageComputerApi(IComputerPort computerPort, Func<StorageComputerApi, IEnumerable<IStorageLayer>> layers) {
+        _state = new StorageComputerState(layers(this));
     }
     
     public void ReceiveEvent(IComputerEvent computerEvent) {

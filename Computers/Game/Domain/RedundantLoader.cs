@@ -43,6 +43,7 @@ public class RedundantLoader: IRedundantLoader {
         
         var directories = Directory.GetDirectories(fullPath);
         var directoryEntries = directories.Select(directory => new FileSystemEntry(new DirectoryInfo(directory).Name, FileSystemEntryType.Directory, 0));
+        
         return fileEntries.Concat(directoryEntries);
     }
 
@@ -52,6 +53,6 @@ public class RedundantLoader: IRedundantLoader {
         var assetPath = Path.Combine(Path.Combine(_basePath), Path.Combine(assetNameParts));
         var fullPath = Path.Combine(directory, assetPath);
         
-        return File.Exists(fullPath);
+        return File.Exists(fullPath) || Directory.Exists(fullPath);
     }
 }

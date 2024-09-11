@@ -40,6 +40,17 @@ engine:
   # If true, the js engine will be reset when a fatal error occurs in a script. Otherwise the computer will be disabled.
   shouldResetScriptOnFatalError: true
 
+# Storage configuration
+storage:
+  # Enable or disable persistent storage for the computer. The persistent storage is save with the computer state into game save file.
+  enablePersistentStorage: true
+  
+  # Enable or disable external storage for the computer. The external storage is accessible in the mod folder.
+  enableExternalStorage: true
+  
+  # The path to the directory containing the persistent storage files.
+  externalStorageFolder: "ExternalStorage/"
+
 # Network configuration
 network:
   # Mode of 

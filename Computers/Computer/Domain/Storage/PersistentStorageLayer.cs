@@ -4,11 +4,12 @@ internal class PersistentStorageLayer: IStorageLayer {
     
     private readonly Dictionary<string, object> _storage;
     
-    public PersistentStorageLayer(IDictionary<string, object> storage) {
+    public PersistentStorageLayer(IDictionary<string, object> storage, int priority = int.MaxValue) {
         _storage = new Dictionary<string, object>(storage);
+        Priority = priority;
     }
     
-    public int Priority => int.MaxValue;
+    public int Priority { get; }
     public StorageLayerMode Mode => StorageLayerMode.ReadWrite;
     
     public bool Exists(string path) {

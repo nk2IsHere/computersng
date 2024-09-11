@@ -10,6 +10,8 @@ public class Configuration {
     
     public EngineConfiguration Engine { get; set; } = null!;
     
+    public StorageConfiguration Storage { get; set; } = null!;
+    
     public NetworkConfiguration Network { get; set; } = null!;
 }
 
@@ -37,6 +39,14 @@ public class RenderConfiguration {
     public int CanvasHeight { get; set; }
     
     public float FontDefaultScale { get; set; }
+}
+
+public class StorageConfiguration {
+    public bool EnablePersistentStorage { get; set; }
+    
+    public bool EnableExternalStorage { get; set; }
+    
+    public string ExternalStorageFolder { get; set; } = null!;
 }
 
 public class EngineConfiguration {

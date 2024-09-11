@@ -3,19 +3,20 @@ using Computers.Game;
 
 namespace Computers.Computer.Domain.Storage;
 
-public class CoreLibraryStorageLayer: IStorageLayer {
+public class LoaderStorageLayer: IStorageLayer {
     
-    private readonly IRedundantLoader _coreLibraryLoader;
+    private readonly IRedundantLoader _loader;
 
-    public CoreLibraryStorageLayer(IRedundantLoader coreLibraryLoader) {
-        _coreLibraryLoader = coreLibraryLoader;
+    public LoaderStorageLayer(IRedundantLoader loader, int priority = 0) {
+        _loader = loader;
+        Priority = priority;
     }
 
-    public int Priority => 0;
+    public int Priority { get; }
     public StorageLayerMode Mode => StorageLayerMode.ReadOnly;
     
     public bool Exists(string path) {
-        return _coreLibraryLoader.Exists(path);
+        return _loader.Exists(path);
     }
 
     public StorageResponse MakeDirectory(string path) {
@@ -28,7 +29,7 @@ public class CoreLibraryStorageLayer: IStorageLayer {
 
     public StorageResponse<StorageFile> Read(string path) {
         try {
-            var file = _coreLibraryLoader.Load<string>(path);
+            var file = _loader.Load<string>(path);
             var fileBytes = Encoding.UTF8.GetBytes(file);
             return StorageResponse<StorageFile>.OfSuccess(StorageFile.Of(path, fileBytes));
         } catch (Exception) {
@@ -38,7 +39,7 @@ public class CoreLibraryStorageLayer: IStorageLayer {
 
     public StorageResponse<StorageFileMetadata> ReadMetadata(string path) {
         try {
-            var file = _coreLibraryLoader.Load<string>(path);
+            var file = _loader.Load<string>(path);
             var fileBytes = Encoding.UTF8.GetBytes(file);
             return StorageResponse<StorageFileMetadata>.OfSuccess(StorageFileMetadata.Of(path, StorageFileType.File, fileBytes.Length));
         } catch (Exception) {
@@ -48,7 +49,7 @@ public class CoreLibraryStorageLayer: IStorageLayer {
 
     public StorageResponse<StorageFileMetadata[]> List(string path) {
         try {
-            var metadata = _coreLibraryLoader.List(path)
+            var metadata = _loader.List(path)
                 .Select(entry => StorageFileMetadata.Of(
                     entry.Name,
                     entry.Type switch {

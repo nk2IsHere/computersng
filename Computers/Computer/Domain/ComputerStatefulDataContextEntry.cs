@@ -13,7 +13,6 @@ namespace Computers.Computer.Domain;
 
 public class ComputerStatefulDataContextEntry : IContextEntry.StatefulDataContextEntry<ComputerStatefulDataContextEntry>, IComputerPort {
     private readonly IMonitor _monitor;
-    private readonly IRedundantLoader _coreLibraryLoader;
     private readonly IRedundantLoader _assetLoader;
     
     private readonly List<IComputerApi> _computerApis;
@@ -35,7 +34,6 @@ public class ComputerStatefulDataContextEntry : IContextEntry.StatefulDataContex
     ) : base(factoryId, id) {
         _monitor = monitor;
         Configuration = configuration;
-        _coreLibraryLoader = coreLibraryLoader;
         _assetLoader = assetLoader;
         
         _computerApis = new List<IComputerApi> {
@@ -44,9 +42,20 @@ public class ComputerStatefulDataContextEntry : IContextEntry.StatefulDataContex
             new SystemComputerApi(this),
             new StorageComputerApi(
                 this,
-                new IStorageLayer[] {
-                    new CoreLibraryStorageLayer(_coreLibraryLoader),
-                    new PersistentStorageLayer(GetStorage("Storage"))
+                api => {
+                    var storageLayers = new List<IStorageLayer> {
+                        new LoaderStorageLayer(coreLibraryLoader)
+                    };
+        
+                    if (configuration.Storage.EnablePersistentStorage) {
+                        storageLayers.Add(new PersistentStorageLayer(GetStorage(api)));
+                    }
+        
+                    if (configuration.Storage.EnableExternalStorage) {
+                        storageLayers.Add(new LoaderStorageLayer(new ComputerLoader(this)));
+                    }
+                    
+                    return storageLayers;
                 }
             ),
             new NetworkComputerApi(this)
@@ -113,16 +122,12 @@ public class ComputerStatefulDataContextEntry : IContextEntry.StatefulDataContex
     }
 
     public IDictionary<string, object> GetStorage(IComputerApi api) {
-        return GetStorage(api.Name);
-    }
-
-    private IDictionary<string, object> GetStorage(string name) {
-        if(_storage.TryGetValue(name, out var value)) {
+        if(_storage.TryGetValue(api.Name, out var value)) {
             return (IDictionary<string, object>) value;
         }
         
         var storage = new ConcurrentDictionary<string, object>();
-        _storage.Add(name, storage);
+        _storage.Add(api.Name, storage);
         return storage;
     }
 
@@ -250,7 +255,6 @@ internal class ComputerModuleLoader : ModuleLoader {
         }
         
         var fileName = Uri.UnescapeDataString(resolved.Uri.AbsolutePath);
-        
         foreach (var libraryModule in _libraryLoaders.Select(loader => TryLoadModuleUsing(loader, fileName)).OfType<string>()) {
             return libraryModule;
         }
@@ -281,5 +285,25 @@ internal class ComputerModuleLoader : ModuleLoader {
         return Uri.TryCreate(referencingModuleLocation, UriKind.Absolute, out var referencingLocation) 
             ? referencingLocation
             : new Uri("/");
+    }
+}
+
+internal class ComputerLoader : IRedundantLoader {
+    private readonly IComputerPort _computerPort;
+
+    public ComputerLoader(IComputerPort computerPort) {
+        _computerPort = computerPort;
+    }
+
+    public T Load<T>(string path) where T : notnull {
+        throw new NotImplementedException();
+    }
+
+    public IEnumerable<FileSystemEntry> List(string path) {
+        throw new NotImplementedException();
+    }
+
+    public bool Exists(string path) {
+        throw new NotImplementedException();
     }
 }
