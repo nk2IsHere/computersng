@@ -8,6 +8,7 @@ import {
     ReadString,
     WriteString
 } from "./Storage.js"
+import {HttpRequestString} from "./Network";
 
 function commandResult(
     context,
@@ -58,7 +59,7 @@ const ConsoleCommands = Object.freeze({
     "help": {
         description: "Prints this help message",
         usage: ".help",
-        action: (args, console, context) => {
+        action: async (args, console, context) => {
             console.Info("Available commands:")
             for (const [command, { description, usage}] of Object.entries(ConsoleCommands)) {
                 console.Info(`-> .${command}: ${description} (${usage})`)
@@ -70,7 +71,7 @@ const ConsoleCommands = Object.freeze({
     "clear": {
         description: "Clear console",
         usage: ".clear",
-        action: (args, console, context) => {
+        action: async (args, console, context) => {
             console.Clear()
             return commandResult(context)
         }
@@ -78,7 +79,7 @@ const ConsoleCommands = Object.freeze({
     "cd": {
         description: "Change directory",
         usage: ".cd <directory>",
-        action: (args, console, context) => {
+        action: async (args, console, context) => {
             const [changeDirectory] = commandArguments(context, args)
 
             if (!changeDirectory) {
@@ -98,7 +99,7 @@ const ConsoleCommands = Object.freeze({
     "pwd": {
         description: "Print working directory",
         usage: ".pwd",
-        action: (args, console, context) => {
+        action: async (args, console, context) => {
             console.Info(context.currentDirectory)
             return commandResult(context, context.currentDirectory)
         }
@@ -106,7 +107,7 @@ const ConsoleCommands = Object.freeze({
     "ls": {
         description: "List files in current directory",
         usage: ".ls <directory>",
-        action: (args, console, context) => {
+        action: async (args, console, context) => {
             const [directory] = commandArguments(context, args)
             const directoryToList = directory ?? context.currentDirectory
 
@@ -131,7 +132,7 @@ const ConsoleCommands = Object.freeze({
     "cat": {
         description: "Print file content",
         usage: ".cat <file>",
-        action: (args, console, context) => {
+        action: async (args, console, context) => {
             const [file] = commandArguments(context, args)
 
             if (!file) {
@@ -148,7 +149,7 @@ const ConsoleCommands = Object.freeze({
     "rm": {
         description: "Remove file",
         usage: ".rm [--recursive] <file>",
-        action: (args, console, context) => {
+        action: async (args, console, context) => {
             const parsedArguments = commandArguments(context, args)
             const file = parsedArguments.pop()
 
@@ -167,7 +168,7 @@ const ConsoleCommands = Object.freeze({
     "write": {
         description: "Write content to file",
         usage: ".write <file> <content>",
-        action: (args, console, context) => {
+        action: async (args, console, context) => {
             const [file, content] = commandArguments(context, args)
 
             if (!file || !content) {
@@ -185,7 +186,7 @@ const ConsoleCommands = Object.freeze({
     "exec": {
         description: "Execute script",
         usage: ".exec <script>",
-        action: (args, console, context) => {
+        action: async (args, console, context) => {
             const [script] = commandArguments(context, args)
 
             if (!script) {
@@ -211,7 +212,7 @@ const ConsoleCommands = Object.freeze({
     "echo": {
         description: "Print message",
         usage: ".echo <message>",
-        action: (args, console, context) => {
+        action: async (args, console, context) => {
             const [message] = commandArguments(context, args)
 
             if (!message) {
@@ -226,7 +227,7 @@ const ConsoleCommands = Object.freeze({
     "mkdir": {
         description: "Create directory",
         usage: ".mkdir <directory>",
-        action: (args, console, context) => {
+        action: async (args, console, context) => {
             const [directory] = commandArguments(context, args)
 
             if (!directory) {
@@ -249,7 +250,7 @@ const ConsoleCommands = Object.freeze({
     "touch": {
         description: "Create file",
         usage: ".touch <file>",
-        action: (args, console, context) => {
+        action: async (args, console, context) => {
             const [file] = commandArguments(context, args)
 
             if (!file) {
@@ -272,7 +273,7 @@ const ConsoleCommands = Object.freeze({
     "cp": {
         description: "Copy file or directory",
         usage: ".cp [--recursive] [--overwrite] <source> <destination>",
-        action: (args, console, context) => {
+        action: async (args, console, context) => {
             const parsedArguments = commandArguments(context, args)
             
             const recursive = parsedArguments.includes("--recursive")
@@ -295,7 +296,7 @@ const ConsoleCommands = Object.freeze({
     "mv": {
         description: "Move file or directory",
         usage: ".mv [--recursive] [--overwrite] <source> <destination>",
-        action: (args, console, context) => {
+        action: async (args, console, context) => {
             const parsedArguments = commandArguments(context, args)
             
             const recursive = parsedArguments.includes("--recursive")
@@ -314,13 +315,62 @@ const ConsoleCommands = Object.freeze({
             
             return commandResult(context)
         }
+    },
+    "http": {
+        description: "HTTP request",
+        usage: ".http <method> <url> [--headers key1=value1 key2=value2] [--data <data>]",
+        action: async (args, console, context) => {
+            const parsedArguments = commandArguments(context, args)
+            const method = parsedArguments[0]
+            const url = parsedArguments[1]
+
+            if (!method || !url) {
+                console.Error("Usage: .http <method> <url> [--headers key1=value1 key2=value2] [--data <data>]")
+                return commandResult(context, null, false)
+            }
+
+            const headers = {}
+            let data = null
+
+            for (let i = 2; i < parsedArguments.length; i++) {
+                const arg = parsedArguments[i]
+
+                if (arg === "--headers") {
+                    const headerArgs = parsedArguments[i + 1]
+                    for (const headerArg of headerArgs) {
+                        const [key, value] = headerArg.split("=")
+                        headers[key] = value
+                    }
+
+                    i++
+                    continue
+                }
+
+                if (arg === "--data") {
+                    data = parsedArguments[i + 1]
+                    i++
+                    continue
+                }
+
+                console.Error(`Unknown argument: ${arg}`)
+            }
+
+            const response = await HttpRequestString(url, method, data, headers)
+            if (response.statusCode >= 400) {
+                console.Error(`Request failed with status code ${response.statusCode}`)
+                return commandResult(context, response.body, false)
+            }
+            
+            console.Info(`Request successful with status code ${response.statusCode}`)
+            return commandResult(context, response.body)
+        }
     }
 })
 
-export function EvaluateJsExecutable(console, context, path) {
+export async function EvaluateJsExecutable(console, context, path) {
     try {
         const module = System.LoadModule(path)
-        const result = module.Main(console, context)
+        const result = await module.Main(console, context)
         
         return commandResult(context, result)
     } catch (e) {
@@ -329,9 +379,9 @@ export function EvaluateJsExecutable(console, context, path) {
     }
 }
 
-export function EvaluateJsCommand(console, context, input) {
+export async function EvaluateJsCommand(console, context, input) {
     try {
-        const result = eval(input)
+        const result = await eval(input)
         const resultString = `${input} := ${result}`
         const resultByLine = resultString.split('\n')
         for (const line of resultByLine) {
@@ -376,6 +426,7 @@ function parseTokensForInput(input) {
                 tokens.push(currentToken)
                 currentToken = null
             }
+            tokens.push("|")
             
             continue
         }
@@ -429,7 +480,7 @@ function groupTokensByCommandAndArguments(tokens) {
     return commandGroups
 }
 
-export function EvaluateCommand(console, context, input) {
+export async function EvaluateCommand(console, context, input) {
     const commands = groupTokensByCommandAndArguments(parseTokensForInput(input))
         .filter(commandGroup => commandGroup[0].startsWith(".")) // Only allow commands starting with .
         .map(commandGroup => {
@@ -453,7 +504,7 @@ export function EvaluateCommand(console, context, input) {
                 break
             }
 
-            lastContext = ConsoleCommands[command].action(args, console, lastContext)
+            lastContext = await ConsoleCommands[command].action(args, console, lastContext)
 
             if (!lastContext.lastCommandSuccessful) {
                 break

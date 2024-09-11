@@ -101,6 +101,6 @@ declare type HttpResponseString = {
 }
 
 declare const Network: {
-    RequestHttpBytes: (url: string, method: string, headers?: { [key: string]: string }, body?: Array<number>) => Promise<HttpResponseBytes>
-    RequestHttpString: (url: string, method: string, headers?: { [key: string]: string }, body?: string) => Promise<HttpResponseString>
+    RequestHttpBytes: (url: string, method: string, headers?: { [key: string]: string }, body?: Array<number>) => Promise<{ Result: HttpResponseBytes }>
+    RequestHttpString: (url: string, method: string, headers?: { [key: string]: string }, body?: string) => Promise<{ Result: HttpResponseString }>
 }

@@ -1,116 +1,29 @@
 
-export async function HttpGetBytes(url, headers = {}) {
-    const { StatusCode, Headers, Body } = await Network.RequestHttpBytes(url, 'GET', headers)
-    return {
-        statusCode: StatusCode,
-        headers: Headers,
-        body: Body
-    }
-}
-
-export async function HttpGetText(url, headers = {}) {
-    const { StatusCode, Headers, Body } = await Network.RequestHttpString(url, 'GET', headers)
-    return {
-        statusCode: StatusCode,
-        headers: Headers,
-        body: Body
-    }
-}
-
-export async function HttpPostBytes(url, data, headers = {}) {
-    if(!Array.isArray(data)) {
-        throw new Error('data must be an array of bytes')
+export async function HttpRequestBytes(url, method = 'GET', data = null, headers = {}) {
+    if(typeof url !== 'string') {
+        throw new Error('url must be a string')
     }
     
-    const { StatusCode, Headers, Body } = await Network.RequestHttpBytes(url, 'POST', headers, data)
-    return {
-        statusCode: StatusCode,
-        headers: Headers,
-        body: Body
-    }
-}
-
-export async function HttpPostText(url, data, headers = {}) {
-    if(typeof data !== 'string') {
-        throw new Error('data must be a string')
+    if(typeof method !== 'string') {
+        throw new Error('method must be a string')
     }
     
-    const { StatusCode, Headers, Body } = await Network.RequestHttpString(url, 'POST', headers, data)
-    return {
-        statusCode: StatusCode,
-        headers: Headers,
-        body: Body
-    }
-}
-
-export async function HttpPutBytes(url, data, headers = {}) {
-    if(!Array.isArray(data)) {
-        throw new Error('data must be an array of bytes')
+    if(data !== null && !Array.isArray(data)) {
+        throw new Error('data must be a byte array or null')
     }
     
-    const { StatusCode, Headers, Body } = await Network.RequestHttpBytes(url, 'PUT', headers, data)
-    return {
-        statusCode: StatusCode,
-        headers: Headers,
-        body: Body
-    }
-}
-
-export async function HttpPutText(url, data, headers = {}) {
-    if(typeof data !== 'string') {
-        throw new Error('data must be a string')
+    if(headers !== null && typeof headers !== 'object') {
+        throw new Error('headers must be an object or null')
     }
     
-    const { StatusCode, Headers, Body } = await Network.RequestHttpString(url, 'PUT', headers, data)
-    return {
-        statusCode: StatusCode,
-        headers: Headers,
-        body: Body
-    }
-}
-
-export async function HttpDeleteBytes(url, headers = {}) {
-    const { StatusCode, Headers, Body } = await Network.RequestHttpBytes(url, 'DELETE', headers)
-    return {
-        statusCode: StatusCode,
-        headers: Headers,
-        body: Body
-    }
-}
-
-export async function HttpDeleteText(url, headers = {}) {
-    const { StatusCode, Headers, Body } = await Network.RequestHttpString(url, 'DELETE', headers)
-    return {
-        statusCode: StatusCode,
-        headers: Headers,
-        body: Body
-    }
-}
-
-export async function HttpHead(url, headers = {}) {
-    const { StatusCode, Headers, Body } = await Network.RequestHttpString(url, 'HEAD', headers)
-    return {
-        statusCode: StatusCode,
-        headers: Headers,
-        body: Body
-    }
-}
-
-export async function HttpOptions(url, headers = {}) {
-    const { StatusCode, Headers, Body } = await Network.RequestHttpString(url, 'OPTIONS', headers)
-    return {
-        statusCode: StatusCode,
-        headers: Headers,
-        body: Body
-    }
-}
-
-export async function HttpPatchBytes(url, data, headers = {}) {
-    if(!Array.isArray(data)) {
-        throw new Error('data must be an array of bytes')
+    if(!['GET', 'POST', 'PUT', 'DELETE'].includes(method)) {
+        throw new Error('method must be a valid HTTP method')
     }
     
-    const { StatusCode, Headers, Body } = await Network.RequestHttpBytes(url, 'PATCH', headers, data)
+    headers = new Map(Object.entries(headers ?? {}));
+    
+    const { Result } = await Network.RequestHttpBytes(url, method, headers, data);
+    const { StatusCode, Headers, Body } = Result;
     return {
         statusCode: StatusCode,
         headers: Headers,
@@ -118,12 +31,31 @@ export async function HttpPatchBytes(url, data, headers = {}) {
     }
 }
 
-export async function HttpPatchText(url, data, headers = {}) {
-    if(typeof data !== 'string') {
-        throw new Error('data must be a string')
+export async function HttpRequestString(url, method = 'GET', data = null, headers = {}) {
+    if(typeof url !== 'string') {
+        throw new Error('url must be a string')
     }
     
-    const { StatusCode, Headers, Body } = await Network.RequestHttpString(url, 'PATCH', headers, data)
+    if(typeof method !== 'string') {
+        throw new Error('method must be a string')
+    }
+    
+    if(data !== null && typeof data !== 'string') {
+        throw new Error('data must be a string or null')
+    }
+    
+    if(headers !== null && typeof headers !== 'object') {
+        throw new Error('headers must be an object or null')
+    }
+    
+    if(!['GET', 'POST', 'PUT', 'DELETE'].includes(method)) {
+        throw new Error('method must be a valid HTTP method')
+    }
+    
+    headers = new Map(Object.entries(headers ?? {}));
+    
+    const { Result } = await Network.RequestHttpString(url, method, headers, data);
+    const { StatusCode, Headers, Body } = Result;
     return {
         statusCode: StatusCode,
         headers: Headers,

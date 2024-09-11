@@ -46,10 +46,10 @@ internal class NetworkComputerState {
         _configuration = configuration;
     }
 
-    public async Task<HttpResponseBytes> RequestHttpBytes(
+    public async ValueTask<HttpResponseBytes> RequestHttpBytes(
         string url,
         string method,
-        IDictionary<string, string>? headers,
+        IDictionary<string, object>? headers,
         byte[]? body
     ) {
         EnsureUrlIsAllowed(url);
@@ -58,7 +58,7 @@ internal class NetworkComputerState {
         
         if (headers != null) {
             foreach (var header in headers) {
-                request.Headers.Add(header.Key, header.Value);
+                request.Headers.Add(header.Key, header.Value.ToString());
             }
         }
         
@@ -83,10 +83,10 @@ internal class NetworkComputerState {
         );
     }
     
-    public async Task<HttpResponseString> RequestHttpString(
+    public async ValueTask<HttpResponseString> RequestHttpString(
         string url,
         string method,
-        IDictionary<string, string>? headers,
+        IDictionary<string, object>? headers,
         string? body
     ) {
         EnsureUrlIsAllowed(url);
@@ -95,7 +95,7 @@ internal class NetworkComputerState {
         
         if (headers != null) {
             foreach (var header in headers) {
-                request.Headers.Add(header.Key, header.Value);
+                request.Headers.Add(header.Key, header.Value.ToString());
             }
         }
         

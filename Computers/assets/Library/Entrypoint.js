@@ -35,10 +35,12 @@ export function Main() {
         {
             inputState: "/"
         },
-        (input, context) => {
-            const resultContext = input.startsWith('.') 
-                ? EvaluateCommand(console, context, input)
-                : EvaluateJsCommand(console, context, input)
+        async (input, context) => {
+            const resultContext = await (
+                input.startsWith('.') 
+                    ? EvaluateCommand(console, context, input)
+                    : EvaluateJsCommand(console, context, input)
+            )
             
             return {
                 ...context,

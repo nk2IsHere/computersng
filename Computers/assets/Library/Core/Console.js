@@ -160,7 +160,14 @@ export class ConsoleView {
             }
             
             if (key.name === "Enter") {
-                this.currentCommandContext = this.onInput(this.currentInput, this.currentCommandContext)
+                this.onInput(this.currentInput, this.currentCommandContext)
+                    .then((resultContext) => {
+                        this.currentCommandContext = resultContext
+                    })
+                    .catch((error) => {
+                        this.console.Error(error.message)
+                    })
+
                 this.currentInput = ""
             }
         }
