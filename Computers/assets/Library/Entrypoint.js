@@ -1,9 +1,9 @@
-import { Color } from "./Core/Constants.js"
-import { Console, ConsoleLogLevel, ConsoleView } from "./Core/Console.js"
-import { ReloadView } from "./Core/Reload.js"
-import {EvaluateCommand, EvaluateJsCommand, EvaluateJsExecutable} from "./Core/Commands.js"
-import { ChooseRandomFact } from "./Core/Facts.js"
-import {Exists} from "./Core/Storage";
+import { Color } from "./Core/Constants"
+import { Console, ConsoleLogLevel, ConsoleView } from "./Core/Console"
+import { ReloadView } from "./Core/Reload"
+import { EvaluateCommand, EvaluateJsCommand, EvaluateJsExecutable } from "./Core/Commands"
+import { ChooseRandomFact } from "./Core/Facts"
+import { Exists } from "./Core/Storage"
 
 export async function Main() {
     const [screenWidth, screenHeight] = Render.GetScreenBoundaries()

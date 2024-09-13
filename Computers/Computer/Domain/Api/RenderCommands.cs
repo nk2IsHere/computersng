@@ -1,7 +1,7 @@
 using Computers.Computer.Utils;
 using Microsoft.Xna.Framework;
 
-namespace Computers.Computer.Domain;
+namespace Computers.Computer.Domain.Api;
 
 public interface IRenderCommand {
     void Draw(

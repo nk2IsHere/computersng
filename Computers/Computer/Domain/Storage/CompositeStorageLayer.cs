@@ -1,36 +1,24 @@
-using System.Text;
-using Computers.Game;
+namespace Computers.Computer.Domain.Storage;
 
-namespace Computers.Computer.Domain;
 
-public class StorageComputerApi: IComputerApi {
-    public string Name => "Storage";
-    public bool ShouldExpose => true;
-    public object Api => _state;
-    
-    public ISet<Type> ReceivableEvents => new HashSet<Type>();
-    public IRedundantLoader LibraryLoader => new StorageRedundantLoader(_state);
-    
-    private readonly StorageComputerState _state;
-
-    public StorageComputerApi(IComputerPort computerPort, Func<StorageComputerApi, IEnumerable<IStorageLayer>> layers) {
-        _state = new StorageComputerState(layers(this));
-    }
-    
-    public void ReceiveEvent(IComputerEvent computerEvent) {
-    }
-
-    public void Reset() {
-    }
-}
-
-internal class StorageComputerState: IStorageLayer {
+public class CompositeStorageLayer: IStorageLayer {
     private readonly List<IStorageLayer> _layers;
 
-    public StorageComputerState(IEnumerable<IStorageLayer> layers) {
+    public CompositeStorageLayer(IEnumerable<IStorageLayer> layers) {
         _layers = layers
             .OrderBy(layer => layer.Priority)
             .ToList();
+        
+        // Only one Read Write layer is allowed
+        var readWriteLayersCount = _layers.Count(layer => layer.Mode == StorageLayerMode.ReadWrite);
+        if (readWriteLayersCount > 1) {
+            throw new InvalidOperationException("Only one ReadWrite layer is allowed");
+        }
+        
+        // Read Write layer must be the last one
+        if (_layers.Last().Mode != StorageLayerMode.ReadWrite) {
+            throw new InvalidOperationException("ReadWrite layer must be the last one");
+        }
     }
 
     public int Priority => 0;
@@ -107,6 +95,7 @@ internal class StorageComputerState: IStorageLayer {
         var metadata = layers
             .Where(response => response is { Type: StorageResponseType.Success, Data: not null })
             .SelectMany(response => response.Data!)
+            .DistinctBy(response => response.Name)
             .ToArray();
        
         return StorageResponse<StorageFileMetadata[]>.OfSuccess(metadata);
@@ -119,54 +108,5 @@ internal class StorageComputerState: IStorageLayer {
         
         var highestPriorityReadWriteLayer = _layers.First(layer => layer.Mode == StorageLayerMode.ReadWrite);
         return highestPriorityReadWriteLayer.Write(path, value);
-    }
-}
-
-internal class StorageRedundantLoader : IRedundantLoader {
-    
-    private readonly StorageComputerState _state;
-
-    public StorageRedundantLoader(StorageComputerState state) {
-        _state = state;
-    }
-    
-    public T Load<T>(string path) where T : notnull {
-        var response = _state.Read(path);
-        if (response.Type == StorageResponseType.Error) {
-            throw new InvalidOperationException($"Failed to load {typeof(T).Name} from {path}: {response.Error}");
-        }
-        
-        if (response.Data is not { } file) {
-            throw new InvalidOperationException($"Failed to load {typeof(T).Name} from {path}: Expected file, got {response.Data?.GetType().Name}");
-        }
-
-        return typeof(T) switch {
-            { } t when t == typeof(byte[]) => (T) (object) file.Data,
-            { } t when t == typeof(string) => (T) (object) Encoding.UTF8.GetString(file.Data),
-            _ => throw new InvalidOperationException($"Failed to load {typeof(T).Name} from {path}: Unsupported type")
-        };
-    }
-
-    public IEnumerable<FileSystemEntry> List(string path) {
-        var response = _state.List(path);
-        if (response is not { Type: StorageResponseType.Success, Data: not null }) {
-            throw new InvalidOperationException($"Failed to list files in {path}: {response.Error}");
-        }
-
-        return response.Data
-            .Select(metadata => new FileSystemEntry(
-                metadata.Name,
-                metadata.Type switch {
-                    StorageFileType.File => FileSystemEntryType.File,
-                    StorageFileType.Directory => FileSystemEntryType.Directory,
-                    _ => throw new ArgumentOutOfRangeException()
-                },
-                metadata.Size
-            ))
-            .ToArray();
-    }
-
-    public bool Exists(string path) {
-        return _state.Exists(path);
     }
 }

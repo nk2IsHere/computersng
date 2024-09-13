@@ -1,7 +1,7 @@
 using Computers.Game;
 using StardewModdingAPI;
 
-namespace Computers.Computer.Domain;
+namespace Computers.Computer.Domain.Api;
 
 public class EventComputerApi : IComputerApi {
     public string Name => "Event";
@@ -38,17 +38,17 @@ public class EventComputerApi : IComputerApi {
        switch (computerEvent) {
            case ButtonHeldEvent buttonHeldEvent:
                _heldButtons.Add(buttonHeldEvent.Key);
-               _state.Enqueue(new Event("ButtonHeld", new object[] { (int) buttonHeldEvent.Key }));
+               _state.Enqueue(new EventEntry("ButtonHeld", new object[] { (int) buttonHeldEvent.Key }));
                break;
             case ButtonUnheldEvent buttonUnheldEvent:
                 _heldButtons.Remove(buttonUnheldEvent.Key);
-                _state.Enqueue(new Event("ButtonUnheld", new object[] { (int) buttonUnheldEvent.Key }));
+                _state.Enqueue(new EventEntry("ButtonUnheld", new object[] { (int) buttonUnheldEvent.Key }));
                 break;
            case TickComputerEvent tickComputerEvent:
-               _state.Enqueue(new Event("Tick", new object[] { tickComputerEvent.Ticks }));
+               _state.Enqueue(new EventEntry("Tick", new object[] { tickComputerEvent.Ticks }));
                break;
            case KeyPressedEvent keyPressedEvent:
-               _state.Enqueue(new Event("KeyPressed", new object[] {
+               _state.Enqueue(new EventEntry("KeyPressed", new object[] {
                    (int) keyPressedEvent.Key,
                    _heldButtons
                        .Cast<int>()
@@ -56,13 +56,13 @@ public class EventComputerApi : IComputerApi {
                }));
                break;
            case MouseLeftClickedEvent mouseLeftClickedEvent:
-               _state.Enqueue(new Event("MouseLeftClicked", new object[] { mouseLeftClickedEvent.X, mouseLeftClickedEvent.Y }));
+               _state.Enqueue(new EventEntry("MouseLeftClicked", new object[] { mouseLeftClickedEvent.X, mouseLeftClickedEvent.Y }));
                break;
            case MouseRightClickedEvent mouseRightClickedEvent:
-               _state.Enqueue(new Event("MouseRightClicked", new object[] { mouseRightClickedEvent.X, mouseRightClickedEvent.Y }));
+               _state.Enqueue(new EventEntry("MouseRightClicked", new object[] { mouseRightClickedEvent.X, mouseRightClickedEvent.Y }));
                break;
            case MouseWheelEvent mouseWheelEvent:
-               _state.Enqueue(new Event("MouseWheel", new object[] { mouseWheelEvent.Direction }));
+               _state.Enqueue(new EventEntry("MouseWheel", new object[] { mouseWheelEvent.Direction }));
                break;
        }
     }
@@ -72,18 +72,18 @@ public class EventComputerApi : IComputerApi {
     }
 }
 
-internal record Event(string Type, object[] Data);
+internal record EventEntry(string Type, object[] Data);
 
 internal class EventComputerState {
     
     private readonly IComputerPort _computerPort;
-    private readonly Queue<Event> _events = new();
+    private readonly Queue<EventEntry> _events = new();
 
     public EventComputerState(IComputerPort computerPort) {
         _computerPort = computerPort;
     }
 
-    public void Enqueue(Event @event) {
+    public void Enqueue(EventEntry @event) {
         if (@event == null) {
             throw new ArgumentNullException(nameof(@event));
         }
@@ -93,7 +93,7 @@ internal class EventComputerState {
         }
     }
     
-    public List<Event> Poll() {
+    public List<EventEntry> Poll() {
         // Since the engine expects main function to be an infinite loop, we need to process tasks somewhere, 
         // where the code is executed every frame.
         // Polling events is a good place to do that, unless any external script decides not to poll events.

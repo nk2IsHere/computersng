@@ -2,7 +2,7 @@ using Computers.Core;
 using Computers.Game;
 using StardewModdingAPI.Events;
 
-namespace Computers.Computer.Domain;
+namespace Computers.Computer.Domain.Event;
 
 public class ComputerTickDispatcher: ComputerEventHandler {
     

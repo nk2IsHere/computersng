@@ -4,7 +4,7 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using StardewValley;
 
-namespace Computers.Computer.Domain;
+namespace Computers.Computer.Domain.Api;
 
 public class RenderComputerApi: IComputerApi {
     public string Name => "Render";

@@ -7,8 +7,8 @@ import {
     MakeDirectory,
     ReadString,
     WriteString
-} from "./Storage.js"
-import {HttpRequestString} from "./Network";
+} from "./Storage"
+import { HttpRequestString } from "./Network"
 
 function commandResult(
     context,

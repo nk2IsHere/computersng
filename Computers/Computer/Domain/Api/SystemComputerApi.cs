@@ -1,6 +1,6 @@
 using Computers.Game;
 
-namespace Computers.Computer.Domain;
+namespace Computers.Computer.Domain.Api;
 
 public class SystemComputerApi : IComputerApi {
     public string Name => "System";

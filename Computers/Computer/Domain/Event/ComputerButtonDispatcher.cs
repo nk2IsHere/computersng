@@ -3,7 +3,7 @@ using Computers.Game;
 using StardewModdingAPI.Events;
 using ButtonReleasedEvent = Computers.Game.ButtonReleasedEvent;
 
-namespace Computers.Computer.Domain;
+namespace Computers.Computer.Domain.Event;
 
 public class ComputerButtonDispatcher: ComputerEventHandler {
     public ComputerButtonDispatcher(ContextLookup<IComputerPort> computers) : base(computers) {

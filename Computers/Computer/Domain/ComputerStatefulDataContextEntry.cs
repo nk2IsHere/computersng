@@ -1,12 +1,11 @@
 using System.Collections.Concurrent;
+using Computers.Computer.Domain.Api;
 using Computers.Computer.Domain.Storage;
 using Computers.Core;
 using Computers.Game;
-using Computers.Game.Utils;
 using Jint;
 using Jint.Native.Object;
 using Jint.Runtime;
-using Jint.Runtime.Modules;
 using StardewModdingAPI;
 using Context = Computers.Core.Context;
 
@@ -46,15 +45,15 @@ public class ComputerStatefulDataContextEntry : IContextEntry.StatefulDataContex
                 this,
                 api => {
                     var storageLayers = new List<IStorageLayer> {
-                        new LoaderStorageLayer(coreLibraryLoader)
+                        new LoaderStorageLayer(coreLibraryLoader, 1)
                     };
+                    
+                    if (configuration.Storage.EnableExternalStorage) {
+                        storageLayers.Add(new LoaderStorageLayer(new ComputerDataLoader(this, dataLoader)));
+                    }
         
                     if (configuration.Storage.EnablePersistentStorage) {
                         storageLayers.Add(new PersistentStorageLayer(GetStorage(api)));
-                    }
-        
-                    if (configuration.Storage.EnableExternalStorage) {
-                        storageLayers.Add(new LoaderStorageLayer(new ComputerLoader(this, dataLoader)));
                     }
                     
                     return storageLayers;
@@ -213,104 +212,5 @@ public class ComputerStatefulDataContextEntry : IContextEntry.StatefulDataContex
                 }
             }
         }
-    }
-}
-
-internal class ComputerModuleLoader : ModuleLoader {
-
-    private readonly IMonitor _monitor;
-    private readonly List<IRedundantLoader> _libraryLoaders;
-    
-    public ComputerModuleLoader(IMonitor monitor, List<IRedundantLoader> libraryLoaders) {
-        _monitor = monitor;
-        _libraryLoaders = libraryLoaders;
-    }
-
-    public override ResolvedSpecifier Resolve(string? referencingModuleLocation, ModuleRequest moduleRequest) {
-        _monitor.Log($"Resolving module: module location is {referencingModuleLocation} request is {moduleRequest}");
-        
-        var specifier = moduleRequest.Specifier;
-        if (string.IsNullOrEmpty(specifier)) {
-            throw new InvalidOperationException($"Invalid Module Specifier for module request: {moduleRequest}");
-        }
-
-        var resolvedUri = new Uri("/");
-        if (Uri.TryCreate(specifier, UriKind.Absolute, out var uri)) {
-            resolvedUri = uri;
-        } else if(IsRelative(specifier)) {
-            var baseUri = BuildBaseUri(referencingModuleLocation);
-            resolvedUri = new Uri(baseUri, specifier);
-        }
-        
-        return new ResolvedSpecifier(
-            moduleRequest,
-            resolvedUri.AbsoluteUri,
-            resolvedUri,
-            SpecifierType.RelativeOrAbsolute
-        );
-    }
-
-    protected override string LoadModuleContents(Engine engine, ResolvedSpecifier resolved) {
-        _monitor.Log($"Loading module: {resolved}");
-        if (resolved.Uri is null) {
-            throw new InvalidOperationException($"Invalid Module Specifier for module request: {resolved}");
-        }
-        
-        var fileName = Uri.UnescapeDataString(resolved.Uri.AbsolutePath);
-        foreach (var libraryModule in _libraryLoaders.Select(loader => TryLoadModuleUsing(loader, fileName)).OfType<string>()) {
-            return libraryModule;
-        }
-        
-        throw new InvalidOperationException($"Module {fileName} not found.");
-    }
-    
-    private static string? TryLoadModuleUsing(IRedundantLoader loader, string fileName) {
-        if (loader.Exists(fileName)) {
-            return loader.Load<string>(fileName);
-        }
-        
-        var fileNameWithExtension = fileName + ".js";
-        return loader.Exists(fileNameWithExtension) 
-            ? loader.Load<string>(fileNameWithExtension)
-            : null;
-    }
-
-    private static bool IsRelative(string specifier) {
-        return specifier.StartsWith('.') || specifier.StartsWith('/');
-    }
-    
-    private static Uri BuildBaseUri(string? referencingModuleLocation) {
-        if (referencingModuleLocation is null) {
-            return new Uri("/");
-        }
-        
-        return Uri.TryCreate(referencingModuleLocation, UriKind.Absolute, out var referencingLocation) 
-            ? referencingLocation
-            : new Uri("/");
-    }
-}
-
-internal class ComputerLoader : IRedundantLoader {
-    private readonly IComputerPort _computerPort;
-    private readonly IRedundantLoader _dataLoader;
-
-    public ComputerLoader(IComputerPort computerPort, IRedundantLoader dataLoader) {
-        _computerPort = computerPort;
-        _dataLoader = dataLoader;
-    }
-
-    public T Load<T>(string path) where T : notnull {
-        var pathParts = ResourceUtils.SplitPath(path);
-        return _dataLoader.Load<T>(Path.Combine(_computerPort.Id, Path.Combine(pathParts)));
-    }
-
-    public IEnumerable<FileSystemEntry> List(string path) {
-        var pathParts = ResourceUtils.SplitPath(path);
-        return _dataLoader.List(Path.Combine(_computerPort.Id, Path.Combine(pathParts)));
-    }
-
-    public bool Exists(string path) {
-        var pathParts = ResourceUtils.SplitPath(path);
-        return _dataLoader.Exists(Path.Combine(_computerPort.Id, Path.Combine(pathParts)));
     }
 }

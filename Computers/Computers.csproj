@@ -17,6 +17,7 @@
 
     <ItemGroup>
       <Folder Include="assets\Assets\" />
+      <Folder Include="assets\Library\Commands\" />
     </ItemGroup>
 
     <ItemGroup>

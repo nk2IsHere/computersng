@@ -1,5 +1,6 @@
 using Computers.Computer;
 using Computers.Computer.Domain;
+using Computers.Computer.Domain.Event;
 using Computers.Core;
 using Computers.Game;
 using Computers.Game.Domain;

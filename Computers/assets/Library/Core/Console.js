@@ -1,4 +1,4 @@
-import { Keys } from "./Constants.js"
+import { Keys } from "./Constants"
 
 export const ConsoleLogLevel = Object.freeze({
     Info: "info",
@@ -172,6 +172,10 @@ export class ConsoleView {
             }
             
             if (key.name === "Enter") {
+                const currentInputState = this.currentCommandContext.inputState?.toString() ?? ""
+                const { inputPrefix } = this.inputOptions
+                this.console.Info(`${currentInputState}${inputPrefix}${this.currentInput}`)
+
                 this.onInput(this.currentInput, this.currentCommandContext)
                     .then((resultContext) => {
                         this.currentCommandContext = resultContext
@@ -179,7 +183,7 @@ export class ConsoleView {
                     .catch((error) => {
                         this.console.Error(error.message)
                     })
-
+                
                 this.scrollOffset = 0 // scroll to bottom
                 this.currentInput = ""
             }

@@ -1,7 +1,7 @@
 using Computers.Core;
 using Computers.Game;
 
-namespace Computers.Computer.Domain;
+namespace Computers.Computer.Domain.Event;
 
 public class ComputerStartDispatcher: ComputerEventHandler {
     
