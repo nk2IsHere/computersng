@@ -19,18 +19,20 @@ resource:
 # UI configuration for computer screen
 ui:
   # The width of the computer screen in pixels. (!) Should be calculated as (canvasWidth - 8) * scale factor.
-  windowWidth: 884
+  windowWidth: 888
   
   # The height of the computer screen in pixels. (!) Should be calculated as (canvasHeight + 24) * scale factor.
-  windowHeight: 566
+  windowHeight: 556
 
 # Render API configuration
 render:
   # The width of the canvas in pixels that the computer will render to.
-  canvasWidth: 376
+#  canvasWidth: 376
+  canvasWidth: 452
   
   # The height of the canvas in pixels that the computer will render to.
-  canvasHeight: 212
+#  canvasHeight: 212
+  canvasHeight: 256
   
   # This will be multiplied by the font size in the BMFont file to determine the default font size in Render API.
   fontDefaultScale: 1

@@ -72,6 +72,7 @@ declare type StorageFileMetadata = {
     Name: string
     Type: StorageFileType
     Size: number
+    Layer: string
 }
 
 declare type StorageFile = {

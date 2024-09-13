@@ -2,6 +2,8 @@ namespace Computers.Computer.Domain.Storage;
 
 internal class PersistentStorageLayer: IStorageLayer {
     
+    private static string LayerName => "Persistent";
+    
     private readonly Dictionary<string, object> _storage;
     
     public PersistentStorageLayer(IDictionary<string, object> storage, int priority = int.MaxValue) {
@@ -54,8 +56,8 @@ internal class PersistentStorageLayer: IStorageLayer {
                     .Select(entry => {
                         var (name, value) = entry;
                         return value switch {
-                            byte[] data => StorageFileMetadata.Of(name, StorageFileType.File, data.Length),
-                            IDictionary<string, object> _ => StorageFileMetadata.Of(name, StorageFileType.Directory, 0),
+                            byte[] data => StorageFileMetadata.Of(name, StorageFileType.File, data.Length, LayerName),
+                            IDictionary<string, object> _ => StorageFileMetadata.Of(name, StorageFileType.Directory, 0, LayerName),
                             _ => throw new ArgumentOutOfRangeException($"Unknown storage type {value.GetType()}")
                         };
                     })
@@ -91,8 +93,8 @@ internal class PersistentStorageLayer: IStorageLayer {
             
             if (pathParts.Length == 1) {
                 return storage[currentPart] switch {
-                    IDictionary<string, object> => StorageResponse<StorageFileMetadata>.OfSuccess(StorageFileMetadata.Of(currentPart, StorageFileType.Directory, 0)),
-                    byte[] data => StorageResponse<StorageFileMetadata>.OfSuccess(StorageFileMetadata.Of(currentPart, StorageFileType.File, data.Length)),
+                    IDictionary<string, object> => StorageResponse<StorageFileMetadata>.OfSuccess(StorageFileMetadata.Of(currentPart, StorageFileType.Directory, 0, LayerName)),
+                    byte[] data => StorageResponse<StorageFileMetadata>.OfSuccess(StorageFileMetadata.Of(currentPart, StorageFileType.File, data.Length, LayerName)),
                     _ => StorageResponse<StorageFileMetadata>.OfError(StorageErrorType.PathIsNotFile)
                 };
             }
@@ -125,7 +127,7 @@ internal class PersistentStorageLayer: IStorageLayer {
                 var readData = new byte[data.Length];
                 data.CopyTo(readData, 0);
                 
-                return StorageResponse<StorageFile>.OfSuccess(StorageFile.Of(currentPart, readData));
+                return StorageResponse<StorageFile>.OfSuccess(StorageFile.Of(currentPart, readData, LayerName));
 
             }
             

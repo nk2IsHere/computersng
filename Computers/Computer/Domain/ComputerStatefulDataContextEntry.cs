@@ -45,11 +45,11 @@ public class ComputerStatefulDataContextEntry : IContextEntry.StatefulDataContex
                 this,
                 api => {
                     var storageLayers = new List<IStorageLayer> {
-                        new LoaderStorageLayer(coreLibraryLoader, 1)
+                        new LoaderStorageLayer(coreLibraryLoader, "Core", 1)
                     };
                     
                     if (configuration.Storage.EnableExternalStorage) {
-                        storageLayers.Add(new LoaderStorageLayer(new ComputerDataLoader(this, dataLoader)));
+                        storageLayers.Add(new LoaderStorageLayer(new ComputerDataLoader(this, dataLoader), "External"));
                     }
         
                     if (configuration.Storage.EnablePersistentStorage) {

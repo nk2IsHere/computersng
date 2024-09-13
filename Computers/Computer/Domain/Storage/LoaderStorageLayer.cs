@@ -6,9 +6,11 @@ namespace Computers.Computer.Domain.Storage;
 public class LoaderStorageLayer: IStorageLayer {
     
     private readonly IRedundantLoader _loader;
+    private readonly string _layerName;
 
-    public LoaderStorageLayer(IRedundantLoader loader, int priority = 0) {
+    public LoaderStorageLayer(IRedundantLoader loader, string layerName, int priority = 0) {
         _loader = loader;
+        _layerName = layerName;
         Priority = priority;
     }
 
@@ -31,7 +33,7 @@ public class LoaderStorageLayer: IStorageLayer {
         try {
             var file = _loader.Load<string>(path);
             var fileBytes = Encoding.UTF8.GetBytes(file);
-            return StorageResponse<StorageFile>.OfSuccess(StorageFile.Of(path, fileBytes));
+            return StorageResponse<StorageFile>.OfSuccess(StorageFile.Of(path, fileBytes, _layerName));
         } catch (Exception) {
             return StorageResponse<StorageFile>.OfError(StorageErrorType.FileNotFound);
         }
@@ -41,7 +43,7 @@ public class LoaderStorageLayer: IStorageLayer {
         try {
             var file = _loader.Load<string>(path);
             var fileBytes = Encoding.UTF8.GetBytes(file);
-            return StorageResponse<StorageFileMetadata>.OfSuccess(StorageFileMetadata.Of(path, StorageFileType.File, fileBytes.Length));
+            return StorageResponse<StorageFileMetadata>.OfSuccess(StorageFileMetadata.Of(path, StorageFileType.File, fileBytes.Length, _layerName));
         } catch (Exception) {
             return StorageResponse<StorageFileMetadata>.OfError(StorageErrorType.FileNotFound);
         }
@@ -57,7 +59,8 @@ public class LoaderStorageLayer: IStorageLayer {
                         FileSystemEntryType.Directory => StorageFileType.Directory,
                         _ => throw new ArgumentOutOfRangeException()
                     },
-                    entry.Size
+                    entry.Size,
+                    _layerName
                 ))
                 .ToArray();
             

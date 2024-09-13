@@ -27,10 +27,11 @@ export function List(path) {
     }
     
     return response.Data
-        .map(({ Name, Type, Size }) => ({
+        .map(({ Name, Type, Size, Layer }) => ({
             name: Name,
             type: StorageFileType[Type],
-            size: Size
+            size: Size,
+            layer: Layer
         }))
 }
 

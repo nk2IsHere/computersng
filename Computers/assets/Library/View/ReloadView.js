@@ -1,4 +1,4 @@
-import { Keys } from "./Constants"
+import { Keys } from "../Core/Constants"
 
 export class ReloadView {
     constructor(onReload) {

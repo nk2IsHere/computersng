@@ -80,19 +80,22 @@ public class StorageFileMetadata {
     public string Name { get; }
     public StorageFileType Type { get; }
     public long Size { get; }
-    
-    private StorageFileMetadata(string name, StorageFileType type, long size) {
+
+    public string Layer { get; }
+
+    private StorageFileMetadata(string name, StorageFileType type, long size, string layer) {
         Name = name;
         Type = type;
         Size = size;
+        Layer = layer;
     }
     
     public override string ToString() {
-        return $"StorageFileMetadata(Name: {Name}, Type: {Type}, Size: {Size})";
+        return $"StorageFileMetadata(Name: {Name}, Type: {Type}, Size: {Size}, Layer: {Layer})";
     }
     
-    public static StorageFileMetadata Of(string name, StorageFileType type, long size) {
-        return new StorageFileMetadata(name, type, size);
+    public static StorageFileMetadata Of(string name, StorageFileType type, long size, string layer) {
+        return new StorageFileMetadata(name, type, size, layer);
     }
 }
 
@@ -109,8 +112,8 @@ public class StorageFile {
         return $"StorageFile(Metadata: {Metadata})";
     }
     
-    public static StorageFile Of(string name, byte[] data) {
-        return new StorageFile(StorageFileMetadata.Of(name, StorageFileType.File, data.Length), data);
+    public static StorageFile Of(string name, byte[] data, string layer) {
+        return new StorageFile(StorageFileMetadata.Of(name, StorageFileType.File, data.Length, layer), data);
     }
 }
 
