@@ -27,11 +27,9 @@ ui:
 # Render API configuration
 render:
   # The width of the canvas in pixels that the computer will render to.
-#  canvasWidth: 376
   canvasWidth: 452
   
   # The height of the canvas in pixels that the computer will render to.
-#  canvasHeight: 212
   canvasHeight: 256
   
   # This will be multiplied by the font size in the BMFont file to determine the default font size in Render API.

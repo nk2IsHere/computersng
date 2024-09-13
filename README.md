@@ -65,7 +65,7 @@ Make processing of Stardew's resources a configurable function pipe-like process
 - [x] Add support for custom packages loading
 - [x] Add support for public networking
 - [x] Add support for layered file system
-- [ ] Add support for package-based libraries and separate core libraries
+- [x] Add support for package-based libraries and separate core libraries
 
 ### Interactability with world (TODO)
 
