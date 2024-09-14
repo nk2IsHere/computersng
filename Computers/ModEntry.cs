@@ -5,6 +5,9 @@ using Computers.Core;
 using Computers.Game;
 using Computers.Game.Domain;
 using Computers.Game.Utils;
+using Computers.Router;
+using Computers.Router.Domain;
+using Microsoft.Xna.Framework;
 using StardewValley;
 using StardewValley.GameData.BigCraftables;
 using StardewValley.GameData.Machines;
@@ -36,22 +39,35 @@ public class ModEntry : Mod {
     private static readonly Id ComputerBaseId = BaseId / "Data" / "Computer";
     
     // Game-related Ids
+    private static readonly Id ComputerTileSheetId = GameTileSheetBaseId / "Computer";
     private static readonly Id ComputerBigCraftableId = GameBigCraftableBaseId / "Computer";
     private static readonly Id ComputerRecipeId = GameRecipeBaseId / "Computer";
-    private static readonly Id ComputerTileSheetId = GameTileSheetBaseId / "Computer";
+    
+    private static readonly Id ComputerMachineId = GameMachineBaseId / "Computer";
+    private static readonly Id ComputerMachineOutputRuleId = ComputerMachineId / "OutputRule";
+
     private static readonly Id DiskTileSheetId = GameTileSheetBaseId / "Disk";
     private static readonly Id DiskItemId = GameItemBaseId / "Disk";
     private static readonly Id DiskRecipeId = GameRecipeBaseId / "Disk";
-    private static readonly Id ComputerMachineId = GameMachineBaseId / "Computer";
-    private static readonly Id ComputerMachineOutputRuleId = ComputerMachineId / "OutputRule";
+    
+    private static readonly Id RouterTileSheetId = GameTileSheetBaseId / "Router";
+    private static readonly Id RouterBigCraftableId = GameBigCraftableBaseId / "Router";
+    private static readonly Id RouterRecipeId = GameRecipeBaseId / "Router";
+    
+    private static readonly Id RouterMachineId = GameMachineBaseId / "Router";
     
     public override void Entry(IModHelper helper) {
         _context = Core.Context.Create(
             new IContextEntry.StatelessDataContextEntry(
+                ComputerTileSheetId,
+                typeof(TileSheet),
+                new TileSheet(ComputerTileSheetId, "assets/Computer.png")
+            ),
+            new IContextEntry.StatelessDataContextEntry(
                 ComputerBigCraftableId,
                 typeof(BigCraftableData),
                 new BigCraftableData {
-                    Name = ComputerBigCraftableId.Value,
+                    Name = ComputerBigCraftableId,
                     DisplayName = "Computer",
                     Description = "A computer.",
                     Price = 1000,
@@ -59,7 +75,7 @@ public class ModEntry : Mod {
                     CanBePlacedOutdoors = true,
                     CanBePlacedIndoors = true,
                     IsLamp = false,
-                    Texture = ComputerTileSheetId.Value,
+                    Texture = ComputerTileSheetId,
                     SpriteIndex = 0,
                     ContextTags = null,
                     CustomFields = null
@@ -69,51 +85,13 @@ public class ModEntry : Mod {
                 ComputerRecipeId,
                 typeof(Recipe),
                 new Recipe(
-                    ComputerBigCraftableId.Value,
+                    ComputerBigCraftableId,
                     new Dictionary<string, int> {
                         { "380", 5 }
                     },
                     true,
                     new IRecipeRequirement.NoneRequired(),
                     "Computer"
-                )
-            ),
-            new IContextEntry.StatelessDataContextEntry(
-                ComputerTileSheetId,
-                typeof(TileSheet),
-                new TileSheet(ComputerTileSheetId.Value, "assets/Computer.png")
-            ),
-            new IContextEntry.StatelessDataContextEntry(
-                DiskTileSheetId,
-                typeof(TileSheet),
-                new TileSheet(DiskTileSheetId.Value, "assets/Disk.png")
-            ),
-            new IContextEntry.StatelessDataContextEntry(
-                DiskItemId,
-                typeof(ObjectData),
-                new ObjectData {
-                    Name = DiskItemId.Value,
-                    DisplayName = "Disk",
-                    Description = "A disk.",
-                    Price = 100,
-                    Type = "Crafting",
-                    Category = Object.CraftingCategory,
-                    Texture = DiskTileSheetId.Value,
-                    SpriteIndex = 0,
-                    CanBeGivenAsGift = false
-                }
-            ),
-            new IContextEntry.StatelessDataContextEntry(
-                DiskRecipeId,
-                typeof(Recipe),
-                new Recipe(
-                    DiskItemId.Value,
-                    new Dictionary<string, int> {
-                        { "380", 1 }
-                    },
-                    false,
-                    new IRecipeRequirement.NoneRequired(),
-                    "Disk"
                 )
             ),
             new IContextEntry.StatelessDataContextEntry(
@@ -133,7 +111,7 @@ public class ModEntry : Mod {
                         InteractMethod = "Computers.ModEntry, Computers: ComputerMachineInteractMethod",
                         OutputRules = new List<MachineOutputRule> {
                             new() {
-                                Id = ComputerMachineOutputRuleId.Value,
+                                Id = ComputerMachineOutputRuleId,
                                 Triggers = new List<MachineOutputTriggerRule> {
                                     new() {
                                         Trigger = MachineOutputTrigger.ItemPlacedInMachine,
@@ -151,6 +129,89 @@ public class ModEntry : Mod {
                                 MinutesUntilReady = int.MaxValue / 2
                             }
                         }
+                    }
+                )
+            ),
+            new IContextEntry.StatelessDataContextEntry(
+                DiskTileSheetId,
+                typeof(TileSheet),
+                new TileSheet(DiskTileSheetId, "assets/Disk.png")
+            ),
+            new IContextEntry.StatelessDataContextEntry(
+                DiskItemId,
+                typeof(ObjectData),
+                new ObjectData {
+                    Name = DiskItemId,
+                    DisplayName = "Disk",
+                    Description = "A disk.",
+                    Price = 100,
+                    Type = "Crafting",
+                    Category = Object.CraftingCategory,
+                    Texture = DiskTileSheetId,
+                    SpriteIndex = 0,
+                    CanBeGivenAsGift = false
+                }
+            ),
+            new IContextEntry.StatelessDataContextEntry(
+                DiskRecipeId,
+                typeof(Recipe),
+                new Recipe(
+                    DiskItemId,
+                    new Dictionary<string, int> {
+                        { "380", 1 }
+                    },
+                    false,
+                    new IRecipeRequirement.NoneRequired(),
+                    "Disk"
+                )
+            ),
+            new IContextEntry.StatelessDataContextEntry(
+                RouterTileSheetId,
+                typeof(TileSheet),
+                new TileSheet(RouterTileSheetId, "assets/Router.png")
+            ),
+            new IContextEntry.StatelessDataContextEntry(
+                RouterBigCraftableId,
+                typeof(BigCraftableData),
+                new BigCraftableData {
+                    Name = RouterBigCraftableId,
+                    DisplayName = "Router",
+                    Description = "A router.",
+                    Price = 1000,
+                    Fragility = 0,
+                    CanBePlacedOutdoors = true,
+                    CanBePlacedIndoors = true,
+                    IsLamp = false,
+                    Texture = RouterTileSheetId,
+                    SpriteIndex = 0,
+                    ContextTags = null,
+                    CustomFields = null
+                }
+            ),
+            new IContextEntry.StatelessDataContextEntry(
+                RouterRecipeId,
+                typeof(Recipe),
+                new Recipe(
+                    RouterBigCraftableId,
+                    new Dictionary<string, int> {
+                        { "380", 1 }
+                    },
+                    true,
+                    new IRecipeRequirement.NoneRequired(),
+                    "Router"
+                )
+            ),
+            new IContextEntry.StatelessDataContextEntry(
+                RouterMachineId,
+                typeof(Machine),
+                new Machine(
+                    $"(BC){RouterBigCraftableId}",
+                    new MachineData {
+                        HasInput = false,
+                        HasOutput = false,
+                        AllowFairyDust = false,
+                        WobbleWhileWorking = false,
+                        InteractMethod = "Computers.ModEntry, Computers: RouterMachineInteractMethod",
                     }
                 )
             ),
@@ -293,6 +354,16 @@ public class ModEntry : Mod {
                 initializer => new ComputerStartDispatcher(
                     initializer.Lookup<IComputerPort>()
                 )
+            ),
+            new IContextEntry.ServiceContextEntry(
+                ServiceBaseId / "RouterFactory",
+                typeof(IStatefulDataContextEntryFactory),
+                initializer => new RouterStatefulDataContextEntryFactory(
+                    ServiceBaseId / "RouterFactory",
+                    RouterBigCraftableId,
+                    initializer.GetSingle<IMonitor>(),
+                    initializer.GetSingle<Configuration>()
+                )
             )
         );
 
@@ -365,11 +436,37 @@ public class ModEntry : Mod {
         else {
             computer = _context.ProduceSingle<ComputerStatefulDataContextEntry>(ServiceBaseId / "ComputerFactory");
             monitor.Log($"Setting ComputerId to {computer.Id}");
-            outputItem.modData["ComputerId"] = computer.Id.Value;
+            outputItem.modData["ComputerId"] = computer.Id;
         }
         
         computer.Start();
         return outputItem;
+    }
+    
+    public static bool RouterMachineInteractMethod(
+        Object machine, 
+        GameLocation location,
+        Farmer player
+    ) {
+        var monitor = _context.GetSingle<IMonitor>(ServiceBaseId / "Monitor");
+        monitor.Log($"Interacted with router machine. Machine: {machine}, Location: {location}, Player: {player}, Held Object: {machine.heldObject}");
+        var modData = machine.HeldObjectModData();
+        if (modData == null) {
+            monitor.Log("Router does not have a held object - cannot infer script.");
+            return false;
+        }
+        
+        if (!modData.ContainsKey("RouterId")) {
+            monitor.Log("Router does not have an id - cannot show it.");
+            return false;
+        }
+        
+        var routerId = modData["RouterId"].AsId();
+        monitor.Log($"Router has id: {routerId}");
+        
+        // Show router id in a message box
+        Game1.showGlobalMessage($"Router Id: {routerId}");
+        return true;
     }
 
     private static void HandleSave() {
@@ -378,7 +475,7 @@ public class ModEntry : Mod {
         
         monitor.Log("Saving data.");
         var data = _context.Store();
-        helper.Data.WriteSaveData("tools.kot.nk2.computers", data.Serialize());
+        helper.Data.WriteSaveData(BaseId, data.Serialize());
     }
     
     private static void HandleLoad(SaveLoadedEventArgs args) {
@@ -386,7 +483,7 @@ public class ModEntry : Mod {
         var monitor = _context.GetSingle<IMonitor>(ServiceBaseId / "Monitor");
         var eventBus = _context.GetSingle<IEventBus>(ServiceBaseId / "EventBus");
         
-        var data = helper.Data.ReadSaveData<string>("tools.kot.nk2.computers");
+        var data = helper.Data.ReadSaveData<string>(BaseId);
         if (data is null) {
             monitor.Log("No data found.");
             return;
@@ -405,34 +502,78 @@ public class ModEntry : Mod {
 
     private static void HandleObjectListChanged(ObjectListChangedEventArgs args) {
         var monitor = _context.GetSingle<IMonitor>(ServiceBaseId / "Monitor");
+
+        foreach (var (position, obj) in args.Added) {
+            monitor.Log($"Added object at {position}: {obj}");
+
+            if (obj.ItemId == RouterBigCraftableId) {
+                HandleRouterAdded(obj, position);
+            }
+        }
+        
         foreach(var (position, obj) in args.Removed) {
             monitor.Log($"Removed object at {position}: {obj}");
-            if (obj.heldObject.Value is null) {
-                monitor.Log("Object does not have a held object.");
-                continue;
-            }
 
-            var modData = obj.HeldObjectModData();
-            if (modData is null || !modData.ContainsKey("ComputerId")) {
-                monitor.Log("Object does not have a computer id.");
-                continue;
+            var objectData = obj.modData;
+            var heldObjectModData = obj.HeldObjectModData();
+            
+            if (heldObjectModData is not null && heldObjectModData.ContainsKey("ComputerId")) {
+                HandleComputerRemoved(heldObjectModData["ComputerId"].AsId(), obj, position);
             }
             
-            monitor.Log($"Stopping computer with id {modData["ComputerId"]}");
-            var computerId = modData["ComputerId"].AsId();
-            
-            // Stop computer
-            var computerState = _context.GetSingle<IComputerPort>(computerId);
-            computerState.Fire(new StopComputerEvent(computerState.Id));
-            
-            // Make a disk with the script
-            Game1.createItemDebris(
-                obj.heldObject.Value,
-                position * Game1.tileSize,
-                Game1.random.Next(4),
-                Game1.player.currentLocation
-            );
+            if (objectData is not null && objectData.ContainsKey("RouterId")) {
+                HandleRouterRemoved(objectData["RouterId"].AsId(), obj, position);
+            }
         }
+    }
+
+    private static void HandleRouterAdded(Object obj, Vector2 position) {
+        var monitor = _context.GetSingle<IMonitor>(ServiceBaseId / "Monitor");
+        monitor.Log("Router added.");
+
+        IRouterPort router;
+        if (obj.modData.ContainsKey("RouterId")) {
+            monitor.Log("RouterId already exists.");
+            router = _context.GetSingle<IRouterPort>(obj.modData["RouterId"].AsId());
+        } else {
+            router = _context.ProduceSingle<RouterStatefulDataContextEntry>(ServiceBaseId / "RouterFactory");
+            monitor.Log($"Setting RouterId to {router.Id}");
+            obj.modData["RouterId"] = router.Id;
+        }
+
+        router.Start();
+    }
+    
+    private static void HandleRouterRemoved(Id routerId, Object obj, Vector2 position) {
+        var monitor = _context.GetSingle<IMonitor>(ServiceBaseId / "Monitor");
+        monitor.Log($"Router with id {routerId} was removed.");
+        
+        var router = _context.GetSingle<IRouterPort>(routerId);
+        router.Stop();
+    }
+    
+    private static void HandleComputerRemoved(Id computerId, Object obj, Vector2 position) {
+        var monitor = _context.GetSingle<IMonitor>(ServiceBaseId / "Monitor");
+        var heldObject = obj.heldObject.Value;
+        
+        if (heldObject is null) {
+            monitor.Log("Object does not have a held object.");
+            return;
+        }
+        
+        monitor.Log($"Computer with id {computerId} was removed.");
+        
+        // Stop computer
+        var computerState = _context.GetSingle<IComputerPort>(computerId);
+        computerState.Fire(new StopComputerEvent(computerState.Id));
+            
+        // Make a disk with the script
+        Game1.createItemDebris(
+            heldObject,
+            position * Game1.tileSize,
+            Game1.random.Next(4),
+            Game1.player.currentLocation
+        );
     }
     
     private static void DrawScreen(IComputerPort computerPort) {
