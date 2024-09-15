@@ -7,6 +7,7 @@ using Computers.Game.Domain;
 using Computers.Game.Utils;
 using Computers.Router;
 using Computers.Router.Domain;
+using Computers.Router.Domain.Event;
 using Microsoft.Xna.Framework;
 using StardewValley;
 using StardewValley.GameData.BigCraftables;
@@ -364,6 +365,27 @@ public class ModEntry : Mod {
                     initializer.GetSingle<IMonitor>(),
                     initializer.GetSingle<Configuration>()
                 )
+            ),
+            new IContextEntry.ServiceContextEntry(
+                ServiceBaseId / "RouterStartDispatcher",
+                typeof(IEventHandler),
+                initializer => new RouterStartDispatcher(
+                    initializer.Lookup<IRouterPort>()
+                )
+            ),
+            new IContextEntry.ServiceContextEntry(
+                ServiceBaseId / "RouterStopDispatcher",
+                typeof(IEventHandler),
+                initializer => new RouterStopDispatcher(
+                    initializer.Lookup<IRouterPort>()
+                )
+            ),
+            new IContextEntry.ServiceContextEntry(
+                ServiceBaseId / "RouterTickDispatcher",
+                typeof(IEventHandler),
+                initializer => new RouterTickDispatcher(
+                    initializer.Lookup<IRouterPort>()
+                )
             )
         );
 
@@ -450,9 +472,9 @@ public class ModEntry : Mod {
     ) {
         var monitor = _context.GetSingle<IMonitor>(ServiceBaseId / "Monitor");
         monitor.Log($"Interacted with router machine. Machine: {machine}, Location: {location}, Player: {player}, Held Object: {machine.heldObject}");
-        var modData = machine.HeldObjectModData();
+        var modData = machine.modData;
         if (modData == null) {
-            monitor.Log("Router does not have a held object - cannot infer script.");
+            monitor.Log("Router does not have mod data - cannot infer id.");
             return false;
         }
         
@@ -465,7 +487,7 @@ public class ModEntry : Mod {
         monitor.Log($"Router has id: {routerId}");
         
         // Show router id in a message box
-        Game1.showGlobalMessage($"Router Id: {routerId}");
+        Game1.showGlobalMessage($"Router Id: {routerId.Last}");
         return true;
     }
 

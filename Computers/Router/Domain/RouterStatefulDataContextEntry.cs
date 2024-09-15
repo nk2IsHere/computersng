@@ -7,6 +7,7 @@ namespace Computers.Router.Domain;
 
 public class RouterStatefulDataContextEntry : IContextEntry.StatefulDataContextEntry<RouterStatefulDataContextEntry>, IRouterPort {
     private readonly IMonitor _monitor;
+    private volatile bool _isEnabled = false;
     
     public RouterStatefulDataContextEntry(
         Id factoryId,
@@ -38,8 +39,31 @@ public class RouterStatefulDataContextEntry : IContextEntry.StatefulDataContextE
 
     public void Start() {
         _monitor.Log($"Router {Id} started");
+        _isEnabled = true;
     }
 
     public void Stop() {
+        _monitor.Log($"Router {Id} stopped");
+        _isEnabled = false;
+    }
+
+    public void Fire(IRouterEvent routerEvent) {
+        if (routerEvent is TickRouterEvent tickComputerEvent) {
+            Tick(tickComputerEvent.Ticks);
+        }
+        
+        if (routerEvent is StopRouterEvent) {
+            Stop();
+        }
+        
+        if (routerEvent is StartRouterEvent) {
+            Start();
+        }
+    }
+
+    private void Tick(long ticks) {
+        if(!_isEnabled) {
+            return;
+        }
     }
 }

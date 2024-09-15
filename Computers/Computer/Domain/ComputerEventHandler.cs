@@ -7,7 +7,7 @@ public abstract class ComputerEventHandler: IEventHandler {
     
     private readonly ContextLookup<IComputerPort> _computers;
 
-    public ComputerEventHandler(ContextLookup<IComputerPort> computers) {
+    protected ComputerEventHandler(ContextLookup<IComputerPort> computers) {
         _computers = computers;
     }
     

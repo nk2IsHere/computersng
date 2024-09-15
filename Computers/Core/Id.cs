@@ -8,6 +8,8 @@ public record Id(List<string> Parts) {
     
     public override string ToString() => Value;
     
+    public string Last => Parts.Last();
+    
     public static Id Parse(string value) {
         var parts = value.Split(Separator);
         return new Id(parts.ToList());

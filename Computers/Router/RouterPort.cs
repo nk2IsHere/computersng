@@ -10,4 +10,5 @@ public interface IRouterPort {
     // Lifecycle
     void Start();
     void Stop();
+    void Fire(IRouterEvent routerEvent);
 }
