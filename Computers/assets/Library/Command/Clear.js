@@ -1,4 +1,4 @@
-import { CommandResult } from "../Core/Utils"
+import { CommandResult } from "../Core/Utils/Command"
 
 export default {
     command: "clear",

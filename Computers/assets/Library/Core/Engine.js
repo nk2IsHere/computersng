@@ -1,4 +1,4 @@
-import { CommandResult } from "./Utils"
+import { CommandResult } from "./Utils/Command"
 
 export async function EvaluateJsExecutable(console, context, path) {
     try {

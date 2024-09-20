@@ -1,5 +1,6 @@
 import { Exists, JoinPaths } from "../Core/Storage"
-import { CommandArguments, CommandResult } from "../Core/Utils"
+import { CommandArguments, CommandResult } from "../Core/Utils/Command"
+import { EvaluateJsExecutable } from "../Core/Engine"
 
 export default {
     command: "exec",

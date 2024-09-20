@@ -1,5 +1,5 @@
 import { List } from "../Core/Storage"
-import { CommandArguments, CommandResult } from "../Core/Utils"
+import { CommandArguments, CommandResult } from "../Core/Utils/Command"
 
 export default {
     command: "ls",

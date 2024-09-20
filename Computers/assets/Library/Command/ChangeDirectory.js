@@ -1,5 +1,5 @@
 import { Exists, JoinPaths } from "../Core/Storage"
-import { CommandArguments, CommandResult, CommandResultWithContext } from "../Core/Utils"
+import { CommandArguments, CommandResult, CommandResultWithContext } from "../Core/Utils/Command"
 
 export default {
     command: "cd",

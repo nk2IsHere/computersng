@@ -1,6 +1,6 @@
-import { CommandResult } from "./Utils"
-import { List } from "./Storage";
-import { Cache } from "./Cache";
+import { List } from "./Storage"
+import { CommandResult } from "./Utils/Command"
+import { Cache } from "./Utils/Cache"
 
 export async function EvaluateJsCommand(console, context, input) {
     try {
@@ -35,7 +35,7 @@ export async function EvaluateCommand(console, context, input) {
     const consoleCommands = consoleCommandsCached.ProvideValue()
     
     const inputCommands = groupTokensByCommandAndArguments(parseTokensForInput(input))
-        .filter(commandGroup => commandGroup[0].startsWith(".")) // Only allow commands starting with .
+        .filter(([command]) => command?.startsWith(".") === true) // Only allow commands starting with .
         .map(commandGroup => {
             const [command, ...args] = commandGroup
             return {

@@ -1,4 +1,4 @@
-import { CommandArguments, CommandResult } from "../Core/Utils"
+import { CommandArguments, CommandResult } from "../Core/Utils/Command"
 
 export default {
     command: "echo",
