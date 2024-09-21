@@ -14,12 +14,11 @@ public class RedundantLoader: IRedundantLoader {
     }
 
     public T Load<T>(string path) where T : notnull {
-        var assetNameParts = path.Split(ResourceUtils.PathSplitters, StringSplitOptions.RemoveEmptyEntries);
-        var assetPath = Path.Combine(Path.Combine(_basePath), Path.Combine(assetNameParts));
+        var baseResolvedPath = ResourceUtils.ResolvePath(_basePath, path);
         
         try {
-            return _helper.ModContent.Load<T>(assetPath);
-        } catch (Exception e) {
+            return _helper.ModContent.Load<T>(baseResolvedPath);
+        } catch (Exception) {
             // Sometimes we want to load non-standard assets, like a .lua file
             // In that case, we can use the following code to load the asset
             // from the mod's directory
@@ -28,31 +27,40 @@ public class RedundantLoader: IRedundantLoader {
                 throw;
             }
             
-            return (T)(object)_helper.LoadString(assetPath);
+            return (T)(object)_helper.LoadString(baseResolvedPath);
         }
     }
 
     public IEnumerable<FileSystemEntry> List(string path) {
-        var directory = _helper.DirectoryPath;
-        var assetNameParts = path.Split(ResourceUtils.PathSplitters, StringSplitOptions.RemoveEmptyEntries);
-        var assetPath = Path.Combine(Path.Combine(_basePath), Path.Combine(assetNameParts));
-        var fullPath = Path.Combine(directory, assetPath);
+        var fullPath = _helper.ResolvePath(_basePath, path);
 
-        var filesWithSize = Directory.GetFiles(fullPath).Select(file => new FileInfo(file));
-        var fileEntries = filesWithSize.Select(file => new FileSystemEntry(file.Name, FileSystemEntryType.File, file.Length));
+        var files = Directory
+            .GetFiles(fullPath)
+            .Select(file => new FileInfo(file));
         
-        var directories = Directory.GetDirectories(fullPath);
-        var directoryEntries = directories.Select(directory => new FileSystemEntry(new DirectoryInfo(directory).Name, FileSystemEntryType.Directory, 0));
+        var fileEntries = files
+            .Select(file => new FileSystemEntry(
+                file.Name, 
+                FileSystemEntryType.File, 
+                file.Length
+            ));
+        
+        var directories = Directory
+            .GetDirectories(fullPath)
+            .Select(directory => new DirectoryInfo(directory));
+        
+        var directoryEntries = directories
+            .Select(directory => new FileSystemEntry(
+                directory.Name,
+                FileSystemEntryType.Directory, 
+                0
+            ));
         
         return fileEntries.Concat(directoryEntries);
     }
 
     public bool Exists(string path) {
-        var directory = _helper.DirectoryPath;
-        var assetNameParts = path.Split(ResourceUtils.PathSplitters, StringSplitOptions.RemoveEmptyEntries);
-        var assetPath = Path.Combine(Path.Combine(_basePath), Path.Combine(assetNameParts));
-        var fullPath = Path.Combine(directory, assetPath);
-        
+        var fullPath = _helper.ResolvePath(_basePath, path);
         return File.Exists(fullPath) || Directory.Exists(fullPath);
     }
 }

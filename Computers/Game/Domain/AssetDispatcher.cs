@@ -31,7 +31,7 @@ public class AssetDispatcher: IEventHandler {
         
         foreach (var loader in _loaders) {
             if (!loader.Value.ShouldLoad(eventArgs.DataType, eventArgs.Name)) continue;
-            eventArgs.LoadFrom(() => loader.Value.Load(eventArgs.Name), AssetLoadPriority.Exclusive);
+            eventArgs.LoadFrom(() => loader.Value.Load(eventArgs.Name), AssetLoadPriority.High);
             return;
         }
     }
