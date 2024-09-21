@@ -28,6 +28,8 @@ export class ConsoleView {
         
         this.inputHistory = []
         this.inputHistoryCursor = null
+        
+        this.currentInputOffset = 0
     }
 
     Render() {
@@ -87,6 +89,12 @@ export class ConsoleView {
             const currentInput = `${currentInputState}${inputPrefix}${this.currentInput.slice(currentInputSliceStart, currentInputSliceEnd)}`
 
             Render.Text(x, currentY, currentInput, fontSize, textColor)
+            
+            // Render the cursor
+            const cursorX = x + (currentInput.length - this.currentInputOffset) * fontCharacterWidth
+            const cursorY = currentY
+            const cursorWidth = 1
+            Render.Rectangle(cursorX, cursorY, cursorWidth, fontCharacterHeight, textColor)
         }
     }
 
@@ -104,15 +112,26 @@ export class ConsoleView {
 
             if (!key.isSpecial) {
                 this.inputHistoryCursor = null
-                this.currentInput += (
-                    currentlyHeldKeys.includes(Keys.fromName("LeftShift"))
-                        ? key.upperCase
-                        : key.lowerCase
-                )
+                
+                const characterToInsert = currentlyHeldKeys.includes(Keys.fromName("LeftShift"))
+                    ? key.upperCase
+                    : key.lowerCase;
+                
+                const currentInputCursor = Math.max(0, this.currentInput.length - this.currentInputOffset)
+                this.currentInput = this.currentInput.slice(0, currentInputCursor) + characterToInsert + this.currentInput.slice(currentInputCursor)
             }
 
             if (key.name === "Back") {
-                this.currentInput = this.currentInput.slice(0, -1)
+                const currentInputCursor = Math.max(0, this.currentInput.length - this.currentInputOffset)
+                this.currentInput = this.currentInput.slice(0, currentInputCursor - 1) + this.currentInput.slice(currentInputCursor)
+            }
+            
+            if (key.name === "Left") {
+                this.currentInputOffset = Math.min(this.currentInputOffset + 1, this.currentInput.length)
+            }
+            
+            if (key.name === "Right") {
+                this.currentInputOffset = Math.max(this.currentInputOffset - 1, 0)
             }
             
             if (key.name === "Up") {
@@ -148,8 +167,11 @@ export class ConsoleView {
                     })
 
                 this.inputHistory.unshift(this.currentInput)
+                
                 this.scrollOffset = 0 // scroll to bottom
                 this.currentInput = ""
+                this.currentInputOffset = 0
+                this.inputHistoryCursor = null
             }
         }
     }
