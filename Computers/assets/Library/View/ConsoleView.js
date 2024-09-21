@@ -91,10 +91,12 @@ export class ConsoleView {
             Render.Text(x, currentY, currentInput, fontSize, textColor)
             
             // Render the cursor
+            const cursorPadding = 2
             const cursorX = x + (currentInput.length - this.currentInputOffset) * fontCharacterWidth
-            const cursorY = currentY
+            const cursorY = currentY + cursorPadding
             const cursorWidth = 1
-            Render.Rectangle(cursorX, cursorY, cursorWidth, fontCharacterHeight, textColor)
+            const cursorHeight = fontCharacterHeight - cursorPadding * 2
+            Render.Rectangle(cursorX, cursorY, cursorWidth, cursorHeight, textColor)
         }
     }
 
@@ -123,7 +125,8 @@ export class ConsoleView {
 
             if (key.name === "Back") {
                 const currentInputCursor = Math.max(0, this.currentInput.length - this.currentInputOffset)
-                this.currentInput = this.currentInput.slice(0, currentInputCursor - 1) + this.currentInput.slice(currentInputCursor)
+                const currentInputSliceEnd = Math.max(0, currentInputCursor - 1)
+                this.currentInput = this.currentInput.slice(0, currentInputSliceEnd) + this.currentInput.slice(currentInputCursor)
             }
             
             if (key.name === "Left") {
