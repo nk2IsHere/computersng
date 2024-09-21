@@ -25,6 +25,9 @@ export class ConsoleView {
         this.currentCommandContext = {
             ...initialCommandContext
         }
+        
+        this.inputHistory = []
+        this.inputHistoryCursor = null
     }
 
     Render() {
@@ -100,6 +103,7 @@ export class ConsoleView {
             const currentlyHeldKeys = currentlyHeldKeysRaw.map((keyRaw) => Keys[keyRaw])
 
             if (!key.isSpecial) {
+                this.inputHistoryCursor = null
                 this.currentInput += (
                     currentlyHeldKeys.includes(Keys.fromName("LeftShift"))
                         ? key.upperCase
@@ -109,6 +113,25 @@ export class ConsoleView {
 
             if (key.name === "Back") {
                 this.currentInput = this.currentInput.slice(0, -1)
+            }
+            
+            if (key.name === "Up") {
+                if (this.inputHistoryCursor === null) {
+                    this.inputHistoryCursor = -1 // It will be incremented to 0
+                }
+                
+                const maxInputHistoryCursor = Math.max(0, this.inputHistory.length - 1)
+                this.inputHistoryCursor = Math.min(this.inputHistoryCursor + 1, maxInputHistoryCursor)
+                this.currentInput = this.inputHistory[this.inputHistoryCursor] ?? ""
+            }
+            
+            if (key.name === "Down") {
+                if (this.inputHistoryCursor === null) {
+                    this.inputHistoryCursor = 0
+                }
+
+                this.inputHistoryCursor = Math.max(this.inputHistoryCursor - 1, 0)
+                this.currentInput = this.inputHistory[this.inputHistoryCursor] ?? ""
             }
 
             if (key.name === "Enter") {
@@ -124,6 +147,7 @@ export class ConsoleView {
                         this.console.Error(error.message)
                     })
 
+                this.inputHistory.unshift(this.currentInput)
                 this.scrollOffset = 0 // scroll to bottom
                 this.currentInput = ""
             }
