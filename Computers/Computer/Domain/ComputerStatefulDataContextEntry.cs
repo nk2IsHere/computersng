@@ -7,6 +7,7 @@ using Jint;
 using Jint.Native.Object;
 using Jint.Runtime;
 using StardewModdingAPI;
+using StardewValley;
 using Context = Computers.Core.Context;
 
 namespace Computers.Computer.Domain;
@@ -19,7 +20,6 @@ public class ComputerStatefulDataContextEntry : IContextEntry.StatefulDataContex
     
     private Thread? _computerThread;
     private Engine? _engine;
-    private ObjectInstance? _entryPointModule;
     private CancellationTokenSource? _cancellationTokenSource;
     
     private readonly IDictionary<string, object> _storage = new ConcurrentDictionary<string, object>();
@@ -29,12 +29,14 @@ public class ComputerStatefulDataContextEntry : IContextEntry.StatefulDataContex
         Id id,
         IMonitor monitor,
         Configuration configuration,
+        Random random,
         IRedundantLoader coreLibraryLoader,
         IRedundantLoader assetLoader,
         IRedundantLoader dataLoader
     ) : base(factoryId, id) {
         _monitor = monitor;
         Configuration = configuration;
+        Random = random;
         _assetLoader = assetLoader;
         
         _computerApis = new List<IComputerApi> {
@@ -87,6 +89,7 @@ public class ComputerStatefulDataContextEntry : IContextEntry.StatefulDataContex
     }
 
     public Configuration Configuration { get; }
+    public Random Random { get; }
 
     public T LoadAsset<T>(string assetPath) where T : notnull {
         return _assetLoader.Load<T>(assetPath);
@@ -146,11 +149,12 @@ public class ComputerStatefulDataContextEntry : IContextEntry.StatefulDataContex
                 options.Strict();
                 options.CancellationToken(_cancellationTokenSource.Token);
                 options.EnableModules(new ComputerModuleLoader(_monitor, libraryLoaders));
+                options.ExperimentalFeatures = ExperimentalFeature.All;
+                options.CatchClrExceptions();
             }
         );
 
         _computerApis.ForEach(RegisterApi);
-        _entryPointModule = _engine.Modules.Import(Configuration.Resource.EntryPointModule);
     }
 
     public void Start() {
@@ -189,11 +193,19 @@ public class ComputerStatefulDataContextEntry : IContextEntry.StatefulDataContex
                     Reload();
                 }
 
-                if (_entryPointModule == null) {
+                var module = LoadModule("/Entrypoint");
+                if(module is not ObjectInstance entrypoint) {
+                    _monitor.Log("Entrypoint module not found. Computer thread will be stopped.");
                     break;
                 }
                 
-                _entryPointModule.Get("Main").Call();
+                var mainFunction = entrypoint.Get("Main");
+                if (mainFunction.IsNull()) {
+                    _monitor.Log("Main function not found in entrypoint module. Computer thread will be stopped.");
+                    break;
+                }
+
+                mainFunction.Call();
             }
             catch (Exception e) {
                 if (e is ExecutionCanceledException) {

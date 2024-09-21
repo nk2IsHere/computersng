@@ -37,6 +37,7 @@ declare const Event: {
 
 declare const System: {
     Sleep: (ms: number) => void
+    Delay: (ms: number) => Promise<void>
     Time: () => number
     LoadModule: <T extends { [key: string]: any }>(path: string) => T
     ProcessTasks: () => void

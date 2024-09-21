@@ -222,6 +222,11 @@ public class ModEntry : Mod {
                 _ => Monitor
             ),
             new IContextEntry.ServiceContextEntry(
+                ServiceBaseId / "Random",
+                typeof(Random),
+                _ => Game1.random
+            ),
+            new IContextEntry.ServiceContextEntry(
                 ServiceBaseId / "ModHelper",
                 typeof(IModHelper),
                 _ => helper
@@ -344,6 +349,7 @@ public class ModEntry : Mod {
                     ComputerBaseId,
                     initializer.GetSingle<IMonitor>(),
                     initializer.GetSingle<Configuration>(),
+                    initializer.GetSingle<Random>(),
                     initializer.GetSingle<IRedundantLoader>(ServiceBaseId / "RedundantLoader"),
                     initializer.GetSingle<IRedundantLoader>(ServiceBaseId / "AssetsLoader"),
                     initializer.GetSingle<IRedundantLoader>(ServiceBaseId / "DataLoader")

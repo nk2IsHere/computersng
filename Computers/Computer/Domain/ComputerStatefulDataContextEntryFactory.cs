@@ -10,6 +10,7 @@ public class ComputerStatefulDataContextEntryFactory : IStatefulDataContextEntry
     
     private readonly IMonitor _monitor;
     private readonly Configuration _configuration;
+    private readonly Random _random;
     private readonly IRedundantLoader _coreLibraryLoader;
     private readonly IRedundantLoader _assetLoader;
     private readonly IRedundantLoader _dataLoader;
@@ -19,6 +20,7 @@ public class ComputerStatefulDataContextEntryFactory : IStatefulDataContextEntry
         Id baseComputerId,
         IMonitor monitor,
         Configuration configuration,
+        Random random,
         IRedundantLoader coreLibraryLoader,
         IRedundantLoader assetLoader,
         IRedundantLoader dataLoader
@@ -27,6 +29,7 @@ public class ComputerStatefulDataContextEntryFactory : IStatefulDataContextEntry
         _baseComputerId = baseComputerId;
         _monitor = monitor;
         _configuration = configuration;
+        _random = random;
         _coreLibraryLoader = coreLibraryLoader;
         _assetLoader = assetLoader;
         _dataLoader = dataLoader;
@@ -45,6 +48,7 @@ public class ComputerStatefulDataContextEntryFactory : IStatefulDataContextEntry
             id,
             _monitor,
             _configuration,
+            _random,
             _coreLibraryLoader,
             _assetLoader,
             _dataLoader

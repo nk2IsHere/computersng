@@ -5,7 +5,8 @@ namespace Computers.Computer;
 public interface IComputerPort {
     Id Id { get; }
     Configuration Configuration { get; }
-    
+    Random Random { get; }
+
     // Assets
     T LoadAsset<T>(string assetPath) where T : notnull;
     

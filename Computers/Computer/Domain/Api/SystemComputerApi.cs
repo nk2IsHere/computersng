@@ -47,6 +47,14 @@ internal class SystemComputerState {
         return DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
     }
     
+    public async Task Delay(int milliseconds) {
+        if (milliseconds < 0) {
+            throw new ArgumentOutOfRangeException(nameof(milliseconds), "Delay time cannot be negative");
+        }
+        
+        await Task.Delay(milliseconds);
+    }
+    
     public object? LoadModule(string moduleName) {
         return _computerPort.LoadModule(moduleName);
     }
@@ -57,5 +65,9 @@ internal class SystemComputerState {
 
     public string Id() {
         return _computerPort.Id;
+    }
+    
+    public double Random() {
+        return _computerPort.Random.NextDouble();
     }
 }
