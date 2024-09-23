@@ -16,13 +16,12 @@ export class Console {
     }
     
     Log(message, level = this.defaultLogLevel) {
-        this.logs.push({
-            message,
-            level
-        })
-        
-        if (this.logs.length > this.logHistory) {
-            this.logs.shift()
+        const lines = (message ?? "").split("\n")
+        for (const line of lines) {
+            this.logs.push({ message: line, level })
+            if (this.logs.length > this.logHistory) {
+                this.logs.shift()
+            }
         }
     }
     
@@ -31,27 +30,15 @@ export class Console {
     }
     
     Info(message) {
-        message
-            .split("\n")
-            .forEach((line) => {
-                this.Log(line, ConsoleLogLevel.Info)
-            })
+        this.Log(message, ConsoleLogLevel.Info)
     }
     
     Warning(message) {
-        message
-            .split("\n")
-            .forEach((line) => {
-                this.Log(line, ConsoleLogLevel.Warning)
-            })
+        this.Log(message, ConsoleLogLevel.Warning)
     }
     
     Error(message) {
-        message
-            .split("\n")
-            .forEach((line) => {
-                this.Log(line, ConsoleLogLevel.Error)
-            })
+        this.Log(message, ConsoleLogLevel.Error)
     }
     
     Logs() {

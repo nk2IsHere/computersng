@@ -25,14 +25,21 @@ export async function EvaluateJsCommand(console, context, input) {
 
 const consoleCommandsCached = new Cache({
     expireIn: 1000, // 1 second
-    valueProvider: () => List("/Command")
+    valueProvider: ({ console }) => List("/Command")
         .map(({ name }) => `/Command/${name}`)
-        .map(path => System.LoadModule(path))
+        .map(path => {
+            try {
+                return System.LoadModule(path)
+            } catch (e) {
+                console.Error(`Error while loading module ${path}: ${e}`)
+                return {}
+            }
+        })
         .flatMap(Object.values)
 })
 
 export async function EvaluateCommand(console, context, input) {
-    const consoleCommands = consoleCommandsCached.ProvideValue()
+    const consoleCommands = consoleCommandsCached.ProvideValue({ console })
     
     const inputCommands = groupTokensByCommandAndArguments(parseTokensForInput(input))
         .filter(([command]) => command?.startsWith(".") === true) // Only allow commands starting with .

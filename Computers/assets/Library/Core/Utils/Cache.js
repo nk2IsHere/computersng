@@ -3,13 +3,16 @@ export class Cache {
     constructor({ valueProvider, expireIn }) {
         this.valueProvider = valueProvider
         this.expireIn = expireIn
-        this.cachedValue = valueProvider()
-        this.expirationTime = System.Time() + expireIn
     }
 
-    ProvideValue() {
+    ProvideValue(context) {
+        if (this.cachedValue === undefined) {
+            this.cachedValue = this.valueProvider(context)
+            this.expirationTime = System.Time() + this.expireIn
+        }
+        
         if (System.Time() > this.expirationTime) {
-            this.cachedValue = this.valueProvider()
+            this.cachedValue = this.valueProvider(context)
             this.expirationTime = System.Time() + this.expireIn
         }
         
