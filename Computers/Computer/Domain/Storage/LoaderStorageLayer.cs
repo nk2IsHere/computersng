@@ -54,11 +54,7 @@ public class LoaderStorageLayer: IStorageLayer {
             var metadata = _loader.List(path)
                 .Select(entry => StorageFileMetadata.Of(
                     entry.Name,
-                    entry.Type switch {
-                        FileSystemEntryType.File => StorageFileType.File,
-                        FileSystemEntryType.Directory => StorageFileType.Directory,
-                        _ => throw new ArgumentOutOfRangeException()
-                    },
+                    entry.Type.ToStorageFileType(),
                     entry.Size,
                     _layerName
                 ))

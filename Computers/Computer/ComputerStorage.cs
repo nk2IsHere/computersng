@@ -1,3 +1,5 @@
+using Computers.Game;
+
 namespace Computers.Computer;
 
 public enum StorageErrorType {
@@ -76,6 +78,17 @@ public enum StorageFileType {
     Directory
 }
 
+internal static class StorageFileTypeConversionExtensions {
+
+    public static StorageFileType ToStorageFileType(this FileSystemEntryType type) {
+        return type switch {
+            FileSystemEntryType.File => StorageFileType.File,
+            FileSystemEntryType.Directory => StorageFileType.Directory,
+            _ => throw new ArgumentOutOfRangeException()
+        };
+    }
+}
+
 public class StorageFileMetadata {
     public string Name { get; }
     public StorageFileType Type { get; }
@@ -94,8 +107,16 @@ public class StorageFileMetadata {
         return $"StorageFileMetadata(Name: {Name}, Type: {Type}, Size: {Size}, Layer: {Layer})";
     }
     
-    public static StorageFileMetadata Of(string name, StorageFileType type, long size, string layer) {
+    private static StorageFileMetadata Of(string name, StorageFileType type, long size, string layer) {
         return new StorageFileMetadata(name, type, size, layer);
+    }
+    
+    public static StorageFileMetadata OfFile(string name, long size, string layer) {
+        return Of(name, StorageFileType.File, size, layer);
+    }
+    
+    public static StorageFileMetadata OfDirectory(string name, string layer) {
+        return Of(name, StorageFileType.Directory, 0, layer);
     }
 }
 
@@ -113,7 +134,8 @@ public class StorageFile {
     }
     
     public static StorageFile Of(string name, byte[] data, string layer) {
-        return new StorageFile(StorageFileMetadata.Of(name, StorageFileType.File, data.Length, layer), data);
+        var metadata = StorageFileMetadata.OfFile(name, data.Length, layer);
+        return new StorageFile(metadata, data);
     }
 }
 

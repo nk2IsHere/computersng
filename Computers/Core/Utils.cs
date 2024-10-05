@@ -58,4 +58,8 @@ public static class Utils {
             )
         );
     }
+    
+    public static IEnumerable<T> WhereNotNull<T>(this IEnumerable<T?> source) {
+        return source.Where(x => x != null)!;
+    }
 }
