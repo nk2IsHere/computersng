@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net6.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <IsPackable>false</IsPackable>
+        <GamePath>/Users/nk2/Desktop/SVDev.app/Contents/MacOS</GamePath>
+        <EnableModDeploy>false</EnableModDeploy>
+        <EnableModZip>false</EnableModZip>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.9.0" />
+        <PackageReference Include="xunit" Version="2.7.0" />
+        <PackageReference Include="xunit.runner.visualstudio" Version="2.5.7" />
+        <PackageReference Include="Pathoschild.Stardew.ModBuildConfig" Version="4.4.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="../Computers/Computers.csproj" />
+    </ItemGroup>
+
+    <!-- Game assemblies are referenced with Private=false by ModBuildConfig; copy them so the test host can load them. -->
+    <ItemGroup>
+        <None Include="$(GamePath)/StardewModdingAPI.dll" CopyToOutputDirectory="PreserveNewest" Visible="false" />
+        <None Include="$(GamePath)/Stardew Valley.dll" CopyToOutputDirectory="PreserveNewest" Visible="false" />
+        <None Include="$(GamePath)/StardewValley.GameData.dll" CopyToOutputDirectory="PreserveNewest" Visible="false" />
+        <None Include="$(GamePath)/MonoGame.Framework.dll" CopyToOutputDirectory="PreserveNewest" Visible="false" />
+        <None Include="$(GamePath)/xTile.dll" CopyToOutputDirectory="PreserveNewest" Visible="false" />
+        <None Include="$(GamePath)/smapi-internal/SMAPI.Toolkit.CoreInterfaces.dll" CopyToOutputDirectory="PreserveNewest" Visible="false" />
+        <None Include="$(GamePath)/smapi-internal/SMAPI.Toolkit.dll" CopyToOutputDirectory="PreserveNewest" Visible="false" />
+    </ItemGroup>
+
+</Project>

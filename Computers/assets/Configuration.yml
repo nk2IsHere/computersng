@@ -67,3 +67,18 @@ network:
   # List of domains to allow when network mode is "AllowSome"
   allowedAddresses:
     - "example.com"
+
+  # Radius (in tiles, Euclidean) within which a router covers computers.
+  coverageRadius: 10
+
+  # Radius (in tiles, Euclidean) within which two routers in the SAME location link up.
+  linkRadius: 16
+
+  # Maximum number of router hops before a datagram is dropped.
+  messageTtl: 16
+
+  # Maximum datagrams queued per router; excess incoming datagrams are dropped.
+  routerQueueLimit: 256
+
+  # Maximum payload size (UTF-8 bytes) for Network.SendMessage.
+  maxPayloadBytes: 65536

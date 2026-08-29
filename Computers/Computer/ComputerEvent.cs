@@ -62,8 +62,14 @@ public record MouseWheelEvent(Id ComputerId, int Direction) : IComputerEvent {
 }
 
 public record StartComputerEvent(Id? ComputerId = null) : IComputerEvent {
-     
+
     public T Data<T>() => default!;
     public bool Global => ComputerId is null;
     public bool BelongsTo(Id id) => ComputerId is null || ComputerId == id;
+}
+
+public record NetworkMessageComputerEvent(Id ComputerId, Guid MessageId, string SourceAddress, string Payload) : IComputerEvent {
+    public T Data<T>() => (T) (object) (MessageId, SourceAddress, Payload);
+    public bool Global => false;
+    public bool BelongsTo(Id id) => ComputerId == id;
 }

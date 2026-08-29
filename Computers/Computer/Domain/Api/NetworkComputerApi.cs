@@ -1,5 +1,8 @@
 using System.Text;
+using Computers.Core;
 using Computers.Game;
+using Computers.Router;
+using Computers.Router.Domain;
 
 namespace Computers.Computer.Domain.Api;
 
@@ -13,8 +16,12 @@ public class NetworkComputerApi : IComputerApi {
 
     private readonly NetworkComputerState _state;
 
-    public NetworkComputerApi(IComputerPort computerPort) {
-        _state = new NetworkComputerState(computerPort.Configuration);
+    public NetworkComputerApi(
+        IComputerPort computerPort,
+        NetworkRegistry registry,
+        ContextLookup<IRouterPort> routers
+    ) {
+        _state = new NetworkComputerState(computerPort, registry, routers);
     }
 
     public void ReceiveEvent(IComputerEvent computerEvent) {
@@ -37,12 +44,84 @@ internal record HttpResponseString(
 );
 
 internal class NetworkComputerState {
-    
+
     private readonly Configuration _configuration;
+    private readonly IComputerPort _computerPort;
+    private readonly NetworkRegistry _registry;
+    private readonly ContextLookup<IRouterPort> _routers;
     private readonly HttpClient _client = new();
 
-    public NetworkComputerState(Configuration configuration) {
-        _configuration = configuration;
+    public NetworkComputerState(
+        IComputerPort computerPort,
+        NetworkRegistry registry,
+        ContextLookup<IRouterPort> routers
+    ) {
+        _configuration = computerPort.Configuration;
+        _computerPort = computerPort;
+        _registry = registry;
+        _routers = routers;
+    }
+
+    public void SendMessage(string address, string payload) {
+        if (Encoding.UTF8.GetByteCount(payload) > _configuration.Network.MaxPayloadBytes) {
+            throw new InvalidOperationException(
+                $"Payload exceeds maximum size of {_configuration.Network.MaxPayloadBytes} bytes");
+        }
+
+        var coveringRouters = CoveringRouterPorts();
+        if (coveringRouters.Count == 0) {
+            throw new InvalidOperationException("No router in range - computer is offline");
+        }
+
+        var datagram = new Datagram(
+            Guid.NewGuid(),
+            GetAddress(),
+            address,
+            _configuration.Network.MessageTtl,
+            payload
+        );
+
+        coveringRouters.ForEach(router => router.Deliver(datagram, null));
+    }
+
+    public string GetAddress() {
+        return _computerPort.Id.Last;
+    }
+
+    public string[] ListReachable() {
+        return _registry
+            .ReachableComputers(_computerPort.Id)
+            .Select(id => id.Last)
+            .OrderBy(address => address)
+            .ToArray();
+    }
+
+    public List<Dictionary<string, object?>> GetRouters() {
+        return CoveringRouterPorts()
+            .Select(router => new Dictionary<string, object?> {
+                ["address"] = router.Id.Last,
+                ["channel"] = router.Channel
+            })
+            .ToList();
+    }
+
+    public void ConfigureRouter(string routerAddress, int? channel) {
+        var router = CoveringRouterPorts().FirstOrDefault(port => port.Id.Last == routerAddress);
+        if (router is null) {
+            throw new InvalidOperationException($"No covering router with address '{routerAddress}'");
+        }
+
+        router.Channel = channel;
+        _registry.Invalidate();
+    }
+
+    private List<IRouterPort> CoveringRouterPorts() {
+        var coveringIds = _registry.RoutersCovering(_computerPort.Id);
+        return _routers
+            .Get()
+            .Where(entry => coveringIds.Contains(entry.Id))
+            .Select(entry => entry.Value)
+            .ToList();
     }
 
     public async ValueTask<HttpResponseBytes> RequestHttpBytes(

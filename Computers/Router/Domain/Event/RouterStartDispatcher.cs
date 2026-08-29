@@ -8,7 +8,7 @@ public class RouterStartDispatcher : RouterEventHandler {
     public RouterStartDispatcher(ContextLookup<IRouterPort> routers) : base(routers) {
     }
 
-    public override ISet<Type> EventTypes => new HashSet<Type> { typeof(StartRouterEvent) };
+    public override ISet<Type> EventTypes => new HashSet<Type> { typeof(SaveLoadedEvent) };
 
     protected override IRouterEvent CreateEvent(IEvent @event) {
         return new StartRouterEvent();

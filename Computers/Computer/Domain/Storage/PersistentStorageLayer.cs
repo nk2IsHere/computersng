@@ -6,10 +6,12 @@ internal class PersistentStorageLayer: IStorageLayer {
     
     private static string LayerName => "Persistent";
     
-    private readonly Dictionary<string, object> _storage;
-    
+    private readonly IDictionary<string, object> _storage;
+
     public PersistentStorageLayer(IDictionary<string, object> storage, int priority = int.MaxValue) {
-        _storage = new Dictionary<string, object>(storage);
+        // Use the dictionary directly (no copy): this is the same instance that the computer's
+        // Store() serializes into the save file, so writes must land in it to persist.
+        _storage = storage;
         Priority = priority;
     }
     
@@ -135,6 +137,12 @@ internal class PersistentStorageLayer: IStorageLayer {
     
     public StorageResponse<StorageFileMetadata[]> List(string path) {
         var pathParts = IStorageLayer.CleanPath(path);
+
+        // The root is not an entry inside the storage, so it needs listing directly.
+        if (pathParts.Length == 0) {
+            return StorageResponse<StorageFileMetadata[]>.OfSuccess(ListDirectoryEntries(_storage));
+        }
+
         return RecurseOverStorage(
             pathParts,
             _storage,
@@ -142,24 +150,12 @@ internal class PersistentStorageLayer: IStorageLayer {
                 if (!substorage.ContainsKey(entryName)) {
                     return StorageResponse<StorageFileMetadata[]>.OfError(StorageErrorType.DirectoryNotFound);
                 }
-                
+
                 if (substorage[entryName] is not IDictionary<string, object> directory) {
                     return StorageResponse<StorageFileMetadata[]>.OfError(StorageErrorType.PathIsNotDirectory);
                 }
-                
-                var metadataList = directory
-                    .Select(entry => {
-                        var (name, value) = entry;
-                        return value switch {
-                            IDictionary<string, object> _ => StorageFileMetadata.OfDirectory(name, LayerName),
-                            byte[] data => StorageFileMetadata.OfFile(name, data.Length, LayerName),
-                            _ => null // Should never happen, but just in case
-                        };
-                    })
-                    .WhereNotNull()
-                    .ToArray();
-                
-                return StorageResponse<StorageFileMetadata[]>.OfSuccess(metadataList);
+
+                return StorageResponse<StorageFileMetadata[]>.OfSuccess(ListDirectoryEntries(directory));
             },
             preliminaryFailure => preliminaryFailure switch {
                 RecurseOverStoragePreliminaryFailure.PathNotFound => StorageResponse<StorageFileMetadata[]>.OfError(StorageErrorType.DirectoryNotFound),
@@ -193,6 +189,20 @@ internal class PersistentStorageLayer: IStorageLayer {
         );
     }
     
+    private static StorageFileMetadata[] ListDirectoryEntries(IDictionary<string, object> directory) {
+        return directory
+            .Select(entry => {
+                var (name, value) = entry;
+                return value switch {
+                    IDictionary<string, object> _ => StorageFileMetadata.OfDirectory(name, LayerName),
+                    byte[] data => StorageFileMetadata.OfFile(name, data.Length, LayerName),
+                    _ => null // Should never happen, but just in case
+                };
+            })
+            .WhereNotNull()
+            .ToArray();
+    }
+
     private enum RecurseOverStoragePreliminaryFailure {
         PathNotFound,
         PathNotDirectory

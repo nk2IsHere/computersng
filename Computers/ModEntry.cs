@@ -58,6 +58,8 @@ public class ModEntry : Mod {
     private static readonly Id RouterMachineId = GameMachineBaseId / "Router";
     
     public override void Entry(IModHelper helper) {
+        DiskItemPatches.Apply(BaseId);
+
         _context = Core.Context.Create(
             new IContextEntry.StatelessDataContextEntry(
                 ComputerTileSheetId,
@@ -297,6 +299,15 @@ public class ModEntry : Mod {
                     .DeserializeConfiguration<Configuration>()
             ),
             new IContextEntry.ServiceContextEntry(
+                ServiceBaseId / "NetworkRegistry",
+                typeof(NetworkRegistry),
+                initializer => new NetworkRegistry(
+                    initializer.GetSingle<IMonitor>(ServiceBaseId / "Monitor"),
+                    initializer.GetSingle<Configuration>(ServiceBaseId / "Configuration"),
+                    initializer.Lookup<IRouterPort>()
+                )
+            ),
+            new IContextEntry.ServiceContextEntry(
                 ServiceBaseId / "ComputerTickDispatcher",
                 typeof(IEventHandler),
                 initializer => new ComputerTickDispatcher(
@@ -352,7 +363,9 @@ public class ModEntry : Mod {
                     initializer.GetSingle<Random>(),
                     initializer.GetSingle<IRedundantLoader>(ServiceBaseId / "RedundantLoader"),
                     initializer.GetSingle<IRedundantLoader>(ServiceBaseId / "AssetsLoader"),
-                    initializer.GetSingle<IRedundantLoader>(ServiceBaseId / "DataLoader")
+                    initializer.GetSingle<IRedundantLoader>(ServiceBaseId / "DataLoader"),
+                    initializer.GetSingle<NetworkRegistry>(ServiceBaseId / "NetworkRegistry"),
+                    initializer.Lookup<IRouterPort>()
                 )
             ),
             new IContextEntry.ServiceContextEntry(
@@ -369,7 +382,10 @@ public class ModEntry : Mod {
                     ServiceBaseId / "RouterFactory",
                     RouterBigCraftableId,
                     initializer.GetSingle<IMonitor>(),
-                    initializer.GetSingle<Configuration>()
+                    initializer.GetSingle<Configuration>(),
+                    initializer.GetSingle<NetworkRegistry>(ServiceBaseId / "NetworkRegistry"),
+                    initializer.Lookup<IComputerPort>(),
+                    initializer.Lookup<IRouterPort>()
                 )
             ),
             new IContextEntry.ServiceContextEntry(
@@ -401,7 +417,10 @@ public class ModEntry : Mod {
         
         helper.Events.GameLoop.GameLaunched += (_, e) => eventBus.Publish(new GameLaunchedEvent(e));
         helper.Events.GameLoop.UpdateTicked += (_, e) => eventBus.Publish(new UpdateTickedEvent(e));
-        helper.Events.GameLoop.ReturnedToTitle += (_, e) => eventBus.Publish(new ReturnedToTitleEvent(e));
+        helper.Events.GameLoop.ReturnedToTitle += (_, e) => {
+            _context.GetSingle<NetworkRegistry>(ServiceBaseId / "NetworkRegistry").Clear();
+            eventBus.Publish(new ReturnedToTitleEvent(e));
+        };
         
         helper.Events.Input.ButtonPressed += (_, e) => eventBus.Publish(new ButtonPressedEvent(e));
         helper.Events.Input.ButtonReleased += (_, e) => eventBus.Publish(new ButtonReleasedEvent(e));
@@ -410,6 +429,45 @@ public class ModEntry : Mod {
         helper.Events.GameLoop.SaveCreating += (_, _) => HandleSave();
         helper.Events.GameLoop.Saving += (_, _) => HandleSave();
         helper.Events.GameLoop.SaveLoaded += (_, e) => HandleLoad(e);
+
+        RegisterDevAutoload(helper);
+    }
+
+    private void RegisterDevAutoload(IModHelper helper) {
+        var devLoadSave = Environment.GetEnvironmentVariable("COMPUTERS_DEV_LOAD_SAVE");
+        if (string.IsNullOrEmpty(devLoadSave)) {
+            return;
+        }
+
+        StardewValley.Menus.TitleMenu.SkipSplashScreens = true;
+
+        var triggered = false;
+        helper.Events.GameLoop.UpdateTicked += (_, _) => {
+            if (triggered || Game1.activeClickableMenu is not StardewValley.Menus.TitleMenu) {
+                return;
+            }
+
+            triggered = true;
+
+            var savesPath = Constants.SavesPath;
+            var saveFolder = Directory.Exists(savesPath)
+                ? Directory.EnumerateDirectories(savesPath)
+                    .Select(Path.GetFileName)
+                    .WhereNotNull()
+                    .FirstOrDefault(name => name == devLoadSave || name.StartsWith($"{devLoadSave}_"))
+                : null;
+
+            if (saveFolder is null) {
+                Monitor.Log($"Dev autoload: no save folder matching '{devLoadSave}' found in {savesPath}.", LogLevel.Warn);
+                return;
+            }
+
+            Monitor.Log($"Dev autoload: loading save '{saveFolder}'.", LogLevel.Info);
+            // Mirror LoadGameMenu.SaveFileSlot.Activate: start the load, then close the title menu -
+            // leaving TitleMenu active resets the game back to the title screen after the load.
+            SaveGame.Load(saveFolder);
+            Game1.exitActiveMenu();
+        };
     }
 
     public static bool ComputerMachineInteractMethod(
@@ -423,12 +481,16 @@ public class ModEntry : Mod {
         var modData = machine.HeldObjectModData();
         if (modData == null) {
             monitor.Log("Computer does not have a held object - cannot infer script.");
-            return false;
+            Game1.showGlobalMessage("Computer has no disk inserted.");
+            // Return true so the game treats the click as handled; returning false makes the
+            // held action button retry next tick, showing the toast twice.
+            return true;
         }
-        
+
         if (!modData.ContainsKey("ComputerId")) {
             monitor.Log("Computer does not have a script id - cannot infer script.");
-            return false;
+            Game1.showGlobalMessage("The inserted disk is not initialized.");
+            return true;
         }
         
         var computerId = modData["ComputerId"].AsId();
@@ -440,10 +502,11 @@ public class ModEntry : Mod {
     }
     
     public static Item ComputerMachineOutputMethod(
-        Object machine, 
-        Item inputItem, 
-        bool probe, 
-        MachineItemOutput outputData, 
+        Object machine,
+        Item inputItem,
+        bool probe,
+        MachineItemOutput outputData,
+        Farmer player,
         out int? overrideMinutesUntilReady
     ) {
         var monitor = _context.GetSingle<IMonitor>(ServiceBaseId / "Monitor");
@@ -468,6 +531,16 @@ public class ModEntry : Mod {
         }
         
         computer.Start();
+
+        var registry = _context.GetSingle<NetworkRegistry>(ServiceBaseId / "NetworkRegistry");
+        registry.Register(new Placement(
+            computer.Id,
+            NetworkNodeKind.Computer,
+            machine.Location.NameOrUniqueName,
+            (int) machine.TileLocation.X,
+            (int) machine.TileLocation.Y
+        ));
+
         return outputItem;
     }
     
@@ -491,9 +564,10 @@ public class ModEntry : Mod {
         
         var routerId = modData["RouterId"].AsId();
         monitor.Log($"Router has id: {routerId}");
-        
-        // Show router id in a message box
-        Game1.showGlobalMessage($"Router Id: {routerId.Last}");
+
+        // Show router id and channel in a message box
+        var routerPort = _context.GetSingle<IRouterPort>(routerId);
+        Game1.showGlobalMessage($"Router Id: {routerId.Last}, Channel: {routerPort.Channel?.ToString() ?? "none"}");
         return true;
     }
 
@@ -525,32 +599,87 @@ public class ModEntry : Mod {
         
         monitor.Log("Loading data.");
         _context.Restore(deserializedData);
+
+        // Rebuild network placements from the loaded world (positions are not part of the save state).
+        var registry = _context.GetSingle<NetworkRegistry>(ServiceBaseId / "NetworkRegistry");
+        var placements = new List<Placement>();
+        Utility.ForEachLocation(location => {
+            foreach (var (tile, obj) in location.objects.Pairs) {
+                if (obj.modData.ContainsKey("RouterId")) {
+                    placements.Add(new Placement(
+                        obj.modData["RouterId"].AsId(),
+                        NetworkNodeKind.Router,
+                        location.NameOrUniqueName,
+                        (int) tile.X,
+                        (int) tile.Y
+                    ));
+                }
+
+                var heldModData = obj.HeldObjectModData();
+                if (heldModData is not null && heldModData.ContainsKey("ComputerId")) {
+                    placements.Add(new Placement(
+                        heldModData["ComputerId"].AsId(),
+                        NetworkNodeKind.Computer,
+                        location.NameOrUniqueName,
+                        (int) tile.X,
+                        (int) tile.Y
+                    ));
+                }
+            }
+            return true;
+        });
+        registry.ReplaceAll(placements);
+
         eventBus.Publish(new SaveLoadedEvent(args));
     }
 
     private static void HandleObjectListChanged(ObjectListChangedEventArgs args) {
         var monitor = _context.GetSingle<IMonitor>(ServiceBaseId / "Monitor");
+        var registry = _context.GetSingle<NetworkRegistry>(ServiceBaseId / "NetworkRegistry");
+        var locationName = args.Location.NameOrUniqueName;
 
         foreach (var (position, obj) in args.Added) {
             monitor.Log($"Added object at {position}: {obj}");
 
             if (obj.ItemId == RouterBigCraftableId) {
                 HandleRouterAdded(obj, position);
+                registry.Register(new Placement(
+                    obj.modData["RouterId"].AsId(),
+                    NetworkNodeKind.Router,
+                    locationName,
+                    (int) position.X,
+                    (int) position.Y
+                ));
+            }
+
+            var heldModData = obj.HeldObjectModData();
+            if (heldModData is not null && heldModData.ContainsKey("ComputerId")) {
+                registry.Register(new Placement(
+                    heldModData["ComputerId"].AsId(),
+                    NetworkNodeKind.Computer,
+                    locationName,
+                    (int) position.X,
+                    (int) position.Y
+                ));
             }
         }
-        
+
         foreach(var (position, obj) in args.Removed) {
             monitor.Log($"Removed object at {position}: {obj}");
 
             var objectData = obj.modData;
             var heldObjectModData = obj.HeldObjectModData();
-            
+
             if (heldObjectModData is not null && heldObjectModData.ContainsKey("ComputerId")) {
-                HandleComputerRemoved(heldObjectModData["ComputerId"].AsId(), obj, position);
+                var computerId = heldObjectModData["ComputerId"].AsId();
+                HandleComputerRemoved(computerId, obj, position);
+                registry.Unregister(computerId);
             }
-            
+
             if (objectData is not null && objectData.ContainsKey("RouterId")) {
-                HandleRouterRemoved(objectData["RouterId"].AsId(), obj, position);
+                var routerId = objectData["RouterId"].AsId();
+                HandleRouterRemoved(routerId, obj, position);
+                registry.Unregister(routerId);
             }
         }
     }

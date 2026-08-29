@@ -112,13 +112,32 @@ export class ConsoleView {
             const key = Keys[keyRaw]
             const currentlyHeldKeys = currentlyHeldKeysRaw.map((keyRaw) => Keys[keyRaw])
 
-            if (!key.isSpecial) {
+            const modifierHeld = ["LeftControl", "RightControl", "LeftWindows", "RightWindows"]
+                .some((name) => currentlyHeldKeys.includes(Keys.fromName(name)))
+
+            if (modifierHeld) {
+                // Ctrl/Cmd+V: paste clipboard at the cursor (newlines collapse to spaces).
+                if (key.name === "V") {
+                    const pasted = (System.GetClipboard() ?? "").replace(/\r/g, "").replace(/\n/g, " ")
+                    if (pasted.length > 0) {
+                        this.inputHistoryCursor = null
+                        const currentInputCursor = Math.max(0, this.currentInput.length - this.currentInputOffset)
+                        this.currentInput = this.currentInput.slice(0, currentInputCursor) + pasted + this.currentInput.slice(currentInputCursor)
+                    }
+                }
+
+                // Ctrl/Cmd+C: copy the current input line to the clipboard.
+                if (key.name === "C") {
+                    System.SetClipboard(this.currentInput)
+                    this.console.Info("Input copied to clipboard")
+                }
+            } else if (!key.isSpecial) {
                 this.inputHistoryCursor = null
-                
+
                 const characterToInsert = currentlyHeldKeys.includes(Keys.fromName("LeftShift"))
                     ? key.upperCase
                     : key.lowerCase;
-                
+
                 const currentInputCursor = Math.max(0, this.currentInput.length - this.currentInputOffset)
                 this.currentInput = this.currentInput.slice(0, currentInputCursor) + characterToInsert + this.currentInput.slice(currentInputCursor)
             }

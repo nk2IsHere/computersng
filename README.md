@@ -67,7 +67,7 @@ Make processing of Stardew's resources a configurable function pipe-like process
 - [x] Add support for layered file system
 - [x] Add support for separate core libraries
 - [ ] Add peripherals support with event-based communication
-- [ ] Add support for computer-to-computer communication
+- [x] Add support for computer-to-computer communication
 - [ ] Add possibility of auto-discovering machine groups with computer as controller using peripheral
 - [ ] Add package-based libraries
 

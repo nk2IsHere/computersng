@@ -1,4 +1,5 @@
 using Computers.Game;
+using StardewValley;
 
 namespace Computers.Computer.Domain.Api;
 
@@ -65,6 +66,15 @@ internal class SystemComputerState {
 
     public string Id() {
         return _computerPort.Id;
+    }
+
+    public string GetClipboard() {
+        var text = "";
+        return DesktopClipboard.GetText(ref text) ? text : "";
+    }
+
+    public void SetClipboard(string text) {
+        DesktopClipboard.SetText(text ?? "");
     }
     
     public double Random() {
