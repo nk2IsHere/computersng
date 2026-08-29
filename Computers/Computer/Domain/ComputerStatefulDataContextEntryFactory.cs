@@ -1,5 +1,7 @@
 using Computers.Core;
 using Computers.Game;
+using Computers.Router;
+using Computers.Router.Domain;
 using StardewModdingAPI;
 
 namespace Computers.Computer.Domain;
@@ -7,23 +9,27 @@ namespace Computers.Computer.Domain;
 public class ComputerStatefulDataContextEntryFactory : IStatefulDataContextEntryFactory {
 
     private readonly Id _baseComputerId;
-    
+
     private readonly IMonitor _monitor;
     private readonly Configuration _configuration;
     private readonly Random _random;
     private readonly IRedundantLoader _coreLibraryLoader;
     private readonly IRedundantLoader _assetLoader;
     private readonly IRedundantLoader _dataLoader;
-    
+    private readonly NetworkRegistry _registry;
+    private readonly ContextLookup<IRouterPort> _routers;
+
     public ComputerStatefulDataContextEntryFactory(
-        Id id, 
+        Id id,
         Id baseComputerId,
         IMonitor monitor,
         Configuration configuration,
         Random random,
         IRedundantLoader coreLibraryLoader,
         IRedundantLoader assetLoader,
-        IRedundantLoader dataLoader
+        IRedundantLoader dataLoader,
+        NetworkRegistry registry,
+        ContextLookup<IRouterPort> routers
     ) {
         FactoryId = id;
         _baseComputerId = baseComputerId;
@@ -33,10 +39,12 @@ public class ComputerStatefulDataContextEntryFactory : IStatefulDataContextEntry
         _coreLibraryLoader = coreLibraryLoader;
         _assetLoader = assetLoader;
         _dataLoader = dataLoader;
+        _registry = registry;
+        _routers = routers;
     }
 
     public Id FactoryId { get; }
-    
+
     public IContextEntry ProduceValue() {
         return ProduceValue(ContextEntryState.Empty);
     }
@@ -51,7 +59,9 @@ public class ComputerStatefulDataContextEntryFactory : IStatefulDataContextEntry
             _random,
             _coreLibraryLoader,
             _assetLoader,
-            _dataLoader
+            _dataLoader,
+            _registry,
+            _routers
         );
     }
 }

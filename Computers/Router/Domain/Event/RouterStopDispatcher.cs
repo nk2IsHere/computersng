@@ -8,7 +8,7 @@ public class RouterStopDispatcher : RouterEventHandler {
     public RouterStopDispatcher(ContextLookup<IRouterPort> routers) : base(routers) {
     }
 
-    public override ISet<Type> EventTypes => new HashSet<Type> { typeof(StopRouterEvent) };
+    public override ISet<Type> EventTypes => new HashSet<Type> { typeof(ReturnedToTitleEvent) };
     
     protected override IRouterEvent CreateEvent(IEvent @event) {
         return new StopRouterEvent();

@@ -1,4 +1,5 @@
 using Computers.Game;
+using Computers.Router.Domain;
 using StardewModdingAPI;
 
 namespace Computers.Computer.Domain.Api;
@@ -17,7 +18,8 @@ public class EventComputerApi : IComputerApi {
         typeof(MouseRightClickedEvent), 
         typeof(MouseWheelEvent),
         typeof(ButtonHeldEvent),
-        typeof(ButtonUnheldEvent)
+        typeof(ButtonUnheldEvent),
+        typeof(NetworkMessageComputerEvent)
     };
 
     public IRedundantLoader? LibraryLoader => null;
@@ -26,6 +28,7 @@ public class EventComputerApi : IComputerApi {
     private readonly Configuration _configuration;
     
     private readonly EventComputerState _state;
+    private readonly SeenMessageCache _seenMessages = new(1024);
 
     public EventComputerApi(IComputerPort computerPort) {
         _computerPort = computerPort;
@@ -64,11 +67,20 @@ public class EventComputerApi : IComputerApi {
            case MouseWheelEvent mouseWheelEvent:
                _state.Enqueue(new EventEntry("MouseWheel", new object[] { mouseWheelEvent.Direction }));
                break;
+           case NetworkMessageComputerEvent networkMessageEvent:
+               if (_seenMessages.Remember(networkMessageEvent.MessageId)) {
+                   _state.Enqueue(new EventEntry("NetworkMessage", new object[] {
+                       networkMessageEvent.SourceAddress,
+                       networkMessageEvent.Payload
+                   }));
+               }
+               break;
        }
     }
 
     public void Reset() {
         _state.Clear();
+        _seenMessages.Clear();
     }
 }
 

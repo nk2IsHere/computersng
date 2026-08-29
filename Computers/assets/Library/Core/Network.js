@@ -62,3 +62,46 @@ export async function HttpRequestString(url, method = 'GET', data = null, header
         body: Body
     }
 }
+
+export function SendMessage(address, payload) {
+    if(typeof address !== 'string') {
+        throw new Error('address must be a string')
+    }
+
+    if(typeof payload !== 'string') {
+        throw new Error('payload must be a string')
+    }
+
+    Network.SendMessage(address, payload)
+}
+
+export function SendJson(address, data) {
+    SendMessage(address, JSON.stringify(data))
+}
+
+export function GetAddress() {
+    return Network.GetAddress()
+}
+
+export function ListReachable() {
+    return [...Network.ListReachable()]
+}
+
+export function GetRouters() {
+    return [...Network.GetRouters()].map(router => ({
+        address: router.address,
+        channel: router.channel ?? null
+    }))
+}
+
+export function ConfigureRouter(routerAddress, channel) {
+    if(typeof routerAddress !== 'string') {
+        throw new Error('routerAddress must be a string')
+    }
+
+    if(channel !== null && !Number.isInteger(channel)) {
+        throw new Error('channel must be an integer or null')
+    }
+
+    Network.ConfigureRouter(routerAddress, channel)
+}

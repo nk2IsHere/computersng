@@ -203,7 +203,7 @@ public enum ContextEntryType {
 }
 
 public class ContextEntryState {
-    public static ContextEntryState Empty { get; } = new();
+    public static ContextEntryState Empty => new();
 
     private readonly Dictionary<string, object> _data = new();
 

@@ -62,8 +62,18 @@ public enum NetworkMode {
 
 public class NetworkConfiguration {
     public NetworkMode Mode { get; set; }
-    
+
     public List<string> BlockedAddresses { get; set; } = null!;
-    
+
     public List<string> AllowedAddresses { get; set; } = null!;
+
+    public int CoverageRadius { get; set; } = 10;
+
+    public int LinkRadius { get; set; } = 16;
+
+    public int MessageTtl { get; set; } = 16;
+
+    public int RouterQueueLimit { get; set; } = 256;
+
+    public int MaxPayloadBytes { get; set; } = 65536;
 }

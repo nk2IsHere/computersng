@@ -83,6 +83,11 @@ export async function Main() {
     while (true) {
         const latestEvents = Event.Poll()
         for (const event of latestEvents) {
+            if (event.Type === "NetworkMessage") {
+                const [sourceAddress, payload] = event.Data
+                console.Info(`[${sourceAddress}] ${payload}`)
+            }
+
             reloadView.Fire(event)
             consoleView.Fire(event)
         }

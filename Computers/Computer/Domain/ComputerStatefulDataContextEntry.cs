@@ -3,6 +3,8 @@ using Computers.Computer.Domain.Api;
 using Computers.Computer.Domain.Storage;
 using Computers.Core;
 using Computers.Game;
+using Computers.Router;
+using Computers.Router.Domain;
 using Jint;
 using Jint.Native.Object;
 using Jint.Runtime;
@@ -32,7 +34,9 @@ public class ComputerStatefulDataContextEntry : IContextEntry.StatefulDataContex
         Random random,
         IRedundantLoader coreLibraryLoader,
         IRedundantLoader assetLoader,
-        IRedundantLoader dataLoader
+        IRedundantLoader dataLoader,
+        NetworkRegistry registry,
+        ContextLookup<IRouterPort> routers
     ) : base(factoryId, id) {
         _monitor = monitor;
         Configuration = configuration;
@@ -61,7 +65,7 @@ public class ComputerStatefulDataContextEntry : IContextEntry.StatefulDataContex
                     return storageLayers;
                 }
             ),
-            new NetworkComputerApi(this)
+            new NetworkComputerApi(this, registry, routers)
         };
         
         Reload();
