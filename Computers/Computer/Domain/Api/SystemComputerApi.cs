@@ -36,12 +36,15 @@ internal class SystemComputerState {
         _computerPort = computerPort;
     }
     
+    private const int MaxSleepMilliseconds = 100;
+
     public void Sleep(int milliseconds) {
         if (milliseconds < 0) {
             throw new ArgumentOutOfRangeException(nameof(milliseconds), "Sleep time cannot be negative");
         }
-        
-        Thread.Sleep(milliseconds);
+
+        // Sleep blocks a shared scheduler worker; clamp and steer scripts toward Delay/NextFrame.
+        Thread.Sleep(Math.Min(milliseconds, MaxSleepMilliseconds));
     }
     
     public long Time() {
@@ -66,6 +69,10 @@ internal class SystemComputerState {
 
     public string Id() {
         return _computerPort.Id;
+    }
+
+    public Task NextFrame() {
+        return _computerPort.NextFrame();
     }
 
     public string GetClipboard() {

@@ -299,6 +299,21 @@ public class ModEntry : Mod {
                     .DeserializeConfiguration<Configuration>()
             ),
             new IContextEntry.ServiceContextEntry(
+                ServiceBaseId / "ComputerScheduler",
+                typeof(ComputerScheduler),
+                initializer => new ComputerScheduler(
+                    initializer.GetSingle<IMonitor>(ServiceBaseId / "Monitor"),
+                    initializer.GetSingle<Configuration>(ServiceBaseId / "Configuration")
+                )
+            ),
+            new IContextEntry.ServiceContextEntry(
+                ServiceBaseId / "SchedulerPulseDispatcher",
+                typeof(IEventHandler),
+                initializer => new SchedulerPulseDispatcher(
+                    initializer.GetSingle<ComputerScheduler>(ServiceBaseId / "ComputerScheduler")
+                )
+            ),
+            new IContextEntry.ServiceContextEntry(
                 ServiceBaseId / "NetworkRegistry",
                 typeof(NetworkRegistry),
                 initializer => new NetworkRegistry(
@@ -365,7 +380,8 @@ public class ModEntry : Mod {
                     initializer.GetSingle<IRedundantLoader>(ServiceBaseId / "AssetsLoader"),
                     initializer.GetSingle<IRedundantLoader>(ServiceBaseId / "DataLoader"),
                     initializer.GetSingle<NetworkRegistry>(ServiceBaseId / "NetworkRegistry"),
-                    initializer.Lookup<IRouterPort>()
+                    initializer.Lookup<IRouterPort>(),
+                    initializer.GetSingle<ComputerScheduler>(ServiceBaseId / "ComputerScheduler")
                 )
             ),
             new IContextEntry.ServiceContextEntry(

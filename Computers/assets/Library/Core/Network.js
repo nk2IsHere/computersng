@@ -21,9 +21,9 @@ export async function HttpRequestBytes(url, method = 'GET', data = null, headers
     }
     
     headers = new Map(Object.entries(headers ?? {}));
-    
-    const { Result } = await Network.RequestHttpBytes(url, method, headers, data);
-    const { StatusCode, Headers, Body } = Result;
+
+    // Awaiting the host call resolves directly to the response object (Jint task interop).
+    const { StatusCode, Headers, Body } = await Network.RequestHttpBytes(url, method, headers, data);
     return {
         statusCode: StatusCode,
         headers: Headers,
@@ -53,9 +53,9 @@ export async function HttpRequestString(url, method = 'GET', data = null, header
     }
     
     headers = new Map(Object.entries(headers ?? {}));
-    
-    const { Result } = await Network.RequestHttpString(url, method, headers, data);
-    const { StatusCode, Headers, Body } = Result;
+
+    // Awaiting the host call resolves directly to the response object (Jint task interop).
+    const { StatusCode, Headers, Body } = await Network.RequestHttpString(url, method, headers, data);
     return {
         statusCode: StatusCode,
         headers: Headers,

@@ -27,6 +27,42 @@ public class ConfigurationTests {
     }
 
     [Fact]
+    public void EngineSchedulerKeysParse() {
+        var yaml = string.Join("\n",
+            "engine:",
+            "  shouldResetScriptOnFatalError: true",
+            "  schedulerWorkers: 2",
+            "  maxStatementsPerSlice: 5000"
+        );
+        var configuration = yaml.DeserializeConfiguration<Configuration>();
+        Assert.Equal(2, configuration.Engine.SchedulerWorkers);
+        Assert.Equal(5000, configuration.Engine.MaxStatementsPerSlice);
+    }
+
+    [Fact]
+    public void EngineSchedulerKeysHaveSpecDefaults() {
+        var yaml = string.Join("\n",
+            "engine:",
+            "  shouldResetScriptOnFatalError: true"
+        );
+        var configuration = yaml.DeserializeConfiguration<Configuration>();
+        Assert.Equal(0, configuration.Engine.SchedulerWorkers);
+        Assert.Equal(2_000_000, configuration.Engine.MaxStatementsPerSlice);
+    }
+
+    [Fact]
+    public void RenderMaxFpsDefaultsTo60WhenOmitted() {
+        var yaml = string.Join("\n",
+            "render:",
+            "  canvasWidth: 452",
+            "  canvasHeight: 256",
+            "  fontDefaultScale: 1"
+        );
+        var configuration = yaml.DeserializeConfiguration<Configuration>();
+        Assert.Equal(60, configuration.Render.MaxFps);
+    }
+
+    [Fact]
     public void LanKeysHaveSpecDefaultsWhenOmitted() {
         var yaml = string.Join("\n",
             "network:",

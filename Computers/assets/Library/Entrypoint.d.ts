@@ -9,6 +9,9 @@ declare const Render: {
     Circle: (x: number, y: number, radius: number, color: [number, number, number, number]) => void
     BorderCircle: (x: number, y: number, radius: number, borderWidth: number, color: [number, number, number, number]) => void
     Line: (x1: number, y1: number, x2: number, y2: number, color: [number, number, number, number]) => void
+    // The background/foreground pixel layers are PERSISTENT overlays: they survive across
+    // frames (Begin only resets the command list) until cleared explicitly. The frame is
+    // composed as background -> commands -> foreground (alpha-blended on top).
     ClearBackground: (color: [number, number, number, number]) => void
     ClearForeground: () => void
     SetBackground: (x: number, y: number, color: [number, number, number, number]) => void
@@ -37,8 +40,13 @@ declare const Event: {
 }
 
 declare const System: {
+    /** @deprecated Blocks a shared worker (clamped to 100ms). Prefer Delay or NextFrame. */
     Sleep: (ms: number) => void
     Delay: (ms: number) => Promise<void>
+    // Pacing primitive: resolves on the next scheduler pulse (a game tick, subject to
+    // render.maxFps). Long computations MUST await this (or Delay) periodically - a script
+    // that runs too many statements in one stretch is aborted by the engine watchdog.
+    NextFrame: () => Promise<void>
     Time: () => number
     LoadModule: <T extends { [key: string]: any }>(path: string) => T
     ProcessTasks: () => void

@@ -105,16 +105,23 @@ internal class EventComputerState {
         }
     }
     
-    public List<EventEntry> Poll() {
-        // Since the engine expects main function to be an infinite loop, we need to process tasks somewhere, 
+    private static readonly EventEntry[] NoEvents = Array.Empty<EventEntry>();
+
+    public EventEntry[] Poll() {
+        // Since the engine expects main function to be an infinite loop, we need to process tasks somewhere,
         // where the code is executed every frame.
         // Polling events is a good place to do that, unless any external script decides not to poll events.
         // There is an explicit method to process tasks, so it can be called from the main function in such cases, but
         // generally it won't be necessary.
         _computerPort.ProcessTasks();
-        
+
         lock (_events) {
-            var events = _events.ToList();
+            // Fast path. Polling happens every frame and the queue is usually empty.
+            if (_events.Count == 0) {
+                return NoEvents;
+            }
+
+            var events = _events.ToArray();
             _events.Clear();
             return events;
         }

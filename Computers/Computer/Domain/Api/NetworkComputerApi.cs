@@ -131,36 +131,36 @@ internal class NetworkComputerState {
         byte[]? body
     ) {
         EnsureUrlIsAllowed(url);
-        
+
         var request = new HttpRequestMessage(new HttpMethod(method), url);
-        
+
         if (headers != null) {
             foreach (var header in headers) {
                 request.Headers.Add(header.Key, header.Value.ToString());
             }
         }
-        
+
         if (body != null) {
             request.Content = new ByteArrayContent(body);
         }
-        
+
         var response = await _client.SendAsync(request);
         var responseBody = await response.Content.ReadAsByteArrayAsync();
-        
+
         var headersDict = response.Headers
             .Concat(response.Content.Headers)
             .ToDictionary(
                 pair => pair.Key,
                 pair => string.Join(", ", pair.Value)
             );
-        
+
         return new HttpResponseBytes(
             (int) response.StatusCode,
             headersDict,
             responseBody
         );
     }
-    
+
     public async ValueTask<HttpResponseString> RequestHttpString(
         string url,
         string method,
@@ -168,22 +168,22 @@ internal class NetworkComputerState {
         string? body
     ) {
         EnsureUrlIsAllowed(url);
-        
+
         var request = new HttpRequestMessage(new HttpMethod(method), url);
-        
+
         if (headers != null) {
             foreach (var header in headers) {
                 request.Headers.Add(header.Key, header.Value.ToString());
             }
         }
-        
+
         if (body != null) {
             request.Content = new StringContent(body, Encoding.UTF8);
         }
-        
+
         var response = await _client.SendAsync(request);
         var responseBody = await response.Content.ReadAsStringAsync();
-        
+
         var headersDict = response.Headers
             .Concat(response.Content.Headers)
             .ToDictionary(

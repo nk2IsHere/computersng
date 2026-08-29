@@ -25,6 +25,7 @@ public class FakeComputerPort : IComputerPort {
     public T? Get<T>(string variableName) => default;
     public object? LoadModule(string moduleName) => null;
     public void ProcessTasks() { }
+    public Task NextFrame() => Task.CompletedTask;
     public IDictionary<string, object> GetStorage(IComputerApi api) => new Dictionary<string, object>();
     public void Reload() { }
     public void Start() { }

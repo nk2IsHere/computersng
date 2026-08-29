@@ -35,10 +35,12 @@ public class UiConfiguration {
 
 public class RenderConfiguration {
     public int CanvasWidth { get; set; }
-    
+
     public int CanvasHeight { get; set; }
-    
+
     public float FontDefaultScale { get; set; }
+
+    public int MaxFps { get; set; } = 60;
 }
 
 public class StorageConfiguration {
@@ -51,6 +53,12 @@ public class StorageConfiguration {
 
 public class EngineConfiguration {
     public bool ShouldResetScriptOnFatalError { get; set; }
+
+    // 0 = auto (min(4, cores/2))
+    public int SchedulerWorkers { get; set; }
+
+    // Statement budget per scheduler slice; 0 disables the watchdog.
+    public int MaxStatementsPerSlice { get; set; } = 2_000_000;
 }
 
 public enum NetworkMode {

@@ -97,5 +97,7 @@ export async function Main() {
         consoleView.Render()
         reloadView.Render()
         Render.End()
+
+        await System.NextFrame()
     }
 }

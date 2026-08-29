@@ -13,8 +13,11 @@ export class Console {
         this.logs = []
         this.logHistory = logHistory
         this.defaultLogLevel = defaultLogLevel
+
+        // Bumped on every change; lets views cache derived render data (e.g. wrapped lines).
+        this.revision = 0
     }
-    
+
     Log(message, level = this.defaultLogLevel) {
         const lines = (message ?? "").split("\n")
         for (const line of lines) {
@@ -23,10 +26,12 @@ export class Console {
                 this.logs.shift()
             }
         }
+        this.revision++
     }
-    
+
     Clear() {
         this.logs = []
+        this.revision++
     }
     
     Info(message) {

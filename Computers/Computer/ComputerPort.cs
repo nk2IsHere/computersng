@@ -16,6 +16,7 @@ public interface IComputerPort {
     T? Get<T>(string variableName);
     object? LoadModule(string moduleName);
     void ProcessTasks();
+    Task NextFrame();
     
     // Storage
     IDictionary<string, object> GetStorage(IComputerApi api);
