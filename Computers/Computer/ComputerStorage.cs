@@ -107,7 +107,7 @@ public class StorageFileMetadata {
         return $"StorageFileMetadata(Name: {Name}, Type: {Type}, Size: {Size}, Layer: {Layer})";
     }
     
-    private static StorageFileMetadata Of(string name, StorageFileType type, long size, string layer) {
+    public static StorageFileMetadata Of(string name, StorageFileType type, long size, string layer) {
         return new StorageFileMetadata(name, type, size, layer);
     }
     

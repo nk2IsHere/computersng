@@ -43,7 +43,7 @@ public class LoaderStorageLayer: IStorageLayer {
         try {
             var file = _loader.Load<string>(path);
             var fileBytes = Encoding.UTF8.GetBytes(file);
-            return StorageResponse<StorageFileMetadata>.OfSuccess(StorageFileMetadata.Of(path, StorageFileType.File, fileBytes.Length, _layerName));
+            return StorageResponse<StorageFileMetadata>.OfSuccess(StorageFileMetadata.OfFile(path, fileBytes.Length, _layerName));
         } catch (Exception) {
             return StorageResponse<StorageFileMetadata>.OfError(StorageErrorType.FileNotFound);
         }
