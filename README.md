@@ -17,7 +17,8 @@ Make processing of Stardew's resources a configurable function pipe-like process
     - has screen and input console
     - supports some interpreted programming language (python? lua? - undecided)
     - has apis that allow it to interact with other storages/machines..
-    - auto-discovers machines indirectly connected to it (meaning that machines may form a group by attaching to each other and computer)
+    - auto-discovers machines indirectly connected to it (meaning that machines may form a group by attaching to each
+      other and computer)
     - has peripherals
 
 
@@ -72,7 +73,7 @@ Make processing of Stardew's resources a configurable function pipe-like process
 - [x] Add support for separate core libraries
 - [x] Add peripherals support with event-based communication
 - [x] Add support for computer-to-computer communication
-- [ ] Add possibility of auto-discovering machine groups with computer as controller using peripheral
+- [x] Add possibility of auto-discovering machine groups with computer as controller using peripheral
 - [ ] Add package-based libraries
 
 ## Kudos/Inspiration
@@ -87,3 +88,15 @@ Make processing of Stardew's resources a configurable function pipe-like process
 - Monogram CC0 font from https://datagoblin.itch.io/monogram
 - Jint library from https://github.com/sebastienros/jint
 - Stardew Valley modding guide from https://stardewvalleywiki.com/Modding:Modder_Guide/Get_Started
+
+## On LLMs
+
+This mod **does** use LLM-assisted tools (i.e. Claude code with local models) for coding. Every artifact produced by an
+LLM is carefully reviewed and iterated upon many times. None of other assets are generated, including images and text,
+unless specified.
+
+Please read: https://humanstatement.org/
+
+The technology itself should empower users, and bring our world to a better place than it is right now. In some capacity
+it already does automate a lot of boilerplate and manual work, while allowing author to iterate on ideas faster. I truly
+hope that one day the bubble will pop, and malicious actors in power would bear the consequences of their choices.
