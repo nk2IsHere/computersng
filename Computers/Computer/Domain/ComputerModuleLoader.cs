@@ -16,8 +16,6 @@ internal class ComputerModuleLoader : ModuleLoader {
     }
 
     public override ResolvedSpecifier Resolve(string? referencingModuleLocation, ModuleRequest moduleRequest) {
-        _monitor.Log($"Resolving module: module location is {referencingModuleLocation} request is {moduleRequest}");
-        
         var specifier = moduleRequest.Specifier;
         if (string.IsNullOrEmpty(specifier)) {
             throw new InvalidOperationException($"Invalid Module Specifier for module request: {moduleRequest}");
@@ -40,7 +38,6 @@ internal class ComputerModuleLoader : ModuleLoader {
     }
 
     protected override string LoadModuleContents(Engine engine, ResolvedSpecifier resolved) {
-        _monitor.Log($"Loading module: {resolved}");
         if (resolved.Uri is null) {
             throw new InvalidOperationException($"Invalid Module Specifier for module request: {resolved}");
         }

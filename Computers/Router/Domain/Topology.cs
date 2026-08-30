@@ -2,57 +2,31 @@ using Computers.Core;
 
 namespace Computers.Router.Domain;
 
-public enum NetworkNodeKind {
-    Computer,
-    Router
-}
-
 public record RouterNode(Id Id, string Location, int X, int Y, int? Channel, bool Enabled);
 
-public record ComputerNode(Id Id, string Location, int X, int Y);
+public record EndpointNode(Id Id, string Location, int X, int Y);
 
 public interface INetworkTopology {
     ISet<Id> Neighbors(Id routerId);
-    ISet<Id> ComputersCoveredBy(Id routerId);
-    ISet<Id> RoutersCovering(Id computerId);
-    Id? FindComputerByAddress(string address);
-}
-
-public static class NetworkTopologyExtensions {
-    public static ISet<Id> ReachableComputers(this INetworkTopology topology, Id computerId) {
-        var visited = new HashSet<Id>();
-        var frontier = new Queue<Id>(topology.RoutersCovering(computerId));
-        var computers = new HashSet<Id>();
-
-        while (frontier.Count > 0) {
-            var routerId = frontier.Dequeue();
-            if (!visited.Add(routerId)) {
-                continue;
-            }
-
-            computers.UnionWith(topology.ComputersCoveredBy(routerId));
-            topology.Neighbors(routerId).ForEach(frontier.Enqueue);
-        }
-
-        computers.Remove(computerId);
-        return computers;
-    }
+    ISet<Id> EndpointsCoveredBy(Id routerId);
+    ISet<Id> RoutersCovering(Id endpointId);
+    Id? FindEndpointByAddress(string address);
 }
 
 public class RadiusChannelTopology : INetworkTopology {
     private readonly List<RouterNode> _routers;
-    private readonly List<ComputerNode> _computers;
+    private readonly List<EndpointNode> _endpoints;
     private readonly double _coverageRadius;
     private readonly double _linkRadius;
 
     public RadiusChannelTopology(
         IEnumerable<RouterNode> routers,
-        IEnumerable<ComputerNode> computers,
+        IEnumerable<EndpointNode> endpoints,
         double coverageRadius,
         double linkRadius
     ) {
         _routers = routers.ToList();
-        _computers = computers.ToList();
+        _endpoints = endpoints.ToList();
         _coverageRadius = coverageRadius;
         _linkRadius = linkRadius;
     }
@@ -70,37 +44,37 @@ public class RadiusChannelTopology : INetworkTopology {
             .ToHashSet();
     }
 
-    public ISet<Id> ComputersCoveredBy(Id routerId) {
+    public ISet<Id> EndpointsCoveredBy(Id routerId) {
         var router = _routers.FirstOrDefault(r => r.Id == routerId);
         if (router is null || !router.Enabled) {
             return new HashSet<Id>();
         }
 
-        return _computers
-            .Where(computer => Covers(router, computer))
-            .Select(computer => computer.Id)
+        return _endpoints
+            .Where(endpoint => Covers(router, endpoint))
+            .Select(endpoint => endpoint.Id)
             .ToHashSet();
     }
 
-    public ISet<Id> RoutersCovering(Id computerId) {
-        var computer = _computers.FirstOrDefault(c => c.Id == computerId);
-        if (computer is null) {
+    public ISet<Id> RoutersCovering(Id endpointId) {
+        var endpoint = _endpoints.FirstOrDefault(e => e.Id == endpointId);
+        if (endpoint is null) {
             return new HashSet<Id>();
         }
 
         return _routers
-            .Where(router => router.Enabled && Covers(router, computer))
+            .Where(router => router.Enabled && Covers(router, endpoint))
             .Select(router => router.Id)
             .ToHashSet();
     }
 
-    public Id? FindComputerByAddress(string address) {
-        return _computers.FirstOrDefault(computer => computer.Id.Last == address)?.Id;
+    public Id? FindEndpointByAddress(string address) {
+        return _endpoints.FirstOrDefault(endpoint => endpoint.Id.Last == address)?.Id;
     }
 
-    private bool Covers(RouterNode router, ComputerNode computer) {
-        return router.Location == computer.Location
-            && Distance(router.X, router.Y, computer.X, computer.Y) <= _coverageRadius;
+    private bool Covers(RouterNode router, EndpointNode endpoint) {
+        return router.Location == endpoint.Location
+            && Distance(router.X, router.Y, endpoint.X, endpoint.Y) <= _coverageRadius;
     }
 
     private bool IsLinked(RouterNode router, RouterNode other) {

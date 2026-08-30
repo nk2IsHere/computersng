@@ -27,13 +27,13 @@ public class ContextEntryStateTests {
             }
         };
         var routers = new ContextLookup<IRouterPort>(() => new HashSet<ContextEntry<IRouterPort>>());
-        var computers = new ContextLookup<Computers.Computer.IComputerPort>(
-            () => new HashSet<ContextEntry<Computers.Computer.IComputerPort>>());
+        var endpoints = new ContextLookup<INetworkEndpoint>(
+            () => new HashSet<ContextEntry<INetworkEndpoint>>());
         var registry = new NetworkRegistry(new TestMonitor(), configuration, routers);
 
         var factory = new RouterStatefulDataContextEntryFactory(
             "factory.router".AsId(), "router".AsId(),
-            new TestMonitor(), configuration, registry, computers, routers);
+            new TestMonitor(), configuration, registry, endpoints, routers);
 
         var first = (RouterStatefulDataContextEntry) factory.ProduceValue();
         first.Store(Context.Empty); // mutated the shared Empty before the fix

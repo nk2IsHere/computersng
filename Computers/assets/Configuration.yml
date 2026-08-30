@@ -35,10 +35,19 @@ render:
   # This will be multiplied by the font size in the BMFont file to determine the default font size in Render API.
   fontDefaultScale: 1
 
+  # Frame cap for a computer's render loop. Prevents scripts from busy-looping the render pipeline.
+  maxFps: 60
+
 # Engine configuration
 engine:
   # If true, the js engine will be reset when a fatal error occurs in a script. Otherwise the computer will be disabled.
   shouldResetScriptOnFatalError: true
+
+  # Worker threads shared by all computers (0 = auto: min(4, cores/2)).
+  schedulerWorkers: 0
+
+  # Statement budget per scheduler slice; scripts exceeding it are aborted (0 disables).
+  maxStatementsPerSlice: 2000000
 
 # Storage configuration
 storage:
@@ -50,6 +59,17 @@ storage:
   
   # The path to the directory containing the persistent storage files.
   externalStorageFolder: "storage/"
+
+# Machine controller configuration
+machineController:
+  # Maximum objects a machine group flood fill may visit.
+  maxGroupSize: 256
+
+  # Maximum queued commands a machine controller processes per game tick.
+  maxCommandsPerTick: 16
+
+  # Maximum addresses that may subscribe to a machine controller's events.
+  maxSubscribersPerPeripheral: 16
 
 # Network configuration
 network:

@@ -31,6 +31,8 @@ public class NetworkComputerApi : IComputerApi {
     }
 }
 
+public record RouterInfo(string Address, int? Channel);
+
 internal record HttpResponseBytes(
     int StatusCode,
     IDictionary<string, string> Headers,
@@ -68,51 +70,28 @@ internal class NetworkComputerState {
                 $"Payload exceeds maximum size of {_configuration.Network.MaxPayloadBytes} bytes");
         }
 
-        var coveringRouters = CoveringRouterPorts();
-        if (coveringRouters.Count == 0) {
-            throw new InvalidOperationException("No router in range - computer is offline");
-        }
-
-        var datagram = new Datagram(
-            Guid.NewGuid(),
-            GetAddress(),
+        var sent = NetworkDispatch.Send(
+            _registry,
+            _routers,
+            _computerPort.Id,
             address,
-            _configuration.Network.MessageTtl,
-            payload
+            payload,
+            _configuration.Network.MessageTtl
         );
 
-        coveringRouters.ForEach(router => router.Deliver(datagram, null));
+        if (!sent) {
+            throw new InvalidOperationException("No router in range - computer is offline");
+        }
     }
 
     public string GetAddress() {
         return _computerPort.Id.Last;
     }
 
-    public string[] ListReachable() {
-        return _registry
-            .ReachableComputers(_computerPort.Id)
-            .Select(id => id.Last)
-            .OrderBy(address => address)
-            .ToArray();
-    }
-
-    public List<Dictionary<string, object?>> GetRouters() {
+    public List<RouterInfo> GetRouters() {
         return CoveringRouterPorts()
-            .Select(router => new Dictionary<string, object?> {
-                ["address"] = router.Id.Last,
-                ["channel"] = router.Channel
-            })
+            .Select(router => new RouterInfo(router.Id.Last, router.Channel))
             .ToList();
-    }
-
-    public void ConfigureRouter(string routerAddress, int? channel) {
-        var router = CoveringRouterPorts().FirstOrDefault(port => port.Id.Last == routerAddress);
-        if (router is null) {
-            throw new InvalidOperationException($"No covering router with address '{routerAddress}'");
-        }
-
-        router.Channel = channel;
-        _registry.Invalidate();
     }
 
     private List<IRouterPort> CoveringRouterPorts() {
@@ -131,36 +110,36 @@ internal class NetworkComputerState {
         byte[]? body
     ) {
         EnsureUrlIsAllowed(url);
-        
+
         var request = new HttpRequestMessage(new HttpMethod(method), url);
-        
+
         if (headers != null) {
             foreach (var header in headers) {
                 request.Headers.Add(header.Key, header.Value.ToString());
             }
         }
-        
+
         if (body != null) {
             request.Content = new ByteArrayContent(body);
         }
-        
+
         var response = await _client.SendAsync(request);
         var responseBody = await response.Content.ReadAsByteArrayAsync();
-        
+
         var headersDict = response.Headers
             .Concat(response.Content.Headers)
             .ToDictionary(
                 pair => pair.Key,
                 pair => string.Join(", ", pair.Value)
             );
-        
+
         return new HttpResponseBytes(
             (int) response.StatusCode,
             headersDict,
             responseBody
         );
     }
-    
+
     public async ValueTask<HttpResponseString> RequestHttpString(
         string url,
         string method,
@@ -168,22 +147,22 @@ internal class NetworkComputerState {
         string? body
     ) {
         EnsureUrlIsAllowed(url);
-        
+
         var request = new HttpRequestMessage(new HttpMethod(method), url);
-        
+
         if (headers != null) {
             foreach (var header in headers) {
                 request.Headers.Add(header.Key, header.Value.ToString());
             }
         }
-        
+
         if (body != null) {
             request.Content = new StringContent(body, Encoding.UTF8);
         }
-        
+
         var response = await _client.SendAsync(request);
         var responseBody = await response.Content.ReadAsStringAsync();
-        
+
         var headersDict = response.Headers
             .Concat(response.Content.Headers)
             .ToDictionary(

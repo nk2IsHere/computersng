@@ -14,17 +14,25 @@ using Context = Computers.Core.Context;
 
 namespace Computers.Computer.Domain;
 
-public class ComputerStatefulDataContextEntry : IContextEntry.StatefulDataContextEntry<ComputerStatefulDataContextEntry>, IComputerPort {
+public class ComputerStatefulDataContextEntry : IContextEntry.StatefulDataContextEntry<ComputerStatefulDataContextEntry>, IComputerPort, ISliceTarget {
     private readonly IMonitor _monitor;
     private readonly IRedundantLoader _assetLoader;
-    
+    private readonly ComputerScheduler _scheduler;
+
     private readonly List<IComputerApi> _computerApis;
-    
-    private Thread? _computerThread;
+
     private Engine? _engine;
     private CancellationTokenSource? _cancellationTokenSource;
-    
+
+    private TaskCompletionSource _frameGate = NewGate();
+    private int _needsBoot; // 1 = boot on next slice
+    private volatile bool _disabled; // fatal error with reset disabled
+    private volatile bool _stopping;
+
     private readonly IDictionary<string, object> _storage = new ConcurrentDictionary<string, object>();
+
+    private static TaskCompletionSource NewGate() =>
+        new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     public ComputerStatefulDataContextEntry(
         Id factoryId,
@@ -36,12 +44,14 @@ public class ComputerStatefulDataContextEntry : IContextEntry.StatefulDataContex
         IRedundantLoader assetLoader,
         IRedundantLoader dataLoader,
         NetworkRegistry registry,
-        ContextLookup<IRouterPort> routers
+        ContextLookup<IRouterPort> routers,
+        ComputerScheduler scheduler
     ) : base(factoryId, id) {
         _monitor = monitor;
         Configuration = configuration;
         Random = random;
         _assetLoader = assetLoader;
+        _scheduler = scheduler;
         
         _computerApis = new List<IComputerApi> {
             new RenderComputerApi(this),
@@ -129,6 +139,14 @@ public class ComputerStatefulDataContextEntry : IContextEntry.StatefulDataContex
         _engine?.Advanced.ProcessTasks();
     }
 
+    public Task NextFrame() {
+        return _frameGate.Task;
+    }
+
+    public void ReceiveDatagram(Datagram datagram) {
+        Fire(new NetworkMessageComputerEvent(Id, datagram.MessageId, datagram.SourceAddress, datagram.Payload));
+    }
+
     public IDictionary<string, object> GetStorage(IComputerApi api) {
         if(_storage.TryGetValue(api.Name, out var value)) {
             return (IDictionary<string, object>) value;
@@ -155,6 +173,10 @@ public class ComputerStatefulDataContextEntry : IContextEntry.StatefulDataContex
                 options.EnableModules(new ComputerModuleLoader(_monitor, libraryLoaders));
                 options.ExperimentalFeatures = ExperimentalFeature.All;
                 options.CatchClrExceptions();
+
+                if (Configuration.Engine.MaxStatementsPerSlice > 0) {
+                    options.MaxStatements(Configuration.Engine.MaxStatementsPerSlice);
+                }
             }
         );
 
@@ -162,22 +184,89 @@ public class ComputerStatefulDataContextEntry : IContextEntry.StatefulDataContex
     }
 
     public void Start() {
-        if (_computerThread?.IsAlive == true) {
-            return;
-        }
-        
-        _computerThread = new Thread(ComputerThreadBody);
-        _computerThread.Start();
+        _stopping = false;
+        _disabled = false;
+        Interlocked.Exchange(ref _needsBoot, 1);
+        _scheduler.Register(this);
     }
 
     public void Stop() {
-        if (_computerThread is null || !_computerThread.IsAlive) {
+        _stopping = true;
+        _scheduler.Unregister(Id);
+        _cancellationTokenSource?.Cancel();
+    }
+    
+    public void OpenFrameGate() {
+        var previous = Interlocked.Exchange(ref _frameGate, NewGate());
+        previous.TrySetResult();
+    }
+
+    public void RunSlice() {
+        if (_disabled || _stopping) {
             return;
         }
-        
-        _cancellationTokenSource?.Cancel();
-        _computerThread.Interrupt();
-        _computerThread.Join();
+
+        if (Interlocked.Exchange(ref _needsBoot, 0) == 1) {
+            Boot();
+        }
+
+        ProcessTasks();
+    }
+
+    public void OnSliceError(Exception exception) {
+        if (exception is ExecutionCanceledException) {
+            _monitor.Log($"Computer {Id}: execution canceled (stopping).");
+            return;
+        }
+
+        if (exception is StatementsCountOverflowException) {
+            _monitor.Log(
+                $"Computer {Id}: script exceeded the statement budget for a single slice and was aborted. " +
+                "Long computations must yield (await System.NextFrame() / System.Delay).",
+                LogLevel.Warn
+            );
+        }
+        else {
+            _monitor.Log($"Computer {Id}: script error: {exception}", LogLevel.Warn);
+        }
+
+        HandleFatalScriptError();
+    }
+
+    private void HandleFatalScriptError() {
+        if (Configuration.Engine.ShouldResetScriptOnFatalError) {
+            Interlocked.Exchange(ref _needsBoot, 1); // re-boot on next slice
+        }
+        else {
+            _disabled = true;
+            _monitor.Log($"Computer {Id} disabled (shouldResetScriptOnFatalError = false).", LogLevel.Warn);
+        }
+    }
+
+    private void Boot() {
+        Reload();
+
+        // Expose settlement callbacks, then start Main. Execute runs synchronously until
+        // Main's first await (the statement budget guards a Main that never awaits) and the
+        // returned promise settles through later slices.
+        Set("__computerOnScriptEnd", new Action(() =>
+            _monitor.Log($"Computer {Id}: entrypoint Main completed; computer is idle.")));
+        Set("__computerOnScriptError", new Action<string>(error => {
+            _monitor.Log($"Computer {Id}: script error: {error}", LogLevel.Warn);
+            HandleFatalScriptError();
+        }));
+
+        var module = LoadModule("/Entrypoint");
+        if (module is not ObjectInstance) {
+            _monitor.Log($"Computer {Id}: entrypoint module not found; computer disabled.", LogLevel.Error);
+            _disabled = true;
+            return;
+        }
+
+        Set("__computerEntrypoint", module);
+        _engine!.Execute(
+            "__computerEntrypoint.Main().then(() => __computerOnScriptEnd(), e => __computerOnScriptError(String(e && e.stack || e)))"
+        );
     }
 
     private void RegisterApi(IComputerApi api) {
@@ -186,47 +275,7 @@ public class ComputerStatefulDataContextEntry : IContextEntry.StatefulDataContex
         if (!api.ShouldExpose) {
             return;
         }
-        
+
         Set(api.Name, api.Api);
-    }
-
-    private void ComputerThreadBody() {
-        while (true) {
-            try {
-                lock (this) {
-                    Reload();
-                }
-
-                var module = LoadModule("/Entrypoint");
-                if(module is not ObjectInstance entrypoint) {
-                    _monitor.Log("Entrypoint module not found. Computer thread will be stopped.");
-                    break;
-                }
-                
-                var mainFunction = entrypoint.Get("Main");
-                if (mainFunction.IsNull()) {
-                    _monitor.Log("Main function not found in entrypoint module. Computer thread will be stopped.");
-                    break;
-                }
-
-                mainFunction.Call();
-            }
-            catch (Exception e) {
-                if (e is ExecutionCanceledException) {
-                    _monitor.Log("Interrupt occured. Computer thread will be stopped.");
-                    break;
-                }
-
-                if (e is not JavaScriptException javaScriptException) {
-                    _monitor.Log($"Exception occured: {e}");
-                    break;
-                }
-
-                _monitor.Log($"Script exception occured: {javaScriptException}");
-                if (!Configuration.Engine.ShouldResetScriptOnFatalError) {
-                    break;
-                }
-            }
-        }
     }
 }

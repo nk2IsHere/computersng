@@ -8,7 +8,7 @@ public interface IRouterPort {
     Id Id { get; }
     Configuration Configuration { get; }
 
-    int? Channel { get; set; }
+    int? Channel { get; }
     bool IsEnabled { get; }
 
     // Lifecycle

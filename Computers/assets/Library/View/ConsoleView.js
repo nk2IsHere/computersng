@@ -1,4 +1,5 @@
 import { Keys } from "../Core/Constants"
+import { FireResult } from "./FireResult"
 
 export class ConsoleView {
     constructor(
@@ -28,13 +29,57 @@ export class ConsoleView {
         
         this.inputHistory = []
         this.inputHistoryCursor = null
-        
+
         this.currentInputOffset = 0
+
+        // Render caches
+        this.cachedLines = []
+        this.cachedLinesRevision = -1
+        this.cachedInputLine = ""
+        this.cachedInputSource = null
+        this.cachedInputState = null
+    }
+
+    WrappedLines(maxCharactersPerLine) {
+        if (this.cachedLinesRevision === this.console.revision) {
+            return this.cachedLines
+        }
+
+        const logs = this.console.Logs()
+        const lines = []
+        for (const log of logs) {
+            for (let i = 0; i < log.message.length; i += maxCharactersPerLine) {
+                lines.push(log.message.slice(i, i + maxCharactersPerLine))
+            }
+        }
+
+        this.cachedLines = lines
+        this.cachedLinesRevision = this.console.revision
+        return lines
+    }
+
+    InputLine(maxCharactersPerLine) {
+        const currentInputState = this.currentCommandContext.inputState?.toString() ?? ""
+        if (this.cachedInputSource === this.currentInput && this.cachedInputState === currentInputState) {
+            return this.cachedInputLine
+        }
+
+        const { inputPrefix } = this.inputOptions
+        const currentInputSliceStart = Math.max(
+            0,
+            this.currentInput.length - maxCharactersPerLine + inputPrefix.length + currentInputState.length
+        )
+        const currentInputSliceEnd = this.currentInput.length
+
+        this.cachedInputLine = `${currentInputState}${inputPrefix}${this.currentInput.slice(currentInputSliceStart, currentInputSliceEnd)}`
+        this.cachedInputSource = this.currentInput
+        this.cachedInputState = currentInputState
+        return this.cachedInputLine
     }
 
     Render() {
         const { x, y, width, height, fontSize, fontCharacterWidth, fontCharacterHeight, textColor, backgroundColor } = this.renderOptions
-        const { allowInput, inputPrefix } = this.inputOptions
+        const { allowInput } = this.inputOptions
 
         Render.Rectangle(x, y, width, height, backgroundColor)
 
@@ -42,14 +87,7 @@ export class ConsoleView {
         const maxCharactersPerLine = Math.floor(width / fontCharacterWidth)
 
         // Split the logs into lines by width
-        const logs = this.console.Logs()
-        const lines = []
-
-        for (const log of logs) {
-            for (let i = 0; i < log.message.length; i += maxCharactersPerLine) {
-                lines.push(log.message.slice(i, i + maxCharactersPerLine))
-            }
-        }
+        const lines = this.WrappedLines(maxCharactersPerLine)
 
         // Render the lines by offset
         let currentY = y
@@ -80,13 +118,7 @@ export class ConsoleView {
 
         // Render the input line
         if (allowInput) {
-            const currentInputState = this.currentCommandContext.inputState?.toString() ?? ""
-            const currentInputSliceStart = Math.max(
-                0,
-                this.currentInput.length - maxCharactersPerLine + inputPrefix.length + currentInputState.length
-            )
-            const currentInputSliceEnd = this.currentInput.length
-            const currentInput = `${currentInputState}${inputPrefix}${this.currentInput.slice(currentInputSliceStart, currentInputSliceEnd)}`
+            const currentInput = this.InputLine(maxCharactersPerLine)
 
             Render.Text(x, currentY, currentInput, fontSize, textColor)
             
@@ -116,7 +148,7 @@ export class ConsoleView {
                 .some((name) => currentlyHeldKeys.includes(Keys.fromName(name)))
 
             if (modifierHeld) {
-                // Ctrl/Cmd+V: paste clipboard at the cursor (newlines collapse to spaces).
+                // Paste
                 if (key.name === "V") {
                     const pasted = (System.GetClipboard() ?? "").replace(/\r/g, "").replace(/\n/g, " ")
                     if (pasted.length > 0) {
@@ -126,7 +158,7 @@ export class ConsoleView {
                     }
                 }
 
-                // Ctrl/Cmd+C: copy the current input line to the clipboard.
+                // Copy
                 if (key.name === "C") {
                     System.SetClipboard(this.currentInput)
                     this.console.Info("Input copied to clipboard")
@@ -196,5 +228,7 @@ export class ConsoleView {
                 this.inputHistoryCursor = null
             }
         }
+
+        return FireResult.Passed
     }
 }

@@ -1,9 +1,8 @@
-using Computers.Core;
+using Computers.Router;
 
 namespace Computers.Computer;
 
-public interface IComputerPort {
-    Id Id { get; }
+public interface IComputerPort : INetworkEndpoint {
     Configuration Configuration { get; }
     Random Random { get; }
 
@@ -16,6 +15,7 @@ public interface IComputerPort {
     T? Get<T>(string variableName);
     object? LoadModule(string moduleName);
     void ProcessTasks();
+    Task NextFrame();
     
     // Storage
     IDictionary<string, object> GetStorage(IComputerApi api);

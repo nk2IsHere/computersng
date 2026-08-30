@@ -1,5 +1,6 @@
 using Computers.Computer;
 using Computers.Core;
+using Computers.Router.Domain;
 
 namespace Computers.Tests.TestDoubles;
 
@@ -18,6 +19,9 @@ public class FakeComputerPort : IComputerPort {
     public Random Random { get; } = new(42);
 
     public List<IComputerEvent> FiredEvents { get; } = new();
+    public List<Datagram> ReceivedDatagrams { get; } = new();
+
+    public void ReceiveDatagram(Datagram datagram) => ReceivedDatagrams.Add(datagram);
 
     public T LoadAsset<T>(string assetPath) where T : notnull => throw new NotSupportedException();
     public void Fire(IComputerEvent computerEvent) => FiredEvents.Add(computerEvent);
@@ -25,6 +29,7 @@ public class FakeComputerPort : IComputerPort {
     public T? Get<T>(string variableName) => default;
     public object? LoadModule(string moduleName) => null;
     public void ProcessTasks() { }
+    public Task NextFrame() => Task.CompletedTask;
     public IDictionary<string, object> GetStorage(IComputerApi api) => new Dictionary<string, object>();
     public void Reload() { }
     public void Start() { }

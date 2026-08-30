@@ -1,6 +1,9 @@
 using System.Collections.Concurrent;
 using Computers.Computer;
 using Computers.Core;
+using Computers.Router.Domain.Wire;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using StardewModdingAPI;
 using Context = Computers.Core.Context;
 
@@ -11,7 +14,7 @@ public class RouterStatefulDataContextEntry : IContextEntry.StatefulDataContextE
 
     private readonly IMonitor _monitor;
     private readonly NetworkRegistry _registry;
-    private readonly ContextLookup<IComputerPort> _computers;
+    private readonly ContextLookup<INetworkEndpoint> _endpoints;
     private readonly ContextLookup<IRouterPort> _routers;
 
     private readonly ConcurrentQueue<InboxEntry> _inbox = new();
@@ -25,19 +28,19 @@ public class RouterStatefulDataContextEntry : IContextEntry.StatefulDataContextE
         IMonitor monitor,
         Configuration configuration,
         NetworkRegistry registry,
-        ContextLookup<IComputerPort> computers,
+        ContextLookup<INetworkEndpoint> endpoints,
         ContextLookup<IRouterPort> routers
     ) : base(factoryId, id) {
         _monitor = monitor;
         Configuration = configuration;
         _registry = registry;
-        _computers = computers;
+        _endpoints = endpoints;
         _routers = routers;
     }
 
     public Configuration Configuration { get; }
 
-    public int? Channel { get; set; }
+    public int? Channel { get; private set; }
 
     public bool IsEnabled => _isEnabled;
 
@@ -115,16 +118,11 @@ public class RouterStatefulDataContextEntry : IContextEntry.StatefulDataContextE
         var result = RouterStep.Process(Id, drained, _seen, _registry);
 
         foreach (var delivery in result.Deliveries) {
-            var computer = _computers
+            var endpoint = _endpoints
                 .Get()
-                .FirstOrDefault(entry => entry.Id == delivery.ComputerId)
+                .FirstOrDefault(entry => entry.Id == delivery.EndpointId)
                 ?.Value;
-            computer?.Fire(new NetworkMessageComputerEvent(
-                delivery.ComputerId,
-                delivery.Datagram.MessageId,
-                delivery.Datagram.SourceAddress,
-                delivery.Datagram.Payload
-            ));
+            endpoint?.ReceiveDatagram(delivery.Datagram);
         }
 
         foreach (var forward in result.Forwards) {
@@ -133,6 +131,69 @@ public class RouterStatefulDataContextEntry : IContextEntry.StatefulDataContextE
                 .FirstOrDefault(entry => entry.Id == forward.TargetRouterId)
                 ?.Value;
             router?.Deliver(forward.Datagram, Id);
+        }
+
+        foreach (var inbound in result.RouterInbound) {
+            HandleFirmwareRequest(inbound);
+        }
+    }
+
+    private void HandleFirmwareRequest(Datagram datagram) {
+        JObject request;
+        try {
+            request = JObject.Parse(datagram.Payload);
+        } catch (JsonReaderException) {
+            _monitor.Log($"Router {Id}: dropped undecodable datagram from {datagram.SourceAddress}.");
+            return;
+        }
+
+        if (!WireRequests.TryReadCid(request, out var cid)) {
+            _monitor.Log($"Router {Id}: dropped datagram without correlation id from {datagram.SourceAddress}.");
+            return;
+        }
+
+        Reply reply;
+        try {
+            reply = Reply.Success(cid, Dispatch(RequestParser.ParseBody(request)));
+        } catch (RouterRequestException exception) {
+            reply = Reply.Failure(cid, exception.Message);
+        }
+
+        // The reply enters our own inbox and floods out next tick.
+        // That keeps hop counting symmetric with the request's path.
+        Deliver(
+            new Datagram(
+                Guid.NewGuid(),
+                Id.Last,
+                datagram.SourceAddress,
+                Configuration.Network.MessageTtl,
+                WireJson.Serialize(reply)
+            ),
+            null
+        );
+    }
+
+    private object? Dispatch(RouterRequest request) {
+        switch (request) {
+            case RouterPingRequest:
+                return new RouterPingResult("router", Channel);
+
+            case RouterDiscoverRequest:
+                return new RouterDiscoverResult(
+                    Id.Last,
+                    _registry.EndpointsCoveredBy(Id)
+                        .Select(endpointId => endpointId.Last)
+                        .OrderBy(address => address)
+                        .ToList()
+                );
+
+            case RouterConfigureRequest configure:
+                Channel = configure.Channel;
+                _registry.Invalidate();
+                return null;
+
+            default:
+                throw new RouterRequestException($"unknown command '{request.GetType().Name}'");
         }
     }
 }

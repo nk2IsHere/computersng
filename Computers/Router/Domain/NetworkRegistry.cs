@@ -4,7 +4,12 @@ using StardewModdingAPI;
 
 namespace Computers.Router.Domain;
 
-public record Placement(Id Id, NetworkNodeKind Kind, string Location, int X, int Y);
+public enum NodeRole {
+    Router,
+    Endpoint
+}
+
+public record Placement(Id Id, NodeRole Role, string Location, int X, int Y);
 
 public class NetworkRegistry : INetworkTopology {
     private readonly IMonitor _monitor;
@@ -60,27 +65,33 @@ public class NetworkRegistry : INetworkTopology {
         }
     }
 
+    public Placement? PlacementOf(Id id) {
+        lock (_lock) {
+            return _placements.GetValueOrDefault(id);
+        }
+    }
+
     public ISet<Id> Neighbors(Id routerId) {
         lock (_lock) {
             return Topology().Neighbors(routerId);
         }
     }
 
-    public ISet<Id> ComputersCoveredBy(Id routerId) {
+    public ISet<Id> EndpointsCoveredBy(Id routerId) {
         lock (_lock) {
-            return Topology().ComputersCoveredBy(routerId);
+            return Topology().EndpointsCoveredBy(routerId);
         }
     }
 
-    public ISet<Id> RoutersCovering(Id computerId) {
+    public ISet<Id> RoutersCovering(Id endpointId) {
         lock (_lock) {
-            return Topology().RoutersCovering(computerId);
+            return Topology().RoutersCovering(endpointId);
         }
     }
 
-    public Id? FindComputerByAddress(string address) {
+    public Id? FindEndpointByAddress(string address) {
         lock (_lock) {
-            return Topology().FindComputerByAddress(address);
+            return Topology().FindEndpointByAddress(address);
         }
     }
 
@@ -94,11 +105,11 @@ public class NetworkRegistry : INetworkTopology {
             .ToDictionary(entry => entry.Id, entry => entry.Value);
 
         var routerNodes = new List<RouterNode>();
-        var computerNodes = new List<ComputerNode>();
+        var endpointNodes = new List<EndpointNode>();
 
         foreach (var placement in _placements.Values) {
-            if (placement.Kind == NetworkNodeKind.Computer) {
-                computerNodes.Add(new ComputerNode(placement.Id, placement.Location, placement.X, placement.Y));
+            if (placement.Role != NodeRole.Router) {
+                endpointNodes.Add(new EndpointNode(placement.Id, placement.Location, placement.X, placement.Y));
                 continue;
             }
 
@@ -115,7 +126,7 @@ public class NetworkRegistry : INetworkTopology {
 
         return _topology = new RadiusChannelTopology(
             routerNodes,
-            computerNodes,
+            endpointNodes,
             _configuration.Network.CoverageRadius,
             _configuration.Network.LinkRadius
         );

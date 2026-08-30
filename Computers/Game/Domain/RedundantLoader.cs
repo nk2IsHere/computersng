@@ -15,20 +15,13 @@ public class RedundantLoader: IRedundantLoader {
 
     public T Load<T>(string path) where T : notnull {
         var baseResolvedPath = ResourceUtils.ResolvePath(_basePath, path);
-        
-        try {
-            return _helper.ModContent.Load<T>(baseResolvedPath);
-        } catch (Exception) {
-            // Sometimes we want to load non-standard assets, like a .lua file
-            // In that case, we can use the following code to load the asset
-            // from the mod's directory
-            
-            if (!typeof(T).IsAssignableFrom(typeof(string))) {
-                throw;
-            }
-            
+
+        // Fast path for strings
+        if (typeof(T) == typeof(string)) {
             return (T)(object)_helper.LoadString(baseResolvedPath);
         }
+
+        return _helper.ModContent.Load<T>(baseResolvedPath);
     }
 
     public IEnumerable<FileSystemEntry> List(string path) {

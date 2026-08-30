@@ -37,14 +37,13 @@ declare const Event: {
 }
 
 declare const System: {
-    Sleep: (ms: number) => void
     Delay: (ms: number) => Promise<void>
+    NextFrame: () => Promise<void>
     Time: () => number
     LoadModule: <T extends { [key: string]: any }>(path: string) => T
     ProcessTasks: () => void
     Id: () => string
-    // OS clipboard access. GetClipboard returns "" when the clipboard is empty or unavailable.
-    GetClipboard: () => string
+    GetClipboard: () => string | null
     SetClipboard: (text: string) => void
 }
 
@@ -108,18 +107,41 @@ declare type HttpResponseString = {
     Body: string
 }
 
-declare const Network: {
-    RequestHttpBytes: (url: string, method: string, headers?: { [key: string]: string }, body?: Array<number>) => Promise<{ Result: HttpResponseBytes }>
-    RequestHttpString: (url: string, method: string, headers?: { [key: string]: string }, body?: string) => Promise<{ Result: HttpResponseString }>
+declare type MachineMemberSnapshot = {
+    kind: "machine"
+    x: number
+    y: number
+    itemId: string
+    name: string
+    state: "empty" | "working" | "ready"
+    heldItem: string | null
+    minutesUntilReady: number
+}
 
-    // LAN messaging over the router mesh. UDP semantics: SendMessage is fire-and-forget with
-    // no delivery guarantee; unreachable targets fail silently (TTL death). The payload is an
-    // opaque string - JSON by convention (see SendJson in Core/Network). Incoming messages
-    // arrive as "NetworkMessage" events via Event.Poll with data [sourceAddress, payload].
-    // Throws if this computer has no covering router (offline) or the payload is too large.
+declare type ChestMemberSnapshot = {
+    kind: "chest"
+    x: number
+    y: number
+    items: { id: string, name: string, count: number }[]
+}
+
+declare type ConnectorMemberSnapshot = {
+    kind: "connector"
+    x: number
+    y: number
+}
+
+declare type GroupMemberSnapshot = MachineMemberSnapshot | ChestMemberSnapshot | ConnectorMemberSnapshot
+
+declare type GroupSnapshot = {
+    truncated: boolean
+    members: GroupMemberSnapshot[]
+}
+
+declare const Network: {
+    RequestHttpBytes: (url: string, method: string, headers?: { [key: string]: string }, body?: Array<number>) => Promise<HttpResponseBytes>
+    RequestHttpString: (url: string, method: string, headers?: { [key: string]: string }, body?: string) => Promise<HttpResponseString>
     SendMessage: (address: string, payload: string) => void
     GetAddress: () => string
-    ListReachable: () => string[]
     GetRouters: () => { address: string, channel: number | null }[]
-    ConfigureRouter: (routerAddress: string, channel: number | null) => void
 }

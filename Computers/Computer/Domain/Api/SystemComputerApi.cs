@@ -36,14 +36,6 @@ internal class SystemComputerState {
         _computerPort = computerPort;
     }
     
-    public void Sleep(int milliseconds) {
-        if (milliseconds < 0) {
-            throw new ArgumentOutOfRangeException(nameof(milliseconds), "Sleep time cannot be negative");
-        }
-        
-        Thread.Sleep(milliseconds);
-    }
-    
     public long Time() {
         return DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
     }
@@ -68,9 +60,13 @@ internal class SystemComputerState {
         return _computerPort.Id;
     }
 
-    public string GetClipboard() {
+    public Task NextFrame() {
+        return _computerPort.NextFrame();
+    }
+
+    public string? GetClipboard() {
         var text = "";
-        return DesktopClipboard.GetText(ref text) ? text : "";
+        return DesktopClipboard.GetText(ref text) ? text : null;
     }
 
     public void SetClipboard(string text) {

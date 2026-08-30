@@ -3,6 +3,7 @@ using Computers.Game;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using StardewValley;
+using TripleFrameBuffer = Computers.Computer.Utils.TripleBuffer<Microsoft.Xna.Framework.Color[]>;
 
 namespace Computers.Computer.Domain.Api;
 
@@ -15,98 +16,67 @@ public class RenderComputerApi: IComputerApi {
     public IRedundantLoader? LibraryLoader => null;
     
     private readonly Configuration _configuration;
-    
+
     private readonly RenderComputerState _state;
 
-    private readonly List<IRenderCommand> _renderCommandsCopy;
-    private readonly Color[] _renderBackgroundCopy;
-    private readonly Color[] _renderForegroundCopy;
-    
-    private readonly Color[] _renderData;
+    private readonly TripleFrameBuffer _frames;
     private readonly Texture2D _renderTexture;
-    
+
     public RenderComputerApi(
         IComputerPort computerPort
     ) {
         _configuration = computerPort.Configuration;
-        _renderData = new Color[_configuration.Render.CanvasWidth * _configuration.Render.CanvasHeight];
-        
-        _renderCommandsCopy = new List<IRenderCommand>();
-        _renderBackgroundCopy = new Color[_configuration.Render.CanvasWidth * _configuration.Render.CanvasHeight];
-        _renderForegroundCopy = new Color[_configuration.Render.CanvasWidth * _configuration.Render.CanvasHeight];
+        var pixelCount = _configuration.Render.CanvasWidth * _configuration.Render.CanvasHeight;
+        _frames = new TripleFrameBuffer(new Color[pixelCount], new Color[pixelCount], new Color[pixelCount]);
 
         _renderTexture = new Texture2D(
             Game1.graphics.GraphicsDevice,
-            _configuration.Render.CanvasWidth, 
+            _configuration.Render.CanvasWidth,
             _configuration.Render.CanvasHeight,
             false,
             SurfaceFormat.Color
         );
-        
+
         var font = BmFont.Load(
             computerPort.LoadAsset<string>(_configuration.Resource.FontDefinitionPath),
             computerPort.LoadAsset<Texture2D>(_configuration.Resource.FontTexturePath)
         );
-        
+
         _state = new RenderComputerState(
             _configuration,
             font!,
             () => { },
             (commands, background, foreground) => {
-                // Copy the render data to avoid concurrent modification from main thread of computer
-                
-                lock (_renderCommandsCopy) {
-                    _renderCommandsCopy.Clear();
-                    _renderCommandsCopy.AddRange(commands);
-                }
-
-                lock (_renderBackgroundCopy) {
-                    for (var i = 0; i < background.Length; i++) {
-                        _renderBackgroundCopy[i] = background[i];
-                    }
-                }
-
-                lock (_renderForegroundCopy) {
-                    for (var i = 0; i < foreground.Length; i++) {
-                        _renderForegroundCopy[i] = foreground[i];
-                    }
-                }
+                // Runs on the scheduler worker inside a slice: compose the complete frame
+                // into the produce slot and publish it by reference. No pixel copies cross threads.
+                FrameComposer.Compose(
+                    _frames.ProduceSlot,
+                    background,
+                    commands,
+                    foreground,
+                    _configuration.Render.CanvasWidth,
+                    _configuration.Render.CanvasHeight
+                );
+                _frames.Publish();
             }
         );
     }
-    
+
     public void ReceiveEvent(IComputerEvent computerEvent) {
         var (destinationRectangle, batch) = computerEvent.Data<(Rectangle, SpriteBatch)>();
         var sourceRectangle = new Rectangle(0, 0, _configuration.Render.CanvasWidth, _configuration.Render.CanvasHeight);
-        
-        // Fill the render data with the raw background
-        lock (_renderBackgroundCopy) {
-            for (var i = 0; i < _renderBackgroundCopy.Length; i++) {
-                _renderData[i] = _renderBackgroundCopy[i];
-            }
+
+        var (frame, isNew) = _frames.Consume();
+        if (isNew) {
+            _renderTexture.SetData(
+                0,
+                sourceRectangle,
+                frame,
+                0,
+                frame.Length
+            );
         }
 
-        lock (_renderCommandsCopy) {
-            foreach (var command in _renderCommandsCopy) {
-                command.Draw(_renderData, _configuration.Render.CanvasWidth, _configuration.Render.CanvasHeight);
-            }
-        }
-        
-        // Fill the raw foreground with the render data by blending the render data with the raw foreground
-        lock (_renderForegroundCopy) {
-            for (var i = 0; i < _renderForegroundCopy.Length; i++) {
-                _renderForegroundCopy[i] = Color.Lerp(_renderForegroundCopy[i], _renderData[i], _renderData[i].A / 255f);
-            }
-        }
-        
-        _renderTexture.SetData(
-            0,
-            sourceRectangle,
-            _renderData,
-            0,
-            _configuration.Render.CanvasWidth * _configuration.Render.CanvasHeight
-        );
-        
         batch.Draw(_renderTexture, destinationRectangle, sourceRectangle, Color.White);
     }
 
@@ -121,13 +91,13 @@ internal class RenderComputerState {
     private readonly List<IRenderCommand> _commands = new();
     private readonly Color[] _rawBackground;
     private readonly Color[] _rawForeground;
-    
+
     private readonly Configuration _configuration;
     private readonly BmFont _font;
-    
+
     private readonly Action _onBegin;
     private readonly Action<List<IRenderCommand>, Color[], Color[]> _onEnd;
-    
+
     public RenderComputerState(
         Configuration configuration,
         BmFont font,
@@ -138,29 +108,26 @@ internal class RenderComputerState {
         _font = font;
         _onBegin = onBegin;
         _onEnd = onEnd;
-        
+
         _rawBackground = new Color[configuration.Render.CanvasWidth * configuration.Render.CanvasHeight];
         ClearBackground();
-        
+
         _rawForeground = new Color[configuration.Render.CanvasWidth * configuration.Render.CanvasHeight];
         ClearForeground();
     }
-    
+
     public void Begin() {
+        // Only the command list resets per frame. The background/foreground pixel layers are
+        // persistent overlays: scripts clear them explicitly (ClearBackground/ClearForeground),
+        // so SetForeground/SetBackground calls survive across frames and console evals.
         ClearCommands();
-        ClearForeground();
-        ClearBackground();
         _onBegin();
     }
 
     public void End() {
-        var commandsCopy = new List<IRenderCommand>();
-        commandsCopy.AddRange(_commands);
-        
-        // Clear the commands to avoid concurrent modification from main thread of computer
-        // Background and foreground are not cleared because it seems the concurrent modification is not a problem 
-        // (I hope it is not a problem)
-        _onEnd(commandsCopy, _rawBackground, _rawForeground);
+        // Runs inside a scheduler slice; _onEnd composes and publishes the frame directly
+        // (no cross-thread copies). Pacing comes from the scheduler's frame gate, not from here.
+        _onEnd(_commands, _rawBackground, _rawForeground);
     }
     
     public void Text(int x, int y, string text, int size, int[] textColor) {
@@ -294,10 +261,13 @@ internal class RenderComputerState {
         _commands.Clear();
     }
     
+    private static readonly int[] DefaultBackgroundColor = { 0, 0, 0, 255 };
+
     public void ClearBackground(int[]? color = null) {
-        var backgroundColor = color ?? new[] { 0, 0, 0, 255 };
+        var backgroundColor = color ?? DefaultBackgroundColor;
+        var fill = new Color(backgroundColor[0], backgroundColor[1], backgroundColor[2], backgroundColor[3]);
         for (var i = 0; i < _rawBackground.Length; i++) {
-            _rawBackground[i] = new Color(backgroundColor[0], backgroundColor[1], backgroundColor[2], backgroundColor[3]);
+            _rawBackground[i] = fill;
         }
     }
     

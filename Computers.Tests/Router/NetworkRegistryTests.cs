@@ -33,16 +33,16 @@ public class NetworkRegistryTests {
     [Fact]
     public void RegisteredPlacementsFormTopology() {
         var (registry, _) = Make(new FakeRouterPort(R1));
-        registry.Register(new Placement(R1, NetworkNodeKind.Router, "Farm", 0, 0));
-        registry.Register(new Placement(C1, NetworkNodeKind.Computer, "Farm", 3, 0));
+        registry.Register(new Placement(R1, NodeRole.Router, "Farm", 0, 0));
+        registry.Register(new Placement(C1, NodeRole.Endpoint, "Farm", 3, 0));
         Assert.Equal(new HashSet<Id> { R1 }, registry.RoutersCovering(C1));
     }
 
     [Fact]
     public void UnregisterRemovesNode() {
         var (registry, _) = Make(new FakeRouterPort(R1));
-        registry.Register(new Placement(R1, NetworkNodeKind.Router, "Farm", 0, 0));
-        registry.Register(new Placement(C1, NetworkNodeKind.Computer, "Farm", 3, 0));
+        registry.Register(new Placement(R1, NodeRole.Router, "Farm", 0, 0));
+        registry.Register(new Placement(C1, NodeRole.Endpoint, "Farm", 3, 0));
         registry.Unregister(R1);
         Assert.Empty(registry.RoutersCovering(C1));
     }
@@ -52,8 +52,8 @@ public class NetworkRegistryTests {
         var portR1 = new FakeRouterPort(R1);
         var portR2 = new FakeRouterPort(R2);
         var (registry, _) = Make(portR1, portR2);
-        registry.Register(new Placement(R1, NetworkNodeKind.Router, "Farm", 0, 0));
-        registry.Register(new Placement(R2, NetworkNodeKind.Router, "Shed", 0, 0));
+        registry.Register(new Placement(R1, NodeRole.Router, "Farm", 0, 0));
+        registry.Register(new Placement(R2, NodeRole.Router, "Shed", 0, 0));
         Assert.Empty(registry.Neighbors(R1));
 
         portR1.Channel = 4;
@@ -65,18 +65,18 @@ public class NetworkRegistryTests {
     [Fact]
     public void RouterWithoutPortIsTreatedAsDisabled() {
         var (registry, _) = Make(); // no ports at all
-        registry.Register(new Placement(R1, NetworkNodeKind.Router, "Farm", 0, 0));
-        registry.Register(new Placement(C1, NetworkNodeKind.Computer, "Farm", 3, 0));
+        registry.Register(new Placement(R1, NodeRole.Router, "Farm", 0, 0));
+        registry.Register(new Placement(C1, NodeRole.Endpoint, "Farm", 3, 0));
         Assert.Empty(registry.RoutersCovering(C1));
     }
 
     [Fact]
     public void ReplaceAllSwapsTheWholeWorld() {
         var (registry, _) = Make(new FakeRouterPort(R1));
-        registry.Register(new Placement(C1, NetworkNodeKind.Computer, "Farm", 3, 0));
+        registry.Register(new Placement(C1, NodeRole.Endpoint, "Farm", 3, 0));
         registry.ReplaceAll(new[] {
-            new Placement(R1, NetworkNodeKind.Router, "Shed", 0, 0),
-            new Placement(C1, NetworkNodeKind.Computer, "Shed", 1, 0)
+            new Placement(R1, NodeRole.Router, "Shed", 0, 0),
+            new Placement(C1, NodeRole.Endpoint, "Shed", 1, 0)
         });
         Assert.Equal(new HashSet<Id> { R1 }, registry.RoutersCovering(C1));
     }
@@ -84,9 +84,9 @@ public class NetworkRegistryTests {
     [Fact]
     public void ClearEmptiesEverything() {
         var (registry, _) = Make(new FakeRouterPort(R1));
-        registry.Register(new Placement(R1, NetworkNodeKind.Router, "Farm", 0, 0));
+        registry.Register(new Placement(R1, NodeRole.Router, "Farm", 0, 0));
         registry.Clear();
-        Assert.Null(registry.FindComputerByAddress("c1"));
+        Assert.Null(registry.FindEndpointByAddress("c1"));
         Assert.Empty(registry.Neighbors(R1));
     }
 }

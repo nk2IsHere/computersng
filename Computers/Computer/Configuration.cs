@@ -13,6 +13,16 @@ public class Configuration {
     public StorageConfiguration Storage { get; set; } = null!;
     
     public NetworkConfiguration Network { get; set; } = null!;
+
+    public MachineControllerConfiguration MachineController { get; set; } = new();
+}
+
+public class MachineControllerConfiguration {
+    public int MaxGroupSize { get; set; } = 256;
+
+    public int MaxCommandsPerTick { get; set; } = 16;
+
+    public int MaxSubscribersPerPeripheral { get; set; } = 16;
 }
 
 public class ResourceConfiguration {
@@ -35,10 +45,12 @@ public class UiConfiguration {
 
 public class RenderConfiguration {
     public int CanvasWidth { get; set; }
-    
+
     public int CanvasHeight { get; set; }
-    
+
     public float FontDefaultScale { get; set; }
+
+    public int MaxFps { get; set; } = 60;
 }
 
 public class StorageConfiguration {
@@ -51,6 +63,11 @@ public class StorageConfiguration {
 
 public class EngineConfiguration {
     public bool ShouldResetScriptOnFatalError { get; set; }
+
+    // 0 = auto (min(4, cores/2))
+    public int SchedulerWorkers { get; set; }
+
+    public int MaxStatementsPerSlice { get; set; } = 2_000_000;
 }
 
 public enum NetworkMode {

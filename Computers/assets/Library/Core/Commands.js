@@ -41,7 +41,7 @@ const consoleCommandsCached = new Cache({
 export async function EvaluateCommand(console, context, input) {
     const consoleCommands = consoleCommandsCached.ProvideValue({ console })
     
-    const inputCommands = groupTokensByCommandAndArguments(parseTokensForInput(input))
+    const inputCommands = groupTokensByCommandAndArguments(ParseTokensForInput(input))
         .filter(([command]) => command?.startsWith(".") === true) // Only allow commands starting with .
         .map(commandGroup => {
             const [command, ...args] = commandGroup
@@ -89,17 +89,55 @@ export async function EvaluateCommand(console, context, input) {
     }
 }
 
-function parseTokensForInput(input) {
+export function ParseTokensForInput(input) {
     // Example: .cd /a | .ls | .write file.txt
     //        : .write file.txt "Hello, World!"
+    //        : .peripheral ab12 insert {"machine":{"x":2,"y":7},"itemId":"378"}
+    //
+    // Tokens starting a {...} or [...] bracket run are preserved verbatim until the
+    // matching close bracket, including quotes, spaces and pipes.
 
     const tokens = []
     let currentToken = null
     let inString = false
     let escaped = false
+    let bracketDepth = 0
 
     for (let i = 0; i < input.length; i++) {
         const char = input[i]
+
+        if (bracketDepth > 0) {
+            // Track strings so brackets inside quoted values don't count.
+            currentToken += char
+            if (escaped) {
+                escaped = false
+                continue
+            }
+            if (char === "\\" && inString) {
+                escaped = true
+                continue
+            }
+            if (char === "\"") {
+                inString = !inString
+                continue
+            }
+            if (!inString && (char === "{" || char === "[")) {
+                bracketDepth++
+            }
+            if (!inString && (char === "}" || char === "]")) {
+                bracketDepth--
+            }
+            continue
+        }
+
+        if ((char === "{" || char === "[") && !inString) {
+            if (currentToken === null) {
+                currentToken = ""
+            }
+            currentToken += char
+            bracketDepth = 1
+            continue
+        }
 
         if (char === " " && !inString) {
             if (currentToken !== null) {

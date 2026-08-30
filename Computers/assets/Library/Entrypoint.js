@@ -4,8 +4,12 @@ import { EvaluateCommand, EvaluateJsCommand } from "./Core/Commands"
 import { ChooseRandomFact } from "./Core/Facts"
 import { Exists } from "./Core/Storage"
 import { ReloadView } from "./View/ReloadView"
+import { NetworkLogView } from "./View/NetworkLogView"
 import { ConsoleView } from "./View/ConsoleView"
 import { EvaluateJsExecutable } from "./Core/Engine"
+import { ListenersView } from "./View/ListenersView"
+import { RpcServerView } from "./View/RpcServerView"
+import { FireResult } from "./View/FireResult"
 
 export async function Main() {
     const [screenWidth, screenHeight] = Render.GetScreenBoundaries()
@@ -57,7 +61,23 @@ export async function Main() {
             throw new Error("Reload!")
         }
     )
+
+    const networkLogView = new NetworkLogView(console)
+
+    const rpcServerView = new RpcServerView({ 
+        ping: () => ({ type: "computer" }) 
+    })
     
+    const listenersView = new ListenersView()
+
+    const views = {
+        listenersView,
+        rpcServerView,
+        networkLogView,
+        reloadView,
+        consoleView
+    }
+
     console.Info("Hello from console!")
     console.Info("Type .help to see available commands")
     
@@ -66,10 +86,7 @@ export async function Main() {
         try {
             await EvaluateJsExecutable(
                 console,
-                {
-                    reloadView,
-                    consoleView
-                },
+                { ...views },
                 "/Startup.js"
             )
         } catch (e) {
@@ -81,21 +98,21 @@ export async function Main() {
     
     console.Info(`Random fact of the day: ${ChooseRandomFact()}`)
     while (true) {
-        const latestEvents = Event.Poll()
-        for (const event of latestEvents) {
-            if (event.Type === "NetworkMessage") {
-                const [sourceAddress, payload] = event.Data
-                console.Info(`[${sourceAddress}] ${payload}`)
+        for (const event of Event.Poll()) {
+            for (const view of Object.values(views)) {
+                if (view.Fire(event) === FireResult.Claimed) {
+                    break
+                }
             }
-
-            reloadView.Fire(event)
-            consoleView.Fire(event)
         }
-        
+
         Render.Begin()
         Render.Rectangle(0, 0, screenWidth, screenHeight, Color.black)
-        consoleView.Render()
-        reloadView.Render()
+        for (const view of Object.values(views)) {
+            view.Render()
+        }
         Render.End()
+
+        await System.NextFrame()
     }
 }
