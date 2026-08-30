@@ -1,5 +1,8 @@
 # Computers
 
+![Latest release](https://img.shields.io/github/v/release/nk2IsHere/computersng)
+![CI](https://github.com/nk2IsHere/computersng/actions/workflows/ci.yml/badge.svg)
+
 Programmable computers for Stardew Valley. Fourth attempt.
 
 ![title](https://github.com/nk2IsHere/computersng/blob/main/Docs/Readme/Title.png?raw=true)
@@ -83,7 +86,7 @@ Make processing of Stardew's resources a configurable function pipe-like process
 
 ### More peripherals
 
-- [ ] Add CI with build + tests and tagged releases
+- [x] Add CI with build + tests and tagged releases
 - [ ] Move subscribe/event-push handling into shared peripheral code
 - [ ] Add weather station peripheral
 - [ ] Add player sensor peripheral
