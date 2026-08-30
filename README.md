@@ -30,7 +30,13 @@ Make processing of Stardew's resources a configurable function pipe-like process
 
 - Add peripherals:
     - Wireless stations - allows communication with other computers on a limited distance
-    - ??? (still undecided)
+    - Machine controller - discovers and drives a group of adjacent machines and chests
+    - Weather station - reads time, day, season, weather, forecast and luck, pushes day/season/rain events
+    - Player sensor - detects player/NPC presence within radius, pushes proximity events
+    - Mailer - shows HUD toasts and queues in-game mail from scripts
+    - Shipping controller - sells items from adjacent chests through the bin, queries prices
+    - Speaker - plays game sound cues and music from scripts
+    - Switchable devices - controllable sprinklers and lights
 
 ## Docs
 
@@ -64,7 +70,7 @@ Make processing of Stardew's resources a configurable function pipe-like process
 - [x] Add basic stdlib apis for computers
 - [x] Add per-save state for computers
 
-### Meaningful Computer (IN PROGRESS)
+### Meaningful Computer (DONE)
 
 - [x] Add support for file system (storage encapsulation)
 - [x] Add support for custom packages loading
@@ -74,6 +80,21 @@ Make processing of Stardew's resources a configurable function pipe-like process
 - [x] Add peripherals support with event-based communication
 - [x] Add support for computer-to-computer communication
 - [x] Add possibility of auto-discovering machine groups with computer as controller using peripheral
+
+### More peripherals
+
+- [ ] Add CI with build + tests and tagged releases
+- [ ] Move subscribe/event-push handling into shared peripheral code
+- [ ] Add weather station peripheral
+- [ ] Add player sensor peripheral
+- [ ] Add mailer peripheral
+- [ ] Add shipping controller peripheral
+- [ ] Add speaker peripheral
+- [ ] Add switchable device peripherals
+- [ ] Add monitor driven by computer over the network
+
+### For future
+
 - [ ] Add package-based libraries
 
 ## Kudos/Inspiration
