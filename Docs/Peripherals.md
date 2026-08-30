@@ -17,6 +17,15 @@ From a computer console:
 - `.net-ls` lists covering routers, discovers reachable endpoints and asks each what it is
 - `.peripheral <address> <cmd> [json-args]` sends any command by hand
 
+Routers answer the same RPC convention, so `.peripheral` works on them too:
+
+```
+.peripheral r1a2b3 ping
+.peripheral r1a2b3 discover
+.peripheral r1a2b3 configure {"channel":5}
+.peripheral r1a2b3 configure {"channel":null}
+```
+
 ## Talking to peripherals from scripts
 
 `Call` sends a command and awaits the reply. To receive event pushes, subscribe and then
@@ -54,9 +63,16 @@ Groups machines and chests connected edge to edge around it. `list` shows the gr
 and the `ready` subscription pushes `machineReady` when a machine finishes.
 
 ```
+.peripheral ab12ef ping
 .machines ab12ef
+.peripheral ab12ef list
+.peripheral ab12ef rescan
 .peripheral ab12ef insert {"machine":{"x":2,"y":7},"itemId":"378"}
+.peripheral ab12ef insert {"machine":{"x":2,"y":7},"itemId":"378","fromChest":{"x":3,"y":7}}
+.peripheral ab12ef collect {"machine":{"x":2,"y":7}}
 .peripheral ab12ef collect {"machine":"all"}
+.peripheral ab12ef subscribe {"events":["ready"]}
+.peripheral ab12ef unsubscribe {"events":["ready"]}
 ```
 
 ## Weather station
@@ -65,14 +81,22 @@ and the `ready` subscription pushes `machineReady` when a machine finishes.
 and daily luck. Subscribe to `day` for day changes and `time` for the ten minute clock.
 
 ```
+.peripheral cd34ab ping
 .peripheral cd34ab read
+.peripheral cd34ab subscribe {"events":["day","time"]}
+.peripheral cd34ab unsubscribe {"events":["time"]}
 ```
 
 ## Player sensor
 
-`read` returns players and NPCs within the configured radius (`playerSensor.radius`,
-default 8 tiles). Subscribe to `presence` for entered and left pushes.
+`read` returns players and NPCs within the sensor's radius, 8 tiles by default. Set a
+per-sensor radius with `configure`, which survives saves, and check it with `ping`.
+Subscribe to `presence` for entered and left pushes.
 
 ```
+.peripheral ef56cd ping
 .peripheral ef56cd read
+.peripheral ef56cd configure {"radius":16}
+.peripheral ef56cd subscribe {"events":["presence"]}
+.peripheral ef56cd unsubscribe {"events":["presence"]}
 ```

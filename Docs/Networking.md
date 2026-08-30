@@ -90,13 +90,14 @@ minute game clock changes.
 
 | Command | Args | Reply data |
 |---|---|---|
-| `ping` | | `{ type: "playerSensor" }` |
+| `ping` | | `{ type: "playerSensor", radius }` |
 | `read` | | `{ players: [{ kind, name, x, y }], npcs: [...] }` |
+| `configure` | `{ radius: 1..64 }` | ack |
 | `subscribe` | `{ events: ["presence"] }` | ack |
 | `unsubscribe` | `{ events: [...] }` | ack |
 
-The sensor sees players and NPCs within the configured radius (`playerSensor.radius`,
-default 8 tiles). Subscribers receive `{ event: "presence", entered: [...], left: [...] }`
+The sensor sees players and NPCs within its radius. The default comes from
+`playerSensor.radius` (8 tiles) and `configure` overrides it per sensor, surviving saves. Subscribers receive `{ event: "presence", entered: [...], left: [...] }`
 pushes when someone enters or leaves the radius.
 
 ## Console commands

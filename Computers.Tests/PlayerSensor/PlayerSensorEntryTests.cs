@@ -107,12 +107,45 @@ public class PlayerSensorEntryTests {
     }
 
     [Fact]
-    public void PingRepliesWithType() {
+    public void PingRepliesWithTypeAndRadius() {
         var (sensor, world, router) = Make();
         world.Reading = Reading();
         Send(sensor, "{\"cid\":\"p1\",\"cmd\":\"ping\"}");
         sensor.Fire(new TickPeripheralEvent(1));
 
-        Assert.Equal("playerSensor", LastPayload(router)["data"]!["type"]!.Value<string>());
+        var reply = LastPayload(router);
+        Assert.Equal("playerSensor", reply["data"]!["type"]!.Value<string>());
+        Assert.Equal(8, reply["data"]!["radius"]!.Value<int>());
+    }
+
+    [Fact]
+    public void ConfigureChangesTheRadiusAndPersists() {
+        var (sensor, world, router) = Make();
+        world.Reading = Reading();
+        Send(sensor, "{\"cid\":\"c1\",\"cmd\":\"configure\",\"radius\":3}");
+        sensor.Fire(new TickPeripheralEvent(1)); // ack, radius applies from the next reading
+        Assert.True(LastPayload(router)["ok"]!.Value<bool>());
+
+        sensor.Fire(new TickPeripheralEvent(2));
+        Assert.Equal(3, world.LastRadius);
+        Assert.Equal(3, sensor.Radius);
+
+        var state = sensor.Store(Computers.Core.Context.Empty);
+        var (fresh, _, _) = Make();
+        fresh.Restore(Computers.Core.Context.Empty, state);
+        Assert.Equal(3, fresh.Radius);
+    }
+
+    [Fact]
+    public void ConfigureRejectsAnInvalidRadius() {
+        var (sensor, world, router) = Make();
+        world.Reading = Reading();
+        Send(sensor, "{\"cid\":\"c2\",\"cmd\":\"configure\",\"radius\":0}");
+        sensor.Fire(new TickPeripheralEvent(1));
+
+        var reply = LastPayload(router);
+        Assert.False(reply["ok"]!.Value<bool>());
+        Assert.Contains("radius must be between", reply["error"]!.Value<string>());
+        Assert.Equal(8, sensor.Radius);
     }
 }
