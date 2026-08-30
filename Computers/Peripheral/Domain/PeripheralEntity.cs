@@ -26,6 +26,7 @@ public abstract class PeripheralEntity<T> : IContextEntry.StatefulDataContextEnt
     private readonly ContextLookup<IRouterPort> _routers;
 
     private readonly ConcurrentQueue<Datagram> _inbox = new();
+    private readonly SeenMessageCache _seenMessages = new(1024);
     private volatile bool _isEnabled;
 
     protected PeripheralEntity(
@@ -95,6 +96,10 @@ public abstract class PeripheralEntity<T> : IContextEntry.StatefulDataContextEnt
             return;
         }
 
+        if (!_seenMessages.Remember(datagram.MessageId)) {
+            return;
+        }
+
         if (_inbox.Count >= Configuration.Network.RouterQueueLimit) {
             Monitor.Log($"Peripheral {Id}: inbox full, dropping datagram {datagram.MessageId}");
             return;
@@ -106,15 +111,12 @@ public abstract class PeripheralEntity<T> : IContextEntry.StatefulDataContextEnt
     public virtual void NotifyWorldChanged() {
     }
 
-    // Runs before the queued commands each tick, typically to refresh world-derived state.
     protected virtual void BeforeCommands() {
     }
 
-    // Runs after the queued commands each tick, typically to push subscribed events.
     protected virtual void AfterCommands() {
     }
 
-    // Answers one request. Null means the payload had no correlation id and is dropped.
     protected abstract Reply? ProcessRequest(string sourceAddress, JObject request);
 
     private void Tick() {

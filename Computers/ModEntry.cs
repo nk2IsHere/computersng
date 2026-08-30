@@ -37,6 +37,9 @@ namespace Computers;
 
 public class ModEntry : Mod {
     private static Core.Context _context = null!; // This will be initialized in Entry
+
+    // The e2e harness mod resolves entities such as computers through the shared context.
+    internal static Core.Context SharedContext => _context;
     
     // Base Id
     private static readonly Id BaseId = "tools.kot.nk2.computers".AsId();
@@ -56,18 +59,18 @@ public class ModEntry : Mod {
     
     // Game-related Ids
     private static readonly Id ComputerTileSheetId = GameTileSheetBaseId / "Computer";
-    private static readonly Id ComputerBigCraftableId = GameBigCraftableBaseId / "Computer";
+    internal static readonly Id ComputerBigCraftableId = GameBigCraftableBaseId / "Computer";
     private static readonly Id ComputerRecipeId = GameRecipeBaseId / "Computer";
     
     private static readonly Id ComputerMachineId = GameMachineBaseId / "Computer";
     private static readonly Id ComputerMachineOutputRuleId = ComputerMachineId / "OutputRule";
 
     private static readonly Id DiskTileSheetId = GameTileSheetBaseId / "Disk";
-    private static readonly Id DiskItemId = GameItemBaseId / "Disk";
+    internal static readonly Id DiskItemId = GameItemBaseId / "Disk";
     private static readonly Id DiskRecipeId = GameRecipeBaseId / "Disk";
     
     private static readonly Id RouterTileSheetId = GameTileSheetBaseId / "Router";
-    private static readonly Id RouterBigCraftableId = GameBigCraftableBaseId / "Router";
+    internal static readonly Id RouterBigCraftableId = GameBigCraftableBaseId / "Router";
     private static readonly Id RouterRecipeId = GameRecipeBaseId / "Router";
     
     private static readonly Id RouterMachineId = GameMachineBaseId / "Router";
@@ -75,49 +78,49 @@ public class ModEntry : Mod {
     private static readonly Id MachineControllerTileSheetId = GameTileSheetBaseId / "MachineController";
 
     private static readonly Id WeatherStationTileSheetId = GameTileSheetBaseId / "WeatherStation";
-    private static readonly Id WeatherStationBigCraftableId = GameBigCraftableBaseId / "WeatherStation";
+    internal static readonly Id WeatherStationBigCraftableId = GameBigCraftableBaseId / "WeatherStation";
     private static readonly Id WeatherStationRecipeId = GameRecipeBaseId / "WeatherStation";
     private static readonly Id WeatherStationMachineId = GameMachineBaseId / "WeatherStation";
 
     private static readonly Id PlayerSensorTileSheetId = GameTileSheetBaseId / "PlayerSensor";
 
     private static readonly Id MailerTileSheetId = GameTileSheetBaseId / "Mailer";
-    private static readonly Id MailerBigCraftableId = GameBigCraftableBaseId / "Mailer";
+    internal static readonly Id MailerBigCraftableId = GameBigCraftableBaseId / "Mailer";
     private static readonly Id MailerRecipeId = GameRecipeBaseId / "Mailer";
     private static readonly Id MailerMachineId = GameMachineBaseId / "Mailer";
 
     private static readonly Id ShippingControllerTileSheetId = GameTileSheetBaseId / "ShippingController";
-    private static readonly Id ShippingControllerBigCraftableId = GameBigCraftableBaseId / "ShippingController";
+    internal static readonly Id ShippingControllerBigCraftableId = GameBigCraftableBaseId / "ShippingController";
     private static readonly Id ShippingControllerRecipeId = GameRecipeBaseId / "ShippingController";
     private static readonly Id ShippingControllerMachineId = GameMachineBaseId / "ShippingController";
 
     private static readonly Id SpeakerTileSheetId = GameTileSheetBaseId / "Speaker";
-    private static readonly Id SpeakerBigCraftableId = GameBigCraftableBaseId / "Speaker";
+    internal static readonly Id SpeakerBigCraftableId = GameBigCraftableBaseId / "Speaker";
     private static readonly Id SpeakerRecipeId = GameRecipeBaseId / "Speaker";
     private static readonly Id SpeakerMachineId = GameMachineBaseId / "Speaker";
-    private static readonly Id PlayerSensorBigCraftableId = GameBigCraftableBaseId / "PlayerSensor";
+    internal static readonly Id PlayerSensorBigCraftableId = GameBigCraftableBaseId / "PlayerSensor";
     private static readonly Id PlayerSensorRecipeId = GameRecipeBaseId / "PlayerSensor";
     private static readonly Id PlayerSensorMachineId = GameMachineBaseId / "PlayerSensor";
-    private static readonly Id MachineControllerBigCraftableId = GameBigCraftableBaseId / "MachineController";
+    internal static readonly Id MachineControllerBigCraftableId = GameBigCraftableBaseId / "MachineController";
     private static readonly Id MachineControllerRecipeId = GameRecipeBaseId / "MachineController";
 
     private static readonly Id AdvancedMachineControllerTileSheetId = GameTileSheetBaseId / "AdvancedMachineController";
-    private static readonly Id AdvancedMachineControllerBigCraftableId = GameBigCraftableBaseId / "AdvancedMachineController";
+    internal static readonly Id AdvancedMachineControllerBigCraftableId = GameBigCraftableBaseId / "AdvancedMachineController";
     private static readonly Id AdvancedMachineControllerRecipeId = GameRecipeBaseId / "AdvancedMachineController";
     private static readonly Id AdvancedMachineControllerMachineId = GameMachineBaseId / "AdvancedMachineController";
 
     private static readonly Id AdvancedShippingControllerTileSheetId = GameTileSheetBaseId / "AdvancedShippingController";
-    private static readonly Id AdvancedShippingControllerBigCraftableId = GameBigCraftableBaseId / "AdvancedShippingController";
+    internal static readonly Id AdvancedShippingControllerBigCraftableId = GameBigCraftableBaseId / "AdvancedShippingController";
     private static readonly Id AdvancedShippingControllerRecipeId = GameRecipeBaseId / "AdvancedShippingController";
     private static readonly Id AdvancedShippingControllerMachineId = GameMachineBaseId / "AdvancedShippingController";
 
     private static readonly Id AdvancedPlayerSensorTileSheetId = GameTileSheetBaseId / "AdvancedPlayerSensor";
-    private static readonly Id AdvancedPlayerSensorBigCraftableId = GameBigCraftableBaseId / "AdvancedPlayerSensor";
+    internal static readonly Id AdvancedPlayerSensorBigCraftableId = GameBigCraftableBaseId / "AdvancedPlayerSensor";
     private static readonly Id AdvancedPlayerSensorRecipeId = GameRecipeBaseId / "AdvancedPlayerSensor";
     private static readonly Id AdvancedPlayerSensorMachineId = GameMachineBaseId / "AdvancedPlayerSensor";
 
     private static readonly Id AdvancedRouterTileSheetId = GameTileSheetBaseId / "AdvancedRouter";
-    private static readonly Id AdvancedRouterBigCraftableId = GameBigCraftableBaseId / "AdvancedRouter";
+    internal static readonly Id AdvancedRouterBigCraftableId = GameBigCraftableBaseId / "AdvancedRouter";
     private static readonly Id AdvancedRouterRecipeId = GameRecipeBaseId / "AdvancedRouter";
     private static readonly Id AdvancedRouterMachineId = GameMachineBaseId / "AdvancedRouter";
 
@@ -1455,6 +1458,14 @@ public class ModEntry : Mod {
     }
 
     private static void HandleObjectListChanged(ObjectListChangedEventArgs args) {
+        // Entities are host authoritative and their state lives in the host's save. A
+        // farmhand client also sees synced world changes, and running the entity
+        // management there would produce client side entities and write their ids into
+        // the net synced modData, clobbering the host's identities.
+        if (!Game1.IsMasterGame) {
+            return;
+        }
+
         var monitor = _context.GetSingle<IMonitor>(ServiceBaseId / "Monitor");
         var registry = _context.GetSingle<NetworkRegistry>(ServiceBaseId / "NetworkRegistry");
         var locationName = args.Location.NameOrUniqueName;

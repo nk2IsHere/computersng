@@ -141,4 +141,20 @@ public class WeatherStationEntryTests {
         Assert.Equal("time", push["event"]!.Value<string>());
         Assert.Equal(620, push["reading"]!["time"]!.Value<int>());
     }
+
+    [Fact]
+    public void DuplicateDeliveryOfOneDatagramIsProcessedOnce() {
+        // With several routers in radio range the same datagram reaches an endpoint once
+        // per delivering router. The endpoint must process it exactly once, like the
+        // computer side already does.
+        var (station, world, router) = Make();
+        world.Reading = Reading();
+
+        var datagram = new Datagram(Guid.NewGuid(), "c1", "w1", 16, "{\"cid\":\"p1\",\"cmd\":\"ping\"}");
+        station.ReceiveDatagram(datagram);
+        station.ReceiveDatagram(datagram);
+        station.Fire(new TickPeripheralEvent(1));
+
+        Assert.Single(router.Delivered);
+    }
 }

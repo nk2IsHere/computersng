@@ -1,0 +1,12 @@
+{
+  "Name": "Computers E2E Harness",
+  "Author": "nk2",
+  "Version": "1.0.0",
+  "Description": "Test harness control channel for the Computers mod. Inert unless COMPUTERS_E2E is set.",
+  "UniqueID": "tools.kot.nk2.computers.e2e",
+  "EntryDll": "Computers.E2e.dll",
+  "MinimumApiVersion": "4.0.4",
+  "Dependencies": [
+    { "UniqueID": "tools.kot.nk2.computers" }
+  ]
+}
