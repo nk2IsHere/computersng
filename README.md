@@ -91,9 +91,9 @@ Make processing of Stardew's resources a configurable function pipe-like process
 ### More peripherals
 
 - [x] Add CI with build + tests and tagged releases
-- [ ] Move subscribe/event-push handling into shared peripheral code
-- [ ] Add weather station peripheral
-- [ ] Add player sensor peripheral
+- [x] Move subscribe/event-push handling into shared peripheral code
+- [x] Add weather station peripheral
+- [x] Add player sensor peripheral
 - [ ] Add mailer peripheral
 - [ ] Add shipping controller peripheral
 - [ ] Add speaker peripheral

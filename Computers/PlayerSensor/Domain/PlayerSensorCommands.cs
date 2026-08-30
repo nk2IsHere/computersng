@@ -19,12 +19,14 @@ public class PlayerSensorCommandProcessor {
             return null;
         }
 
-        try {
-            if (_subscriptions.TryHandle(request["cmd"]?.Value<string>(), request, sourceAddress)) {
-                return Reply.Success(cid, null);
-            }
-
-            return Reply.Success(cid, Dispatch(SensorRequestParser.ParseBody(request), reading, radius));
+        try
+        {
+            return Reply.Success(
+                cid,
+                _subscriptions.TryHandle(request["cmd"]?.Value<string>(), request, sourceAddress) 
+                    ? null 
+                    : Dispatch(SensorRequestParser.ParseBody(request), reading, radius)
+            );
         } catch (PeripheralRequestException exception) {
             return Reply.Failure(cid, exception.Message);
         }

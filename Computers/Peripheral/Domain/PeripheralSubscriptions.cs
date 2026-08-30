@@ -2,8 +2,6 @@ using Newtonsoft.Json.Linq;
 
 namespace Computers.Peripheral.Domain;
 
-// Named event subscriber registry shared by peripheral firmware. Handles the subscribe
-// and unsubscribe commands against the peripheral's declared event names.
 public class PeripheralSubscriptions {
     private readonly IReadOnlySet<string> _supportedEvents;
     private readonly int _maxSubscribers;

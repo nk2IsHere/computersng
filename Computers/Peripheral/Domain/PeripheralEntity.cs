@@ -11,18 +11,13 @@ using Context = Computers.Core.Context;
 
 namespace Computers.Peripheral.Domain;
 
-// Wire-visible request failure shared by peripheral firmware. Domain specific exceptions
-// derive from it so processors handle one type.
 public class PeripheralRequestException : Exception {
     public PeripheralRequestException(string error) : base(error) {
     }
 }
 
-// Every well-behaved peripheral answers ping with this self-description.
 public record PingResult(string Type);
 
-// Base for peripheral entities. Owns the inbox with its queue limit, the per tick command
-// drain with the JSON transport edge, replies through NetworkDispatch and the lifecycle.
 public abstract class PeripheralEntity<T> : IContextEntry.StatefulDataContextEntry<T>, IPeripheralPort
     where T : PeripheralEntity<T> {
 
@@ -81,17 +76,17 @@ public abstract class PeripheralEntity<T> : IContextEntry.StatefulDataContextEnt
     }
 
     public void Fire(IPeripheralEvent peripheralEvent) {
-        if (peripheralEvent is TickPeripheralEvent) {
-            Tick();
-        }
-
-        if (peripheralEvent is StopPeripheralEvent) {
-            Stop();
-        }
-
-        if (peripheralEvent is StartPeripheralEvent) {
-            Start();
-            NotifyWorldChanged();
+        switch (peripheralEvent) {
+            case TickPeripheralEvent:
+                Tick();
+                break;
+            case StopPeripheralEvent:
+                Stop();
+                break;
+            case StartPeripheralEvent:
+                Start();
+                NotifyWorldChanged();
+                break;
         }
     }
 
@@ -137,7 +132,6 @@ public abstract class PeripheralEntity<T> : IContextEntry.StatefulDataContextEnt
         while (processed < Configuration.Peripheral.MaxCommandsPerTick && _inbox.TryDequeue(out var datagram)) {
             processed++;
 
-            // Transport edge. Strings and JSON parsing live here and the processors are typed.
             JObject request;
             try {
                 request = JObject.Parse(datagram.Payload);
