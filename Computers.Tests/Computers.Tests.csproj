@@ -5,7 +5,9 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <IsPackable>false</IsPackable>
-        <GamePath>/Users/nk2/Desktop/SVDev.app/Contents/MacOS</GamePath>
+        <!-- The GAME_PATH environment variable overrides the local install path. -->
+        <GamePath>$(GAME_PATH)</GamePath>
+        <GamePath Condition="'$(GamePath)' == ''">/Users/nk2/Desktop/SVDev.app/Contents/MacOS</GamePath>
         <EnableModDeploy>false</EnableModDeploy>
         <EnableModZip>false</EnableModZip>
     </PropertyGroup>

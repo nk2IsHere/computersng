@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 6.0.x
+
+      - name: Fetch game reference assemblies
+        env:
+          GAME_REFS_URL: ${{ secrets.GAME_REFS_URL }}
+        run: |
+          if [ -z "$GAME_REFS_URL" ]; then
+            echo "The GAME_REFS_URL secret is not set. It must point to the folder holding the packed game refs zips."
+            exit 1
+          fi
+          GAME="$(python3 -c "import json; print(json.load(open('game-refs.version'))['game'])")"
+          SMAPI="$(python3 -c "import json; print(json.load(open('game-refs.version'))['smapi'])")"
+          ZIP_NAME="game-refs-$GAME-smapi-$SMAPI.zip"
+          echo "Fetching $ZIP_NAME"
+          curl -fsSL "${GAME_REFS_URL%/}/$ZIP_NAME" -o game-refs.zip
+          mkdir -p "$GITHUB_WORKSPACE/game-refs"
+          unzip -q game-refs.zip -d "$GITHUB_WORKSPACE/game-refs"
+
+      - name: Check game refs match the pinned versions
+        run: |
+          python3 - <<'PY'
+          import json
+          expected = json.load(open("game-refs.version"))
+          actual = json.load(open("game-refs/versions.json"))
+          if expected != actual:
+              raise SystemExit(f"Hosted game refs {actual} do not match pinned {expected}. Repack with PackGameRefs.sh, upload the new zip and commit the new pin.")
+          print(f"Game refs match the pin: {actual}")
+          PY
+
+      - name: Build
+        env:
+          GAME_PATH: ${{ github.workspace }}/game-refs
+        run: dotnet build -c Release -p:EnableModDeploy=false -p:EnableModZip=false
+
+      - name: Test
+        env:
+          GAME_PATH: ${{ github.workspace }}/game-refs
+        run: dotnet test -c Release --no-build

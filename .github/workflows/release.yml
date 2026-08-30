@@ -1,0 +1,90 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read manifest version
+        id: manifest
+        run: |
+          VERSION="$(python3 -c "import json; print(json.load(open('Computers/manifest.json'))['Version'])")"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          if git ls-remote --tags origin "refs/tags/v$VERSION" | grep -q .; then
+            echo "Release v$VERSION already exists, nothing to do"
+            echo "released=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "released=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/setup-dotnet@v4
+        if: steps.manifest.outputs.released == 'false'
+        with:
+          dotnet-version: 6.0.x
+
+      - name: Fetch game reference assemblies
+        if: steps.manifest.outputs.released == 'false'
+        env:
+          GAME_REFS_URL: ${{ secrets.GAME_REFS_URL }}
+        run: |
+          if [ -z "$GAME_REFS_URL" ]; then
+            echo "The GAME_REFS_URL secret is not set. It must point to the folder holding the packed game refs zips."
+            exit 1
+          fi
+          GAME="$(python3 -c "import json; print(json.load(open('game-refs.version'))['game'])")"
+          SMAPI="$(python3 -c "import json; print(json.load(open('game-refs.version'))['smapi'])")"
+          ZIP_NAME="game-refs-$GAME-smapi-$SMAPI.zip"
+          echo "Fetching $ZIP_NAME"
+          curl -fsSL "${GAME_REFS_URL%/}/$ZIP_NAME" -o game-refs.zip
+          mkdir -p "$GITHUB_WORKSPACE/game-refs"
+          unzip -q game-refs.zip -d "$GITHUB_WORKSPACE/game-refs"
+
+      - name: Check game refs match the pinned versions
+        if: steps.manifest.outputs.released == 'false'
+        run: |
+          python3 - <<'PY'
+          import json
+          expected = json.load(open("game-refs.version"))
+          actual = json.load(open("game-refs/versions.json"))
+          if expected != actual:
+              raise SystemExit(f"Hosted game refs {actual} do not match pinned {expected}. Repack with PackGameRefs.sh, upload the new zip and commit the new pin.")
+          print(f"Game refs match the pin: {actual}")
+          PY
+
+      - name: Test
+        if: steps.manifest.outputs.released == 'false'
+        env:
+          GAME_PATH: ${{ github.workspace }}/game-refs
+        run: dotnet test -c Release -p:EnableModDeploy=false -p:EnableModZip=false
+
+      - name: Build release zip
+        if: steps.manifest.outputs.released == 'false'
+        env:
+          GAME_PATH: ${{ github.workspace }}/game-refs
+        run: dotnet build Computers/Computers.csproj -c Release -p:EnableModDeploy=false -p:EnableModZip=true
+
+      - name: Locate release zip
+        if: steps.manifest.outputs.released == 'false'
+        id: zip
+        run: |
+          ZIP="$(find Computers/bin/Release -name '*.zip' | head -1)"
+          if [ -z "$ZIP" ]; then
+            echo "No release zip produced by ModBuildConfig"
+            exit 1
+          fi
+          echo "path=$ZIP" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub release
+        if: steps.manifest.outputs.released == 'false'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.manifest.outputs.version }}
+          files: ${{ steps.zip.outputs.path }}
+          generate_release_notes: true
