@@ -5,8 +5,9 @@ using Computers.Core;
 using Computers.Game;
 using Computers.Game.Domain;
 using Computers.Game.Utils;
+using Computers.MachineController;
+using Computers.MachineController.Domain;
 using Computers.Peripheral;
-using Computers.Peripheral.Domain;
 using Computers.Peripheral.Domain.Event;
 using Computers.Router;
 using Computers.Router.Domain;
@@ -61,7 +62,7 @@ public class ModEntry : Mod {
     private static readonly Id RouterMachineId = GameMachineBaseId / "Router";
 
     private static readonly Id PeripheralTileSheetId = GameTileSheetBaseId / "MachineController";
-    private static readonly Id PeripheralBigCraftableId = GameBigCraftableBaseId / "MachineController";
+    private static readonly Id MachineControllerBigCraftableId = GameBigCraftableBaseId / "MachineController";
     private static readonly Id PeripheralRecipeId = GameRecipeBaseId / "MachineController";
 
     private static readonly Id PeripheralMachineId = GameMachineBaseId / "MachineController";
@@ -233,10 +234,10 @@ public class ModEntry : Mod {
                 new TileSheet(PeripheralTileSheetId, "assets/MachineController.png")
             ),
             new IContextEntry.StatelessDataContextEntry(
-                PeripheralBigCraftableId,
+                MachineControllerBigCraftableId,
                 typeof(BigCraftableData),
                 new BigCraftableData {
-                    Name = PeripheralBigCraftableId,
+                    Name = MachineControllerBigCraftableId,
                     DisplayName = "Machine Controller",
                     Description = "Controls an edge-connected group of machines and chests over the network.",
                     Price = 1000,
@@ -254,7 +255,7 @@ public class ModEntry : Mod {
                 PeripheralRecipeId,
                 typeof(Recipe),
                 new Recipe(
-                    PeripheralBigCraftableId,
+                    MachineControllerBigCraftableId,
                     new Dictionary<string, int> {
                         { "380", 5 }
                     },
@@ -267,7 +268,7 @@ public class ModEntry : Mod {
                 PeripheralMachineId,
                 typeof(Machine),
                 new Machine(
-                    $"(BC){PeripheralBigCraftableId}",
+                    $"(BC){MachineControllerBigCraftableId}",
                     new MachineData {
                         HasInput = false,
                         HasOutput = false,
@@ -490,11 +491,11 @@ public class ModEntry : Mod {
                 _ => new StardewMachineWorld()
             ),
             new IContextEntry.ServiceContextEntry(
-                ServiceBaseId / "PeripheralFactory",
+                ServiceBaseId / "MachineControllerFactory",
                 typeof(IStatefulDataContextEntryFactory),
                 initializer => new MachineControllerStatefulDataContextEntryFactory(
-                    ServiceBaseId / "PeripheralFactory",
-                    PeripheralBigCraftableId,
+                    ServiceBaseId / "MachineControllerFactory",
+                    MachineControllerBigCraftableId,
                     initializer.GetSingle<IMonitor>(),
                     initializer.GetSingle<Configuration>(),
                     initializer.GetSingle<NetworkRegistry>(ServiceBaseId / "NetworkRegistry"),
@@ -695,12 +696,12 @@ public class ModEntry : Mod {
 
         var modData = machine.modData;
         if (modData == null || !modData.ContainsKey("PeripheralId")) {
-            monitor.Log("Machine controller does not have an id - cannot show it.");
+            monitor.Log("Peripheral does not have an id - cannot show it.");
             return true;
         }
 
         var peripheralId = modData["PeripheralId"].AsId();
-        Game1.showGlobalMessage($"Machine Controller Id: {peripheralId.Last}");
+        Game1.showGlobalMessage($"Peripheral Id: {peripheralId.Last}");
         return true;
     }
 
@@ -795,8 +796,8 @@ public class ModEntry : Mod {
                 ));
             }
 
-            if (obj.ItemId == PeripheralBigCraftableId) {
-                HandlePeripheralAdded(obj, position);
+            if (PeripheralProducersByItemId.TryGetValue(obj.ItemId, out var producePeripheral)) {
+                HandlePeripheralAdded(obj, position, producePeripheral);
                 registry.Register(new Placement(
                     obj.modData["PeripheralId"].AsId(),
                     NodeRole.Endpoint,
@@ -844,19 +845,26 @@ public class ModEntry : Mod {
         }
 
         // Any nearby object change may alter machine groups.
-        _context.Get<IPeripheralPort>().ForEach(peripheral => peripheral.Value.InvalidateGroup());
+        _context.Get<IPeripheralPort>().ForEach(peripheral => peripheral.Value.NotifyWorldChanged());
     }
 
-    private static void HandlePeripheralAdded(Object obj, Vector2 position) {
+    // Each peripheral kind maps its big craftable to a producer for its entity.
+    private static readonly IReadOnlyDictionary<string, Func<IPeripheralPort>> PeripheralProducersByItemId =
+        new Dictionary<string, Func<IPeripheralPort>> {
+            [MachineControllerBigCraftableId] = () =>
+                _context.ProduceSingle<MachineControllerStatefulDataContextEntry>(ServiceBaseId / "MachineControllerFactory")
+        };
+
+    private static void HandlePeripheralAdded(Object obj, Vector2 position, Func<IPeripheralPort> producePeripheral) {
         var monitor = _context.GetSingle<IMonitor>(ServiceBaseId / "Monitor");
-        monitor.Log("Machine controller added.");
+        monitor.Log("Peripheral added.");
 
         IPeripheralPort peripheral;
         if (obj.modData.ContainsKey("PeripheralId")) {
             monitor.Log("PeripheralId already exists.");
             peripheral = _context.GetSingle<IPeripheralPort>(obj.modData["PeripheralId"].AsId());
         } else {
-            peripheral = _context.ProduceSingle<MachineControllerStatefulDataContextEntry>(ServiceBaseId / "PeripheralFactory");
+            peripheral = producePeripheral();
             monitor.Log($"Setting PeripheralId to {peripheral.Id}");
             obj.modData["PeripheralId"] = peripheral.Id;
         }
@@ -866,7 +874,7 @@ public class ModEntry : Mod {
 
     private static void HandlePeripheralRemoved(Id peripheralId) {
         var monitor = _context.GetSingle<IMonitor>(ServiceBaseId / "Monitor");
-        monitor.Log($"Machine controller with id {peripheralId} was removed.");
+        monitor.Log($"Peripheral with id {peripheralId} was removed.");
 
         var peripheral = _context.GetSingle<IPeripheralPort>(peripheralId);
         peripheral.Stop();

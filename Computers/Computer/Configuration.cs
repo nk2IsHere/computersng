@@ -14,10 +14,10 @@ public class Configuration {
     
     public NetworkConfiguration Network { get; set; } = null!;
 
-    public PeripheralConfiguration Peripheral { get; set; } = new();
+    public MachineControllerConfiguration MachineController { get; set; } = new();
 }
 
-public class PeripheralConfiguration {
+public class MachineControllerConfiguration {
     public int MaxGroupSize { get; set; } = 256;
 
     public int MaxCommandsPerTick { get; set; } = 16;

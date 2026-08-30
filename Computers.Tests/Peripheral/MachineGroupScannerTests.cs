@@ -1,4 +1,4 @@
-using Computers.Peripheral.Domain;
+using Computers.MachineController.Domain;
 using Xunit;
 
 namespace Computers.Tests.Peripheral;
@@ -39,7 +39,7 @@ public class MachineGroupScannerTests {
 
         var group = MachineGroupScanner.Scan(world, 0, 0, 256);
 
-        Assert.Equal(2, group.Machines.Count);
+        Assert.Equal(2, group.Machines.Count());
         Assert.Equal(new[] { (2, 1) }, group.Chests);
     }
 
@@ -65,6 +65,7 @@ public class MachineGroupScannerTests {
         var group = MachineGroupScanner.Scan(world, 0, 0, 256);
 
         Assert.Equal(new[] { (2, 0) }, group.Machines);
+        Assert.Contains(new GroupMember(1, 0, GroupCellKind.Connector), group.Members);
     }
 
     [Fact]
@@ -78,7 +79,7 @@ public class MachineGroupScannerTests {
         var group = MachineGroupScanner.Scan(world, 0, 0, maxGroupSize: 5);
 
         Assert.True(group.Truncated);
-        Assert.Equal(5, group.Machines.Count);
+        Assert.Equal(5, group.Machines.Count());
     }
 
     [Fact]

@@ -4,48 +4,48 @@ using Xunit;
 
 namespace Computers.Tests.Router;
 
-public class RouterRequestParserTests {
+public class RequestParserTests {
     [Fact]
     public void ParsesPing() {
-        Assert.IsType<RouterPingRequest>(RouterRequestParser.ParseBody(JObject.Parse("{\"cid\":1,\"cmd\":\"ping\"}")));
+        Assert.IsType<RouterPingRequest>(RequestParser.ParseBody(JObject.Parse("{\"cid\":1,\"cmd\":\"ping\"}")));
     }
 
     [Fact]
     public void ParsesDiscover() {
-        Assert.IsType<RouterDiscoverRequest>(RouterRequestParser.ParseBody(JObject.Parse("{\"cid\":1,\"cmd\":\"discover\"}")));
+        Assert.IsType<RouterDiscoverRequest>(RequestParser.ParseBody(JObject.Parse("{\"cid\":1,\"cmd\":\"discover\"}")));
     }
 
     [Fact]
     public void ParsesConfigureWithChannel() {
         var request = Assert.IsType<RouterConfigureRequest>(
-            RouterRequestParser.ParseBody(JObject.Parse("{\"cid\":1,\"cmd\":\"configure\",\"channel\":7}")));
+            RequestParser.ParseBody(JObject.Parse("{\"cid\":1,\"cmd\":\"configure\",\"channel\":7}")));
         Assert.Equal(7, request.Channel);
     }
 
     [Fact]
     public void ParsesConfigureWithNullChannel() {
         var request = Assert.IsType<RouterConfigureRequest>(
-            RouterRequestParser.ParseBody(JObject.Parse("{\"cid\":1,\"cmd\":\"configure\",\"channel\":null}")));
+            RequestParser.ParseBody(JObject.Parse("{\"cid\":1,\"cmd\":\"configure\",\"channel\":null}")));
         Assert.Null(request.Channel);
     }
 
     [Fact]
     public void ConfigureWithoutChannelKeyThrows() {
         var e = Assert.Throws<RouterRequestException>(
-            () => RouterRequestParser.ParseBody(JObject.Parse("{\"cid\":1,\"cmd\":\"configure\"}")));
+            () => RequestParser.ParseBody(JObject.Parse("{\"cid\":1,\"cmd\":\"configure\"}")));
         Assert.Contains("channel", e.Message);
     }
 
     [Fact]
     public void ConfigureWithNonIntegerChannelThrows() {
         Assert.Throws<RouterRequestException>(
-            () => RouterRequestParser.ParseBody(JObject.Parse("{\"cid\":1,\"cmd\":\"configure\",\"channel\":\"five\"}")));
+            () => RequestParser.ParseBody(JObject.Parse("{\"cid\":1,\"cmd\":\"configure\",\"channel\":\"five\"}")));
     }
 
     [Fact]
     public void UnknownCommandThrowsWithCommandName() {
         var e = Assert.Throws<RouterRequestException>(
-            () => RouterRequestParser.ParseBody(JObject.Parse("{\"cid\":1,\"cmd\":\"reboot\"}")));
+            () => RequestParser.ParseBody(JObject.Parse("{\"cid\":1,\"cmd\":\"reboot\"}")));
         Assert.Contains("reboot", e.Message);
     }
 

@@ -1,4 +1,5 @@
-using Computers.Peripheral.Domain;
+using Computers.MachineController.Domain;
+using Computers.MachineController.Domain.Wire;
 using Computers.Router.Domain.Wire;
 using Newtonsoft.Json.Linq;
 using Xunit;
@@ -11,7 +12,7 @@ public class CommandProcessorTests {
 
         public GroupSnapshot ListSnapshot() {
             Calls.Add("list");
-            return new GroupSnapshot(false, new List<MachineSnapshot>(), new List<ChestSnapshot>());
+            return new GroupSnapshot(false, new List<GroupMemberSnapshot>());
         }
 
         public CollectResult Collect(MachinePosition? target) {
@@ -166,10 +167,11 @@ public class CommandProcessorTests {
 
     [Fact]
     public void MachineReadyEventSerializesToTheFrozenWireFormat() {
-        var machine = new MachineSnapshot(1, 2, "13", "Furnace", MachineState.Ready, "Copper Bar", 0);
+        var machine = new MachineMemberSnapshot(1, 2, "13", "Furnace", MachineState.Ready, "Copper Bar", 0);
         var push = MachineControllerCommandProcessor.BuildMachineReadyEvent(machine);
+        // Derived record properties serialize before the base x/y. Key order is irrelevant to JS.
         Assert.Equal(
-            "{\"event\":\"machineReady\",\"machine\":{\"x\":1,\"y\":2,\"itemId\":\"13\",\"name\":\"Furnace\",\"state\":\"ready\",\"heldItem\":\"Copper Bar\",\"minutesUntilReady\":0}}",
+            "{\"event\":\"machineReady\",\"machine\":{\"itemId\":\"13\",\"name\":\"Furnace\",\"state\":\"ready\",\"heldItem\":\"Copper Bar\",\"minutesUntilReady\":0,\"kind\":\"machine\",\"x\":1,\"y\":2}}",
             WireJson.Serialize(push));
     }
 }

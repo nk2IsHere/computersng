@@ -4,7 +4,7 @@ using Computers.Router;
 using Computers.Router.Domain;
 using StardewModdingAPI;
 
-namespace Computers.Peripheral.Domain;
+namespace Computers.MachineController.Domain;
 
 public class MachineControllerStatefulDataContextEntryFactory : IStatefulDataContextEntryFactory {
 

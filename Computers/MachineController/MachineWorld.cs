@@ -1,7 +1,8 @@
-using Computers.Peripheral.Domain;
+using Computers.MachineController.Domain;
+using Computers.MachineController.Domain.Wire;
 using Computers.Router.Domain;
 
-namespace Computers.Peripheral;
+namespace Computers.MachineController;
 
 public interface IMachineWorld {
     IMachineLocation? LocationOf(Placement placement);
@@ -14,5 +15,5 @@ public interface IMachineLocation {
 
     IReadOnlySet<(int X, int Y)> ReadyMachines(IEnumerable<(int X, int Y)> machines);
 
-    MachineSnapshot? Snapshot(int x, int y);
+    MachineMemberSnapshot? Snapshot(int x, int y);
 }

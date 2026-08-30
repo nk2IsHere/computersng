@@ -16,23 +16,25 @@ export default {
             const snapshot = await Call(address, "list", {})
 
             if (snapshot.truncated) {
-                console.Warning("Group truncated by peripheral.maxGroupSize")
+                console.Warning("Group truncated by machineController.maxGroupSize")
             }
 
-            if (snapshot.machines.length === 0) {
-                console.Info("No machines in group")
+            if (snapshot.members.length === 0) {
+                console.Info("No members in group")
             }
-            for (const machine of snapshot.machines) {
-                const details = []
-                if (machine.heldItem) details.push(machine.heldItem)
-                if (machine.state === "working") details.push(`${machine.minutesUntilReady}m`)
-                const suffix = details.length > 0 ? ` (${details.join(", ")})` : ""
-                console.Info(`[${machine.x},${machine.y}] ${machine.name}: ${machine.state}${suffix}`)
-            }
-
-            for (const chest of snapshot.chests) {
-                const summary = chest.items.map(item => `${item.name} x${item.count}`).join(", ")
-                console.Info(`[${chest.x},${chest.y}] Chest: ${summary.length > 0 ? summary : "empty"}`)
+            for (const member of snapshot.members) {
+                if (member.kind === "machine") {
+                    const details = []
+                    if (member.heldItem) details.push(member.heldItem)
+                    if (member.state === "working") details.push(`${member.minutesUntilReady}m`)
+                    const suffix = details.length > 0 ? ` (${details.join(", ")})` : ""
+                    console.Info(`[${member.x},${member.y}] ${member.name}: ${member.state}${suffix}`)
+                } else if (member.kind === "chest") {
+                    const summary = member.items.map(item => `${item.name} x${item.count}`).join(", ")
+                    console.Info(`[${member.x},${member.y}] Chest: ${summary.length > 0 ? summary : "empty"}`)
+                } else {
+                    console.Info(`[${member.x},${member.y}] ${member.kind}`)
+                }
             }
 
             return CommandResult(context, snapshot)

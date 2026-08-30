@@ -1,7 +1,9 @@
 using Computers.Computer;
 using Computers.Core;
 using Computers.Peripheral;
-using Computers.Peripheral.Domain;
+using Computers.MachineController;
+using Computers.MachineController.Domain;
+using Computers.MachineController.Domain.Wire;
 using Computers.Router;
 using Computers.Router.Domain;
 using Computers.Tests.TestDoubles;
@@ -18,7 +20,7 @@ public class MachineControllerEntryTests {
 
     private class FakeOps : IMachineGroupOps {
         public GroupSnapshot ListSnapshot() =>
-            new(false, new List<MachineSnapshot>(), new List<ChestSnapshot>());
+            new(false, new List<GroupMemberSnapshot>());
         public CollectResult Collect(MachinePosition? target) => new(new List<CollectedItem>());
         public InsertResult Insert(InsertRequest request) => new(request.Machine, "item");
         public void Rescan() { }
@@ -39,7 +41,7 @@ public class MachineControllerEntryTests {
         public IMachineGroupOps Ops(MachineGroup group, Action invalidateGroup) => new FakeOps();
         public IReadOnlySet<(int X, int Y)> ReadyMachines(IEnumerable<(int X, int Y)> machines) =>
             machines.Where(Ready.Contains).ToHashSet();
-        public MachineSnapshot? Snapshot(int x, int y) =>
+        public MachineMemberSnapshot? Snapshot(int x, int y) =>
             new(x, y, "itemId", "Furnace", MachineState.Ready, null, 0);
     }
 

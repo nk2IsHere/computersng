@@ -107,20 +107,35 @@ declare type HttpResponseString = {
     Body: string
 }
 
-declare type MachineSnapshot = {
-    x: number, 
-    y: number, 
-    itemId: string, 
-    name: string,
-    state: "empty" | "working" | "ready", 
-    heldItem: string | null, 
+declare type MachineMemberSnapshot = {
+    kind: "machine"
+    x: number
+    y: number
+    itemId: string
+    name: string
+    state: "empty" | "working" | "ready"
+    heldItem: string | null
     minutesUntilReady: number
 }
 
+declare type ChestMemberSnapshot = {
+    kind: "chest"
+    x: number
+    y: number
+    items: { id: string, name: string, count: number }[]
+}
+
+declare type ConnectorMemberSnapshot = {
+    kind: "connector"
+    x: number
+    y: number
+}
+
+declare type GroupMemberSnapshot = MachineMemberSnapshot | ChestMemberSnapshot | ConnectorMemberSnapshot
+
 declare type GroupSnapshot = {
     truncated: boolean
-    machines: MachineSnapshot[]
-    chests: { x: number, y: number, items: { id: string, name: string, count: number }[] }[]
+    members: GroupMemberSnapshot[]
 }
 
 declare const Network: {

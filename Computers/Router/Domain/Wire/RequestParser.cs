@@ -19,7 +19,7 @@ public record RouterPingResult(string Type, int? Channel);
 
 public record RouterDiscoverResult(string Router, IReadOnlyList<string> Endpoints);
 
-public static class RouterRequestParser {
+public static class RequestParser {
     public static RouterRequest ParseBody(JObject payload) {
         var cmd = payload["cmd"]?.Value<string>();
         switch (cmd) {

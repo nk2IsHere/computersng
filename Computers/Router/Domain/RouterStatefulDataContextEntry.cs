@@ -154,7 +154,7 @@ public class RouterStatefulDataContextEntry : IContextEntry.StatefulDataContextE
 
         Reply reply;
         try {
-            reply = Reply.Success(cid, Dispatch(RouterRequestParser.ParseBody(request)));
+            reply = Reply.Success(cid, Dispatch(RequestParser.ParseBody(request)));
         } catch (RouterRequestException exception) {
             reply = Reply.Failure(cid, exception.Message);
         }

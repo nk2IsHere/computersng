@@ -1,5 +1,7 @@
+using Computers.MachineController;
 using Computers.Peripheral;
-using Computers.Peripheral.Domain;
+using Computers.MachineController.Domain;
+using Computers.MachineController.Domain.Wire;
 using Computers.Router.Domain;
 using Microsoft.Xna.Framework;
 using StardewValley;
@@ -40,7 +42,7 @@ internal class StardewMachineLocation : IMachineLocation {
         return ready;
     }
 
-    public MachineSnapshot? Snapshot(int x, int y) {
+    public MachineMemberSnapshot? Snapshot(int x, int y) {
         return _location.objects.TryGetValue(new Vector2(x, y), out var machine)
             ? StardewMachineGroupOps.SnapshotMachine(x, y, machine)
             : null;
@@ -83,26 +85,31 @@ internal class StardewMachineGroupOps : IMachineGroupOps {
     }
 
     public GroupSnapshot ListSnapshot() {
-        var machines = _group.Machines
-            .Select(position => (Position: position, Machine: ObjectAt(position.X, position.Y)))
-            .Where(entry => entry.Machine is not null)
-            .Select(entry => SnapshotMachine(entry.Position.X, entry.Position.Y, entry.Machine!))
-            .ToList();
+        var members = new List<GroupMemberSnapshot>();
+        foreach (var member in _group.Members) {
+            switch (member.Kind) {
+                case GroupCellKind.Machine when ObjectAt(member.X, member.Y) is { } machine:
+                    members.Add(SnapshotMachine(member.X, member.Y, machine));
+                    break;
 
-        var chests = _group.Chests
-            .Select(position => (Position: position, Chest: ObjectAt(position.X, position.Y) as Chest))
-            .Where(entry => entry.Chest is not null)
-            .Select(entry => new ChestSnapshot(
-                entry.Position.X,
-                entry.Position.Y,
-                entry.Chest!.Items
-                    .Where(item => item is not null)
-                    .Select(item => new ChestItemSnapshot(item.ItemId, item.Name, item.Stack))
-                    .ToList()
-            ))
-            .ToList();
+                case GroupCellKind.Chest when ObjectAt(member.X, member.Y) is Chest chest:
+                    members.Add(new ChestMemberSnapshot(
+                        member.X,
+                        member.Y,
+                        chest.Items
+                            .Where(item => item is not null)
+                            .Select(item => new ChestItemSnapshot(item.ItemId, item.Name, item.Stack))
+                            .ToList()
+                    ));
+                    break;
 
-        return new GroupSnapshot(_group.Truncated, machines, chests);
+                case GroupCellKind.Connector:
+                    members.Add(new ConnectorMemberSnapshot(member.X, member.Y));
+                    break;
+            }
+        }
+
+        return new GroupSnapshot(_group.Truncated, members);
     }
 
     public CollectResult Collect(MachinePosition? target) {
@@ -110,7 +117,7 @@ internal class StardewMachineGroupOps : IMachineGroupOps {
             ? _group.Machines.ToList()
             : new List<(int X, int Y)> { (target.X, target.Y) };
 
-        if (target is not null && !_group.Machines.Contains((target.X, target.Y))) {
+        if (target is not null && !_group.Contains(GroupCellKind.Machine, target.X, target.Y)) {
             throw new GroupOpException("machine not in group");
         }
 
@@ -171,7 +178,7 @@ internal class StardewMachineGroupOps : IMachineGroupOps {
         }
 
         var (x, y) = (request.Machine.X, request.Machine.Y);
-        if (!_group.Machines.Contains((x, y))) {
+        if (!_group.Contains(GroupCellKind.Machine, x, y)) {
             throw new GroupOpException("machine not in group");
         }
 
@@ -206,14 +213,14 @@ internal class StardewMachineGroupOps : IMachineGroupOps {
         _invalidateGroup();
     }
 
-    public static MachineSnapshot SnapshotMachine(int x, int y, Object machine) {
+    public static MachineMemberSnapshot SnapshotMachine(int x, int y, Object machine) {
         var state = machine.readyForHarvest.Value
             ? MachineState.Ready
             : machine.heldObject.Value is not null || machine.MinutesUntilReady > 0
                 ? MachineState.Working
                 : MachineState.Empty;
 
-        return new MachineSnapshot(
+        return new MachineMemberSnapshot(
             x,
             y,
             machine.ItemId,
@@ -248,7 +255,7 @@ internal class StardewMachineGroupOps : IMachineGroupOps {
             ? new List<(int X, int Y)> { (fromChest.X, fromChest.Y) }
             : _group.Chests.ToList();
 
-        if (fromChest is not null && !_group.Chests.Contains((fromChest.X, fromChest.Y))) {
+        if (fromChest is not null && !_group.Contains(GroupCellKind.Chest, fromChest.X, fromChest.Y)) {
             throw new GroupOpException("chest not in group");
         }
 

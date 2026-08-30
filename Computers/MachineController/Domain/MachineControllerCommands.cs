@@ -1,7 +1,9 @@
+using Computers.MachineController.Domain.Wire;
 using Computers.Router.Domain.Wire;
 using Newtonsoft.Json.Linq;
+using RequestParser = Computers.MachineController.Domain.Wire.RequestParser;
 
-namespace Computers.Peripheral.Domain;
+namespace Computers.MachineController.Domain;
 
 public class GroupOpException : Exception {
     public GroupOpException(string error) : base(error) {
@@ -43,7 +45,7 @@ public class MachineControllerCommandProcessor {
         }
     }
 
-    public static MachineReadyEvent BuildMachineReadyEvent(MachineSnapshot machine) {
+    public static MachineReadyEvent BuildMachineReadyEvent(MachineMemberSnapshot machine) {
         return new MachineReadyEvent("machineReady", machine);
     }
 

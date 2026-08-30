@@ -1,4 +1,4 @@
-namespace Computers.Peripheral.Domain;
+namespace Computers.MachineController.Domain;
 
 public enum GroupCellKind {
     Empty,
@@ -11,18 +11,27 @@ public interface IGroupWorld {
     GroupCellKind KindAt(int x, int y);
 }
 
-public record MachineGroup(
-    IReadOnlyList<(int X, int Y)> Machines,
-    IReadOnlyList<(int X, int Y)> Chests,
-    bool Truncated
-);
+public record GroupMember(int X, int Y, GroupCellKind Kind);
+
+public record MachineGroup(IReadOnlyList<GroupMember> Members, bool Truncated) {
+    public IEnumerable<(int X, int Y)> Machines => Positions(GroupCellKind.Machine);
+
+    public IEnumerable<(int X, int Y)> Chests => Positions(GroupCellKind.Chest);
+
+    public bool Contains(GroupCellKind kind, int x, int y) {
+        return Members.Any(member => member.Kind == kind && member.X == x && member.Y == y);
+    }
+
+    private IEnumerable<(int X, int Y)> Positions(GroupCellKind kind) {
+        return Members.Where(member => member.Kind == kind).Select(member => (member.X, member.Y));
+    }
+}
 
 public static class MachineGroupScanner {
     private static readonly (int Dx, int Dy)[] Edges = { (1, 0), (-1, 0), (0, 1), (0, -1) };
 
     public static MachineGroup Scan(IGroupWorld world, int originX, int originY, int maxGroupSize) {
-        var machines = new List<(int X, int Y)>();
-        var chests = new List<(int X, int Y)>();
+        var members = new List<GroupMember>();
         var visited = new HashSet<(int X, int Y)> { (originX, originY) };
         var frontier = new Queue<(int X, int Y)>();
         frontier.Enqueue((originX, originY));
@@ -50,19 +59,11 @@ public static class MachineGroupScanner {
                 }
                 visitedCells++;
 
-                switch (kind) {
-                    case GroupCellKind.Machine:
-                        machines.Add(next);
-                        break;
-                    case GroupCellKind.Chest:
-                        chests.Add(next);
-                        break;
-                }
-
+                members.Add(new GroupMember(next.X, next.Y, kind));
                 frontier.Enqueue(next);
             }
         }
 
-        return new MachineGroup(machines, chests, truncated);
+        return new MachineGroup(members, truncated);
     }
 }

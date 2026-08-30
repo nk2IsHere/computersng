@@ -1,4 +1,4 @@
-namespace Computers.Peripheral.Domain;
+namespace Computers.MachineController.Domain.Wire;
 
 public enum MachineState {
     Empty,
@@ -8,7 +8,9 @@ public enum MachineState {
 
 public record MachinePosition(int X, int Y);
 
-public record MachineSnapshot(
+public abstract record GroupMemberSnapshot(int X, int Y);
+
+public record MachineMemberSnapshot(
     int X,
     int Y,
     string ItemId,
@@ -16,17 +18,25 @@ public record MachineSnapshot(
     MachineState State,
     string? HeldItem,
     int MinutesUntilReady
-);
+) : GroupMemberSnapshot(X, Y) {
+    public string Kind => "machine";
+}
 
 public record ChestItemSnapshot(string Id, string Name, int Count);
 
-public record ChestSnapshot(int X, int Y, IReadOnlyList<ChestItemSnapshot> Items);
+public record ChestMemberSnapshot(
+    int X,
+    int Y,
+    IReadOnlyList<ChestItemSnapshot> Items
+) : GroupMemberSnapshot(X, Y) {
+    public string Kind => "chest";
+}
 
-public record GroupSnapshot(
-    bool Truncated,
-    IReadOnlyList<MachineSnapshot> Machines,
-    IReadOnlyList<ChestSnapshot> Chests
-);
+public record ConnectorMemberSnapshot(int X, int Y) : GroupMemberSnapshot(X, Y) {
+    public string Kind => "connector";
+}
+
+public record GroupSnapshot(bool Truncated, IReadOnlyList<GroupMemberSnapshot> Members);
 
 public record CollectedItem(MachinePosition Machine, string Id, string Name, int Count);
 
@@ -36,7 +46,7 @@ public record InsertResult(MachinePosition Machine, string Loaded);
 
 public record PingResult(string Type);
 
-public record MachineReadyEvent(string Event, MachineSnapshot Machine);
+public record MachineReadyEvent(string Event, MachineMemberSnapshot Machine);
 
 public abstract record PeripheralRequest;
 

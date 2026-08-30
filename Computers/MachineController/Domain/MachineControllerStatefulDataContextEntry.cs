@@ -1,13 +1,15 @@
 using System.Collections.Concurrent;
 using Computers.Computer;
 using Computers.Core;
+using Computers.MachineController.Domain.Wire;
+using Computers.Peripheral;
 using Computers.Router;
 using Computers.Router.Domain;
 using Computers.Router.Domain.Wire;
 using StardewModdingAPI;
 using Context = Computers.Core.Context;
 
-namespace Computers.Peripheral.Domain;
+namespace Computers.MachineController.Domain;
 
 public class MachineControllerStatefulDataContextEntry :
     IContextEntry.StatefulDataContextEntry<MachineControllerStatefulDataContextEntry>, IPeripheralPort {
@@ -41,7 +43,7 @@ public class MachineControllerStatefulDataContextEntry :
         _registry = registry;
         _routers = routers;
         _machineWorld = machineWorld;
-        _processor = new MachineControllerCommandProcessor(_ops, configuration.Peripheral.MaxSubscribersPerPeripheral);
+        _processor = new MachineControllerCommandProcessor(_ops, configuration.MachineController.MaxSubscribersPerPeripheral);
     }
 
     private class DelegatingOps : IMachineGroupOps {
@@ -100,7 +102,7 @@ public class MachineControllerStatefulDataContextEntry :
 
         if (peripheralEvent is StartPeripheralEvent) {
             Start();
-            InvalidateGroup();
+            NotifyWorldChanged();
         }
     }
 
@@ -117,7 +119,7 @@ public class MachineControllerStatefulDataContextEntry :
         _inbox.Enqueue(datagram);
     }
 
-    public void InvalidateGroup() {
+    public void NotifyWorldChanged() {
         _groupDirty = true;
     }
 
@@ -133,7 +135,7 @@ public class MachineControllerStatefulDataContextEntry :
         }
         else {
             var group = EnsureGroup(location, placement);
-            _ops.Inner = location.Ops(group, InvalidateGroup);
+            _ops.Inner = location.Ops(group, NotifyWorldChanged);
         }
 
         DrainCommands();
@@ -149,13 +151,13 @@ public class MachineControllerStatefulDataContextEntry :
             location.GroupWorld,
             placement.X,
             placement.Y,
-            Configuration.Peripheral.MaxGroupSize
+            Configuration.MachineController.MaxGroupSize
         );
         _groupDirty = false;
 
         if (_cachedGroup.Truncated) {
             _monitor.Log(
-                $"Machine controller {Id}: group truncated at {Configuration.Peripheral.MaxGroupSize} objects (peripheral.maxGroupSize).",
+                $"Machine controller {Id}: group truncated at {Configuration.MachineController.MaxGroupSize} objects (machineController.maxGroupSize).",
                 LogLevel.Warn
             );
         }
@@ -165,7 +167,7 @@ public class MachineControllerStatefulDataContextEntry :
 
     private void DrainCommands() {
         var processed = 0;
-        while (processed < Configuration.Peripheral.MaxCommandsPerTick && _inbox.TryDequeue(out var datagram)) {
+        while (processed < Configuration.MachineController.MaxCommandsPerTick && _inbox.TryDequeue(out var datagram)) {
             processed++;
 
             // Transport edge: strings and JSON parsing live here; the processor is typed.

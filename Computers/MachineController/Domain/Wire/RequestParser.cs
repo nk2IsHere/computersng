@@ -1,6 +1,6 @@
 using Newtonsoft.Json.Linq;
 
-namespace Computers.Peripheral.Domain;
+namespace Computers.MachineController.Domain.Wire;
 
 public static class RequestParser {
     public static PeripheralRequest ParseBody(JObject payload) {

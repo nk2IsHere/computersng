@@ -12,6 +12,6 @@ public interface IPeripheralPort : INetworkEndpoint {
     void Stop();
     void Fire(IPeripheralEvent peripheralEvent);
 
-    // Invalidate cached world-derived state (e.g. the machine group) after nearby changes.
-    void InvalidateGroup();
+    // The world changed near this peripheral. Cached world-derived state should be dropped.
+    void NotifyWorldChanged();
 }

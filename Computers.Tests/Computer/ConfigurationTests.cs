@@ -53,28 +53,28 @@ public class ConfigurationTests {
     [Fact]
     public void PeripheralKeysParse() {
         var yaml = string.Join("\n",
-            "peripheral:",
+            "machineController:",
             "  maxGroupSize: 9",
             "  maxCommandsPerTick: 3",
             "  maxSubscribersPerPeripheral: 2"
         );
         var configuration = yaml.DeserializeConfiguration<Configuration>();
-        Assert.Equal(9, configuration.Peripheral.MaxGroupSize);
-        Assert.Equal(3, configuration.Peripheral.MaxCommandsPerTick);
-        Assert.Equal(2, configuration.Peripheral.MaxSubscribersPerPeripheral);
+        Assert.Equal(9, configuration.MachineController.MaxGroupSize);
+        Assert.Equal(3, configuration.MachineController.MaxCommandsPerTick);
+        Assert.Equal(2, configuration.MachineController.MaxSubscribersPerPeripheral);
     }
 
     [Fact]
-    public void PeripheralKeysHaveSpecDefaultsWhenSectionOmitted() {
+    public void MachineControllerKeysHaveSpecDefaultsWhenSectionOmitted() {
         var yaml = string.Join("\n",
             "engine:",
             "  shouldResetScriptOnFatalError: true"
         );
         var configuration = yaml.DeserializeConfiguration<Configuration>();
-        Assert.NotNull(configuration.Peripheral);
-        Assert.Equal(256, configuration.Peripheral.MaxGroupSize);
-        Assert.Equal(16, configuration.Peripheral.MaxCommandsPerTick);
-        Assert.Equal(16, configuration.Peripheral.MaxSubscribersPerPeripheral);
+        Assert.NotNull(configuration.MachineController);
+        Assert.Equal(256, configuration.MachineController.MaxGroupSize);
+        Assert.Equal(16, configuration.MachineController.MaxCommandsPerTick);
+        Assert.Equal(16, configuration.MachineController.MaxSubscribersPerPeripheral);
     }
 
     [Fact]

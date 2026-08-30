@@ -31,7 +31,7 @@ Reply datagram payload:
 Event push payload:
 
 ```
-{ event: "machineReady", machine: MachineSnapshot }
+{ event: "machineReady", machine: MachineMemberSnapshot }
 ```
 
 A message is a request when it has `cid` and `cmd` and no `re`. Replies echo the caller's
@@ -62,7 +62,7 @@ bridge routers across locations.
 | Command | Args | Reply data |
 |---|---|---|
 | `ping` | | `{ type: "machineController" }` |
-| `list` | | `GroupSnapshot` |
+| `list` | | `GroupSnapshot` with one `members` list. Each member carries `kind: "machine"`, `"chest"` or `"connector"` |
 | `rescan` | | ack |
 | `collect` | `{ machine: {x,y} or "all" }` | collected items |
 | `insert` | `{ machine: {x,y}, itemId, count?, fromChest? }` | loaded item |

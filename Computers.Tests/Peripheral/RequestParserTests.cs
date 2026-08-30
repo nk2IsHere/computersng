@@ -1,4 +1,5 @@
-using Computers.Peripheral.Domain;
+using Computers.MachineController.Domain;
+using Computers.MachineController.Domain.Wire;
 using Newtonsoft.Json.Linq;
 using Xunit;
 
