@@ -18,9 +18,15 @@ public class MachineControllerEntryTests {
     private static readonly Id P1 = "peripheral.p1".AsId();
     private static readonly Id R1 = "router.r1".AsId();
 
-    private class FakeOps : IMachineGroupOps {
-        public GroupSnapshot ListSnapshot() =>
-            new(false, new List<GroupMemberSnapshot>());
+    // Echoes the scanned group back through list, so tier reach is observable.
+    private class GroupEchoOps : IMachineGroupOps {
+        private readonly MachineGroup _group;
+        public GroupEchoOps(MachineGroup group) { _group = group; }
+        public GroupSnapshot ListSnapshot() => new(
+            _group.Truncated,
+            _group.Machines
+                .Select(m => (GroupMemberSnapshot) new MachineMemberSnapshot(m.X, m.Y, "id", "Machine", MachineState.Empty, null, 0))
+                .ToList());
         public CollectResult Collect(MachinePosition? target) => new(new List<CollectedItem>());
         public InsertResult Insert(InsertRequest request) => new(request.Machine, "item");
         public void Rescan() { }
@@ -38,7 +44,7 @@ public class MachineControllerEntryTests {
         public HashSet<(int X, int Y)> Ready { get; } = new();
 
         public IGroupWorld GroupWorld => new FakeGroupWorld(Machines);
-        public IMachineGroupOps Ops(MachineGroup group, Action invalidateGroup) => new FakeOps();
+        public IMachineGroupOps Ops(MachineGroup group, Action invalidateGroup) => new GroupEchoOps(group);
         public IReadOnlySet<(int X, int Y)> ReadyMachines(IEnumerable<(int X, int Y)> machines) =>
             machines.Where(Ready.Contains).ToHashSet();
         public MachineMemberSnapshot? Snapshot(int x, int y) =>
@@ -62,7 +68,7 @@ public class MachineControllerEntryTests {
         MachineControllerStatefulDataContextEntry Controller,
         FakeMachineWorld World,
         FakeRouterPort Router
-    ) Make(bool withPlacement = false) {
+    ) Make(bool withPlacement = false, PeripheralTier tier = PeripheralTier.Advanced) {
         var configuration = TestConfiguration();
         var routerPort = new FakeRouterPort(R1);
         var routers = new ContextLookup<IRouterPort>(
@@ -76,7 +82,7 @@ public class MachineControllerEntryTests {
         }
 
         var controller = new MachineControllerStatefulDataContextEntry(
-            FactoryId, P1, new TestMonitor(), configuration, registry, routers, world);
+            FactoryId, P1, new TestMonitor(), configuration, registry, routers, world, tier);
         return (controller, world, routerPort);
     }
 
@@ -145,6 +151,22 @@ public class MachineControllerEntryTests {
         var reply = JObject.Parse(datagram.Payload);
         Assert.False(reply["ok"]!.Value<bool>());
         Assert.Contains("no world position", reply["error"]!.Value<string>());
+    }
+
+    [Fact]
+    public void BasicTierScansOnlyAdjacentTiles() {
+        var (controller, world, router) = Make(withPlacement: true, tier: PeripheralTier.Basic);
+        // Placement is at (5, 0). Machines at (6, 0) adjacent and (7, 0) one further.
+        world.Location = new FakeMachineLocation { Machines = { (6, 0), (7, 0) } };
+
+        controller.Fire(new StartPeripheralEvent());
+        controller.ReceiveDatagram(Incoming("{\"cid\":\"t3\",\"cmd\":\"list\"}"));
+        controller.Fire(new TickPeripheralEvent(1));
+
+        var reply = JObject.Parse(router.Delivered[^1].Datagram.Payload);
+        var members = (JArray) reply["data"]!["members"]!;
+        Assert.Single(members);
+        Assert.Equal(6, members[0]!["x"]!.Value<int>());
     }
 
     [Fact]

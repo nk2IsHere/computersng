@@ -1,3 +1,4 @@
+using Computers.Peripheral;
 using Computers.Peripheral.Domain;
 using Computers.PlayerSensor.Domain.Wire;
 using Computers.Router.Domain.Wire;
@@ -8,10 +9,12 @@ namespace Computers.PlayerSensor.Domain;
 public class PlayerSensorCommandProcessor {
     private readonly PeripheralSubscriptions _subscriptions;
     private readonly Action<int> _configureRadius;
+    private readonly PeripheralTier _tier;
 
-    public PlayerSensorCommandProcessor(PeripheralSubscriptions subscriptions, Action<int> configureRadius) {
+    public PlayerSensorCommandProcessor(PeripheralSubscriptions subscriptions, Action<int> configureRadius, PeripheralTier tier) {
         _subscriptions = subscriptions;
         _configureRadius = configureRadius;
+        _tier = tier;
     }
 
     public Reply? Process(string sourceAddress, JObject request, SensorReading? reading, int radius) {
@@ -35,7 +38,7 @@ public class PlayerSensorCommandProcessor {
     private object? Dispatch(SensorRequest request, SensorReading? reading, int radius) {
         switch (request) {
             case SensorPingRequest:
-                return new SensorPingResult("playerSensor", radius);
+                return new SensorPingResult("playerSensor", _tier, radius);
 
             case SensorReadRequest:
                 return reading ?? throw new PeripheralRequestException("sensor has no world position");

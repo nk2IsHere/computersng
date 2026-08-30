@@ -2,10 +2,6 @@ using Computers.Game;
 
 namespace Computers.Tests.TestDoubles;
 
-/// <summary>
-/// IRedundantLoader over the repo's real assets/Library folder, so Jint-driven tests
-/// import the actual shipped modules rather than copies.
-/// </summary>
 public class FileSystemLibraryLoader : IRedundantLoader {
     private readonly string _root;
 

@@ -235,7 +235,7 @@ public class ComputerStatefulDataContextEntry : IContextEntry.StatefulDataContex
 
     private void HandleFatalScriptError() {
         if (Configuration.Engine.ShouldResetScriptOnFatalError) {
-            Interlocked.Exchange(ref _needsBoot, 1); // re-boot on next slice
+            Interlocked.Exchange(ref _needsBoot, 1); // reboot on next slice
         }
         else {
             _disabled = true;
@@ -246,11 +246,9 @@ public class ComputerStatefulDataContextEntry : IContextEntry.StatefulDataContex
     private void Boot() {
         Reload();
 
-        // Expose settlement callbacks, then start Main. Execute runs synchronously until
-        // Main's first await (the statement budget guards a Main that never awaits) and the
-        // returned promise settles through later slices.
         Set("__computerOnScriptEnd", new Action(() =>
-            _monitor.Log($"Computer {Id}: entrypoint Main completed; computer is idle.")));
+            _monitor.Log($"Computer {Id}: entrypoint Main completed; computer is idle."))
+        );
         Set("__computerOnScriptError", new Action<string>(error => {
             _monitor.Log($"Computer {Id}: script error: {error}", LogLevel.Warn);
             HandleFatalScriptError();

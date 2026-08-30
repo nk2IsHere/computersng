@@ -1,5 +1,6 @@
 using Computers.Computer;
 using Computers.Core;
+using Computers.Peripheral;
 using Computers.Router;
 using Computers.Router.Domain;
 using Computers.Tests.TestDoubles;
@@ -36,7 +37,7 @@ public class RouterActorTests {
 
         var registry = new NetworkRegistry(new TestMonitor(), configuration, routerLookup);
         router = new RouterStatefulDataContextEntry(
-            FactoryId, R1, new TestMonitor(), configuration, registry, endpointLookup, routerLookup);
+            FactoryId, R1, new TestMonitor(), configuration, registry, endpointLookup, routerLookup, PeripheralTier.Advanced);
 
         registry.Register(new Placement(R1, NodeRole.Router, "Farm", 0, 0));
         registry.Register(new Placement(C1, NodeRole.Endpoint, "Farm", 1, 0));

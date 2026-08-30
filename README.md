@@ -40,6 +40,7 @@ Make processing of Stardew's resources a configurable function pipe-like process
     - Shipping controller - sells items from adjacent chests through the bin, queries prices
     - Speaker - plays game sound cues and music from scripts
     - Switchable devices - controllable sprinklers and lights
+    - Item transporter - moves items between chests over the network, so distant storages can feed each other
 
 ## Docs
 
@@ -98,6 +99,7 @@ Make processing of Stardew's resources a configurable function pipe-like process
 - [ ] Add shipping controller peripheral
 - [ ] Add speaker peripheral
 - [ ] Add switchable device peripherals
+- [ ] Add item transporter peripheral
 - [ ] Add monitor driven by computer over the network
 
 ### For future

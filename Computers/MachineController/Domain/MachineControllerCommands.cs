@@ -1,4 +1,5 @@
 using Computers.MachineController.Domain.Wire;
+using Computers.Peripheral;
 using Computers.Peripheral.Domain;
 using Computers.Router.Domain.Wire;
 using Newtonsoft.Json.Linq;
@@ -24,10 +25,12 @@ public interface IMachineGroupOps {
 public class MachineControllerCommandProcessor {
     private readonly IMachineGroupOps _ops;
     private readonly PeripheralSubscriptions _subscriptions;
+    private readonly PeripheralTier _tier;
 
-    public MachineControllerCommandProcessor(IMachineGroupOps ops, PeripheralSubscriptions subscriptions) {
+    public MachineControllerCommandProcessor(IMachineGroupOps ops, PeripheralSubscriptions subscriptions, PeripheralTier tier) {
         _ops = ops;
         _subscriptions = subscriptions;
+        _tier = tier;
     }
 
     public Reply? Process(string sourceAddress, JObject request) {
@@ -54,7 +57,7 @@ public class MachineControllerCommandProcessor {
     private object? Dispatch(PeripheralRequest request) {
         switch (request) {
             case PingRequest:
-                return new PingResult("machineController");
+                return new TieredPingResult("machineController", _tier);
 
             case ListRequest:
                 return _ops.ListSnapshot();

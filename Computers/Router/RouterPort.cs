@@ -1,4 +1,5 @@
 using Computers.Computer;
+using Computers.Peripheral;
 using Computers.Core;
 using Computers.Router.Domain;
 

@@ -30,17 +30,20 @@ public record MachineGroup(IReadOnlyList<GroupMember> Members, bool Truncated) {
 public static class MachineGroupScanner {
     private static readonly (int Dx, int Dy)[] Edges = { (1, 0), (-1, 0), (0, 1), (0, -1) };
 
-    public static MachineGroup Scan(IGroupWorld world, int originX, int originY, int maxGroupSize) {
+    public static MachineGroup Scan(IGroupWorld world, int originX, int originY, int maxGroupSize, int maxDistance = int.MaxValue) {
         var members = new List<GroupMember>();
         var visited = new HashSet<(int X, int Y)> { (originX, originY) };
-        var frontier = new Queue<(int X, int Y)>();
-        frontier.Enqueue((originX, originY));
+        var frontier = new Queue<(int X, int Y, int Distance)>();
+        frontier.Enqueue((originX, originY, 0));
 
         var visitedCells = 0;
         var truncated = false;
 
         while (frontier.Count > 0) {
-            var (x, y) = frontier.Dequeue();
+            var (x, y, distance) = frontier.Dequeue();
+            if (distance >= maxDistance) {
+                continue;
+            }
 
             foreach (var (dx, dy) in Edges) {
                 var next = (X: x + dx, Y: y + dy);
@@ -60,7 +63,7 @@ public static class MachineGroupScanner {
                 visitedCells++;
 
                 members.Add(new GroupMember(next.X, next.Y, kind));
-                frontier.Enqueue(next);
+                frontier.Enqueue((next.X, next.Y, distance + 1));
             }
         }
 

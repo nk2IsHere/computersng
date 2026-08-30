@@ -1,4 +1,5 @@
 using Computers.MachineController.Domain;
+using Computers.Peripheral;
 using Computers.Peripheral.Domain;
 using Computers.MachineController.Domain.Wire;
 using Computers.Router.Domain.Wire;
@@ -39,7 +40,7 @@ public class CommandProcessorTests {
     private static (MachineControllerCommandProcessor Processor, FakeOps Ops, PeripheralSubscriptions Subscriptions) Make(int maxSubscribers = 16) {
         var ops = new FakeOps();
         var subscriptions = new PeripheralSubscriptions(new[] { "ready" }, maxSubscribers);
-        return (new MachineControllerCommandProcessor(ops, subscriptions), ops, subscriptions);
+        return (new MachineControllerCommandProcessor(ops, subscriptions, PeripheralTier.Advanced), ops, subscriptions);
     }
 
     private static Reply Process(MachineControllerCommandProcessor processor, string json, string source = "c1") {
@@ -54,7 +55,7 @@ public class CommandProcessorTests {
         var reply = Process(processor, "{\"cid\":\"abc\",\"cmd\":\"ping\"}");
         Assert.Equal("abc", reply.Re.Value<string>());
         Assert.True(reply.Ok);
-        Assert.Equal(new PingResult("machineController"), reply.Data);
+        Assert.Equal(new TieredPingResult("machineController", PeripheralTier.Advanced), reply.Data);
     }
 
     [Fact]
@@ -154,7 +155,7 @@ public class CommandProcessorTests {
         var (processor, _, _) = Make();
         var reply = Process(processor, "{\"cid\":\"abc\",\"cmd\":\"ping\"}");
         Assert.Equal(
-            "{\"re\":\"abc\",\"ok\":true,\"data\":{\"type\":\"machineController\"},\"error\":null}",
+            "{\"re\":\"abc\",\"ok\":true,\"data\":{\"type\":\"machineController\",\"tier\":\"advanced\"},\"error\":null}",
             WireJson.Serialize(reply));
     }
 

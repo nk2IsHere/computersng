@@ -32,3 +32,20 @@ public static class WireRequests {
         return true;
     }
 }
+
+public class RouterRequestException : Exception {
+    public RouterRequestException(string error) : base(error) {
+    }
+}
+
+public abstract record RouterRequest;
+
+public record RouterPingRequest : RouterRequest;
+
+public record RouterDiscoverRequest : RouterRequest;
+
+public record RouterConfigureRequest(int? Channel) : RouterRequest;
+
+public record RouterPingResult(string Type, Computers.Peripheral.PeripheralTier Tier, int? Channel);
+
+public record RouterDiscoverResult(string Router, IReadOnlyList<string> Endpoints);

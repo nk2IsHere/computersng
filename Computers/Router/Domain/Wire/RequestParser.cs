@@ -2,23 +2,6 @@ using Newtonsoft.Json.Linq;
 
 namespace Computers.Router.Domain.Wire;
 
-public class RouterRequestException : Exception {
-    public RouterRequestException(string error) : base(error) {
-    }
-}
-
-public abstract record RouterRequest;
-
-public record RouterPingRequest : RouterRequest;
-
-public record RouterDiscoverRequest : RouterRequest;
-
-public record RouterConfigureRequest(int? Channel) : RouterRequest;
-
-public record RouterPingResult(string Type, int? Channel);
-
-public record RouterDiscoverResult(string Router, IReadOnlyList<string> Endpoints);
-
 public static class RequestParser {
     public static RouterRequest ParseBody(JObject payload) {
         var cmd = payload["cmd"]?.Value<string>();

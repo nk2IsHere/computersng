@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using Computers.Computer;
 using Computers.Core;
+using Computers.Peripheral;
 using Computers.Router.Domain.Wire;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -29,18 +30,25 @@ public class RouterStatefulDataContextEntry : IContextEntry.StatefulDataContextE
         Configuration configuration,
         NetworkRegistry registry,
         ContextLookup<INetworkEndpoint> endpoints,
-        ContextLookup<IRouterPort> routers
+        ContextLookup<IRouterPort> routers,
+        PeripheralTier tier
     ) : base(factoryId, id) {
         _monitor = monitor;
         Configuration = configuration;
         _registry = registry;
         _endpoints = endpoints;
         _routers = routers;
+        Tier = tier;
     }
 
     public Configuration Configuration { get; }
 
-    public int? Channel { get; private set; }
+    public PeripheralTier Tier { get; }
+
+    private int? _channel;
+
+    // A stored channel on a basic router is ignored until the router is advanced.
+    public int? Channel => Tier == PeripheralTier.Advanced ? _channel : null;
 
     public bool IsEnabled => _isEnabled;
 
@@ -50,7 +58,7 @@ public class RouterStatefulDataContextEntry : IContextEntry.StatefulDataContextE
 
     public override void Restore(Context context, ContextEntryState state) {
         var channel = state.GetOrDefault<object?>("Channel", null);
-        Channel = channel is null ? null : Convert.ToInt32(channel);
+        _channel = channel is null ? null : Convert.ToInt32(channel);
     }
 
     public override ContextEntryState Store(Context context) {
@@ -59,8 +67,8 @@ public class RouterStatefulDataContextEntry : IContextEntry.StatefulDataContextE
         state.Id = Id;
         state.FactoryId = FactoryId;
 
-        if (Channel is not null) {
-            state.Set("Channel", Channel.Value);
+        if (_channel is not null) {
+            state.Set("Channel", _channel.Value);
         }
 
         return state;
@@ -176,7 +184,7 @@ public class RouterStatefulDataContextEntry : IContextEntry.StatefulDataContextE
     private object? Dispatch(RouterRequest request) {
         switch (request) {
             case RouterPingRequest:
-                return new RouterPingResult("router", Channel);
+                return new RouterPingResult("router", Tier, Channel);
 
             case RouterDiscoverRequest:
                 return new RouterDiscoverResult(
@@ -188,7 +196,10 @@ public class RouterStatefulDataContextEntry : IContextEntry.StatefulDataContextE
                 );
 
             case RouterConfigureRequest configure:
-                Channel = configure.Channel;
+                if (Tier == PeripheralTier.Basic) {
+                    throw new RouterRequestException("channels require an advanced router");
+                }
+                _channel = configure.Channel;
                 _registry.Invalidate();
                 return null;
 

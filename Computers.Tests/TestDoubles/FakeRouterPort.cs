@@ -1,5 +1,6 @@
 using Computers.Computer;
 using Computers.Core;
+using Computers.Peripheral;
 using Computers.Router;
 using Computers.Router.Domain;
 
@@ -19,6 +20,7 @@ public class FakeRouterPort : IRouterPort {
             AllowedAddresses = new List<string>()
         }
     };
+    public PeripheralTier Tier { get; set; } = PeripheralTier.Advanced;
     public int? Channel { get; set; }
     public bool IsEnabled { get; set; }
 

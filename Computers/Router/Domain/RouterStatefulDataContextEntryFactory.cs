@@ -1,5 +1,6 @@
 using Computers.Computer;
 using Computers.Core;
+using Computers.Peripheral;
 using StardewModdingAPI;
 
 namespace Computers.Router.Domain;
@@ -13,6 +14,7 @@ public class RouterStatefulDataContextEntryFactory : IStatefulDataContextEntryFa
     private readonly NetworkRegistry _registry;
     private readonly ContextLookup<INetworkEndpoint> _endpoints;
     private readonly ContextLookup<IRouterPort> _routers;
+    private readonly PeripheralTier _tier;
 
     public RouterStatefulDataContextEntryFactory(
         Id id,
@@ -21,7 +23,8 @@ public class RouterStatefulDataContextEntryFactory : IStatefulDataContextEntryFa
         Configuration configuration,
         NetworkRegistry registry,
         ContextLookup<INetworkEndpoint> endpoints,
-        ContextLookup<IRouterPort> routers
+        ContextLookup<IRouterPort> routers,
+        PeripheralTier tier
     ) {
         FactoryId = id;
         _baseRouterId = baseRouterId;
@@ -30,6 +33,7 @@ public class RouterStatefulDataContextEntryFactory : IStatefulDataContextEntryFa
         _registry = registry;
         _endpoints = endpoints;
         _routers = routers;
+        _tier = tier;
     }
 
     public Id FactoryId { get; }
@@ -47,7 +51,8 @@ public class RouterStatefulDataContextEntryFactory : IStatefulDataContextEntryFa
             _configuration,
             _registry,
             _endpoints,
-            _routers
+            _routers,
+            _tier
         );
     }
 }

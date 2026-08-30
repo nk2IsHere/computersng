@@ -33,7 +33,7 @@ public class ContextEntryStateTests {
 
         var factory = new RouterStatefulDataContextEntryFactory(
             "factory.router".AsId(), "router".AsId(),
-            new TestMonitor(), configuration, registry, endpoints, routers);
+            new TestMonitor(), configuration, registry, endpoints, routers, Computers.Peripheral.PeripheralTier.Advanced);
 
         var first = (RouterStatefulDataContextEntry) factory.ProduceValue();
         first.Store(Context.Empty); // mutated the shared Empty before the fix

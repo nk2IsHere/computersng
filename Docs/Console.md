@@ -57,6 +57,13 @@ with `{` or `[` are kept verbatim until the matching close bracket, so JSON surv
 | `.router-channel` | `.router-channel <routerAddress> <channel or clear>` | Configures a router and awaits its ack |
 | `.peripheral` | `.peripheral <address> <cmd> [json-args]` | Sends any RPC command to a peripheral |
 | `.machines` | `.machines <address>` | Lists a machine controller's group |
+| `.weather` | `.weather <address>` | Reads a weather station |
+| `.sensor` | `.sensor <address> [radius]` | Reads a player sensor, optionally setting its radius |
+| `.notify` | `.notify <address> <text...>` | Shows a HUD notification through a mailer |
+| `.mail` | `.mail <address> <text...>` | Queues a letter for tomorrow through a mailer |
+| `.ship` | `.ship <address> <itemId> [count]` | Sells items through a shipping controller |
+| `.price` | `.price <address> <itemId>` | Queries a sell price through a shipping controller |
+| `.play` | `.play <address> <cue> [pitch]` | Plays a sound cue through a speaker |
 
 Commands live in `/Command` on the file system. Drop your own command module there, in
 external or persistent storage, and it appears in `.help` within a second.
