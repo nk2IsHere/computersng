@@ -36,17 +36,6 @@ internal class SystemComputerState {
         _computerPort = computerPort;
     }
     
-    private const int MaxSleepMilliseconds = 100;
-
-    public void Sleep(int milliseconds) {
-        if (milliseconds < 0) {
-            throw new ArgumentOutOfRangeException(nameof(milliseconds), "Sleep time cannot be negative");
-        }
-
-        // Sleep blocks a shared scheduler worker; clamp and steer scripts toward Delay/NextFrame.
-        Thread.Sleep(Math.Min(milliseconds, MaxSleepMilliseconds));
-    }
-    
     public long Time() {
         return DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
     }
@@ -75,9 +64,9 @@ internal class SystemComputerState {
         return _computerPort.NextFrame();
     }
 
-    public string GetClipboard() {
+    public string? GetClipboard() {
         var text = "";
-        return DesktopClipboard.GetText(ref text) ? text : "";
+        return DesktopClipboard.GetText(ref text) ? text : null;
     }
 
     public void SetClipboard(string text) {

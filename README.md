@@ -31,6 +31,10 @@ Make processing of Stardew's resources a configurable function pipe-like process
     - Wireless stations - allows communication with other computers on a limited distance
     - ??? (still undecided)
 
+## Docs
+
+- [Networking](Docs/Networking.md) - the LAN wire protocol, router firmware and machine controller commands
+
 ## TODOs
 
 ### Basic item support
@@ -66,7 +70,7 @@ Make processing of Stardew's resources a configurable function pipe-like process
 - [x] Add support for public networking
 - [x] Add support for layered file system
 - [x] Add support for separate core libraries
-- [ ] Add peripherals support with event-based communication
+- [x] Add peripherals support with event-based communication
 - [x] Add support for computer-to-computer communication
 - [ ] Add possibility of auto-discovering machine groups with computer as controller using peripheral
 - [ ] Add package-based libraries

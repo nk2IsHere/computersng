@@ -22,9 +22,9 @@ public class NetworkComputerApiTests {
             () => new HashSet<ContextEntry<IRouterPort>> { new(R1, routerPort) });
         var registry = new NetworkRegistry(new TestMonitor(), computerPort.Configuration, routerLookup);
 
-        registry.Register(new Placement(R1, NetworkNodeKind.Router, "Farm", 0, 0));
-        registry.Register(new Placement(C1, NetworkNodeKind.Computer, "Farm", computerInRange ? 1 : 99, 0));
-        registry.Register(new Placement(C2, NetworkNodeKind.Computer, "Farm", 2, 0));
+        registry.Register(new Placement(R1, NodeRole.Router, "Farm", 0, 0));
+        registry.Register(new Placement(C1, NodeRole.Endpoint, "Farm", computerInRange ? 1 : 99, 0));
+        registry.Register(new Placement(C2, NodeRole.Endpoint, "Farm", 2, 0));
 
         var api = new NetworkComputerApi(computerPort, registry, routerLookup);
         return ((NetworkComputerState) api.Api, registry, routerPort);
@@ -63,33 +63,16 @@ public class NetworkComputerApiTests {
     }
 
     [Fact]
-    public void ListReachableReturnsOtherComputers() {
-        var (state, _, _) = Make();
-        Assert.Equal(new[] { "c2" }, state.ListReachable());
-    }
-
-    [Fact]
     public void GetRoutersReportsAddressAndChannel() {
         var (state, _, router) = Make();
         router.Channel = 9;
         var routers = state.GetRouters();
-        var entry = Assert.Single(routers);
-        Assert.Equal("r1", entry["address"]);
-        Assert.Equal(9, entry["channel"]);
+        Assert.Equal(new RouterInfo("r1", 9), Assert.Single(routers));
     }
 
     [Fact]
-    public void ConfigureRouterSetsChannelAndInvalidates() {
-        var (state, registry, router) = Make();
-        state.ConfigureRouter("r1", 3);
-        Assert.Equal(3, router.Channel);
-        state.ConfigureRouter("r1", null);
-        Assert.Null(router.Channel);
-    }
-
-    [Fact]
-    public void ConfigureRouterThrowsForNonCoveringRouter() {
+    public void GetRoutersIsEmptyWhenOutOfRange() {
         var (state, _, _) = Make(computerInRange: false);
-        Assert.Throws<InvalidOperationException>(() => state.ConfigureRouter("r1", 3));
+        Assert.Empty(state.GetRouters());
     }
 }

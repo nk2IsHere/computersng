@@ -1,4 +1,5 @@
 import { Keys } from "../Core/Constants"
+import { FireResult } from "./FireResult"
 
 export class ReloadView {
     constructor(onReload) {
@@ -13,8 +14,9 @@ export class ReloadView {
                 this.onReload()
             }
         }
+        return FireResult.Passed
     }
-    
+
     Render() {
     }
 }

@@ -1,9 +1,10 @@
 import { CommandResult } from "../Core/Utils/Command"
-import { ListReachable, GetRouters } from "../Core/Network"
+import { Discover, GetRouters } from "../Core/Network"
+import { Call } from "../Core/Rpc"
 
 export default {
     command: "net-ls",
-    description: "List reachable computers and covering routers",
+    description: "List covering routers, discover reachable endpoints and ask who they are",
     usage: ".net-ls",
     action: async (args, console, context) => {
         const routers = GetRouters()
@@ -16,14 +17,26 @@ export default {
             console.Info(`Router ${address} (channel: ${channel ?? "none"})`)
         }
 
-        const reachable = ListReachable()
+        console.Info("Discovering...")
+        const reachable = await Discover()
         if (reachable.length === 0) {
-            console.Info("No reachable computers")
-        }
-        for (const address of reachable) {
-            console.Info(`-> ${address}`)
+            console.Info("No endpoints discovered")
+            return CommandResult(context, [])
         }
 
-        return CommandResult(context, reachable)
+        const identified = await Promise.all(reachable.map(async address => {
+            try {
+                const info = await Call(address, "ping", {}, { timeoutFrames: 60 })
+                return { address, type: info?.type ?? "unknown" }
+            } catch {
+                return { address, type: "silent" }
+            }
+        }))
+
+        for (const { address, type } of identified) {
+            console.Info(`-> ${address} (${type})`)
+        }
+
+        return CommandResult(context, identified)
     }
 }

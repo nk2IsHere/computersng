@@ -13,6 +13,16 @@ public class Configuration {
     public StorageConfiguration Storage { get; set; } = null!;
     
     public NetworkConfiguration Network { get; set; } = null!;
+
+    public PeripheralConfiguration Peripheral { get; set; } = new();
+}
+
+public class PeripheralConfiguration {
+    public int MaxGroupSize { get; set; } = 256;
+
+    public int MaxCommandsPerTick { get; set; } = 16;
+
+    public int MaxSubscribersPerPeripheral { get; set; } = 16;
 }
 
 public class ResourceConfiguration {
@@ -57,7 +67,6 @@ public class EngineConfiguration {
     // 0 = auto (min(4, cores/2))
     public int SchedulerWorkers { get; set; }
 
-    // Statement budget per scheduler slice; 0 disables the watchdog.
     public int MaxStatementsPerSlice { get; set; } = 2_000_000;
 }
 

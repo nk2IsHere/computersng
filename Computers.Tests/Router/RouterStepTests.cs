@@ -19,8 +19,8 @@ public class RouterStepTests {
             new RouterNode(R3, "Farm", 30, 0, null, true)
         },
         new[] {
-            new ComputerNode(C1, "Farm", 1, 0),
-            new ComputerNode(C2, "Farm", 31, 0)
+            new EndpointNode(C1, "Farm", 1, 0),
+            new EndpointNode(C2, "Farm", 31, 0)
         },
         coverageRadius: 10,
         linkRadius: 16
@@ -35,7 +35,7 @@ public class RouterStepTests {
         var result = RouterStep.Process(
             R3, new[] { new InboxEntry(datagram, R2) }, new SeenMessageCache(16), Line());
         Assert.Single(result.Deliveries);
-        Assert.Equal(C2, result.Deliveries[0].ComputerId);
+        Assert.Equal(C2, result.Deliveries[0].EndpointId);
         Assert.Equal(datagram, result.Deliveries[0].Datagram);
         Assert.Empty(result.Forwards); // delivered -> not forwarded
     }
@@ -98,6 +98,58 @@ public class RouterStepTests {
     }
 
     [Fact]
+    public void UnicastToRouterAddressLandsInRouterInboundAndIsNotForwarded() {
+        var datagram = new Datagram(Guid.NewGuid(), "c1", "r2", 16, "{\"cid\":\"x\",\"cmd\":\"ping\"}");
+        var result = RouterStep.Process(
+            R2, new[] { new InboxEntry(datagram, R1) }, new SeenMessageCache(16), Line());
+        Assert.Equal(datagram, Assert.Single(result.RouterInbound));
+        Assert.Empty(result.Forwards);
+        Assert.Empty(result.Deliveries);
+    }
+
+    [Fact]
+    public void BroadcastLandsInRouterInboundAndStillForwards() {
+        var datagram = new Datagram(Guid.NewGuid(), "c1", "*", 16, "{\"cid\":\"x\",\"cmd\":\"discover\"}");
+        var result = RouterStep.Process(
+            R2, new[] { new InboxEntry(datagram, R1) }, new SeenMessageCache(16), Line());
+        Assert.Single(result.RouterInbound);
+        var forward = Assert.Single(result.Forwards); // to R3, not back to R1
+        Assert.Equal(R3, forward.TargetRouterId);
+        Assert.Equal(15, forward.Datagram.Ttl);
+        Assert.Empty(result.Deliveries); // endpoints never receive broadcast
+    }
+
+    [Fact]
+    public void BroadcastWithExhaustedTtlIsHandledLocallyButNotForwarded() {
+        var datagram = new Datagram(Guid.NewGuid(), "c1", "*", 1, "{\"cid\":\"x\",\"cmd\":\"discover\"}");
+        var result = RouterStep.Process(
+            R2, new[] { new InboxEntry(datagram, R1) }, new SeenMessageCache(16), Line());
+        Assert.Single(result.RouterInbound);
+        Assert.Empty(result.Forwards);
+    }
+
+    [Fact]
+    public void BroadcastSecondCopyIsDroppedByDedup() {
+        var seen = new SeenMessageCache(16);
+        var datagram = new Datagram(Guid.NewGuid(), "c1", "*", 16, "{\"cid\":\"x\",\"cmd\":\"discover\"}");
+        var first = RouterStep.Process(R2, new[] { new InboxEntry(datagram, R1) }, seen, Line());
+        var second = RouterStep.Process(R2, new[] { new InboxEntry(datagram, R3) }, seen, Line());
+        Assert.Single(first.RouterInbound);
+        Assert.Empty(second.RouterInbound);
+        Assert.Empty(second.Forwards);
+    }
+
+    [Fact]
+    public void UnicastToAnotherRouterAddressIsForwardedNotHandled() {
+        // Addressed to r3 but sitting in r2's inbox: r2 must flood it onward like any unknown-endpoint target.
+        var datagram = new Datagram(Guid.NewGuid(), "c1", "r3", 16, "{\"cid\":\"x\",\"cmd\":\"ping\"}");
+        var result = RouterStep.Process(
+            R2, new[] { new InboxEntry(datagram, R1) }, new SeenMessageCache(16), Line());
+        Assert.Empty(result.RouterInbound);
+        Assert.Single(result.Forwards);
+    }
+
+    [Fact]
     public void EndToEndFloodSimulationDeliversExactlyOnceOnDiamond() {
         // Diamond: C1 -- R1 -- {R2 (top), R3 (bottom)} -- R4 -- C2; dedup at R4
         var r4 = "router.r4".AsId();
@@ -109,8 +161,8 @@ public class RouterStepTests {
                 new RouterNode(r4, "Farm", 20, 0, null, true)
             },
             new[] {
-                new ComputerNode(C1, "Farm", 0, 1),
-                new ComputerNode(C2, "Farm", 20, 1)
+                new EndpointNode(C1, "Farm", 0, 1),
+                new EndpointNode(C2, "Farm", 20, 1)
             },
             coverageRadius: 5,
             linkRadius: 15
@@ -137,6 +189,6 @@ public class RouterStepTests {
         }
 
         Assert.Single(deliveries); // router-side dedup collapses the diamond
-        Assert.Equal(C2, deliveries[0].ComputerId);
+        Assert.Equal(C2, deliveries[0].EndpointId);
     }
 }

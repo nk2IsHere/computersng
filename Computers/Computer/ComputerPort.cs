@@ -1,9 +1,8 @@
-using Computers.Core;
+using Computers.Router;
 
 namespace Computers.Computer;
 
-public interface IComputerPort {
-    Id Id { get; }
+public interface IComputerPort : INetworkEndpoint {
     Configuration Configuration { get; }
     Random Random { get; }
 

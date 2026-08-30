@@ -1,5 +1,6 @@
 using Computers.Computer;
 using Computers.Core;
+using Computers.Router.Domain;
 
 namespace Computers.Tests.TestDoubles;
 
@@ -18,6 +19,9 @@ public class FakeComputerPort : IComputerPort {
     public Random Random { get; } = new(42);
 
     public List<IComputerEvent> FiredEvents { get; } = new();
+    public List<Datagram> ReceivedDatagrams { get; } = new();
+
+    public void ReceiveDatagram(Datagram datagram) => ReceivedDatagrams.Add(datagram);
 
     public T LoadAsset<T>(string assetPath) where T : notnull => throw new NotSupportedException();
     public void Fire(IComputerEvent computerEvent) => FiredEvents.Add(computerEvent);

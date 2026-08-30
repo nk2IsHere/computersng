@@ -11,7 +11,7 @@ public class RouterStatefulDataContextEntryFactory : IStatefulDataContextEntryFa
     private readonly IMonitor _monitor;
     private readonly Configuration _configuration;
     private readonly NetworkRegistry _registry;
-    private readonly ContextLookup<IComputerPort> _computers;
+    private readonly ContextLookup<INetworkEndpoint> _endpoints;
     private readonly ContextLookup<IRouterPort> _routers;
 
     public RouterStatefulDataContextEntryFactory(
@@ -20,7 +20,7 @@ public class RouterStatefulDataContextEntryFactory : IStatefulDataContextEntryFa
         IMonitor monitor,
         Configuration configuration,
         NetworkRegistry registry,
-        ContextLookup<IComputerPort> computers,
+        ContextLookup<INetworkEndpoint> endpoints,
         ContextLookup<IRouterPort> routers
     ) {
         FactoryId = id;
@@ -28,7 +28,7 @@ public class RouterStatefulDataContextEntryFactory : IStatefulDataContextEntryFa
         _monitor = monitor;
         _configuration = configuration;
         _registry = registry;
-        _computers = computers;
+        _endpoints = endpoints;
         _routers = routers;
     }
 
@@ -46,7 +46,7 @@ public class RouterStatefulDataContextEntryFactory : IStatefulDataContextEntryFa
             _monitor,
             _configuration,
             _registry,
-            _computers,
+            _endpoints,
             _routers
         );
     }

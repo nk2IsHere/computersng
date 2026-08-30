@@ -51,6 +51,33 @@ public class ConfigurationTests {
     }
 
     [Fact]
+    public void PeripheralKeysParse() {
+        var yaml = string.Join("\n",
+            "peripheral:",
+            "  maxGroupSize: 9",
+            "  maxCommandsPerTick: 3",
+            "  maxSubscribersPerPeripheral: 2"
+        );
+        var configuration = yaml.DeserializeConfiguration<Configuration>();
+        Assert.Equal(9, configuration.Peripheral.MaxGroupSize);
+        Assert.Equal(3, configuration.Peripheral.MaxCommandsPerTick);
+        Assert.Equal(2, configuration.Peripheral.MaxSubscribersPerPeripheral);
+    }
+
+    [Fact]
+    public void PeripheralKeysHaveSpecDefaultsWhenSectionOmitted() {
+        var yaml = string.Join("\n",
+            "engine:",
+            "  shouldResetScriptOnFatalError: true"
+        );
+        var configuration = yaml.DeserializeConfiguration<Configuration>();
+        Assert.NotNull(configuration.Peripheral);
+        Assert.Equal(256, configuration.Peripheral.MaxGroupSize);
+        Assert.Equal(16, configuration.Peripheral.MaxCommandsPerTick);
+        Assert.Equal(16, configuration.Peripheral.MaxSubscribersPerPeripheral);
+    }
+
+    [Fact]
     public void RenderMaxFpsDefaultsTo60WhenOmitted() {
         var yaml = string.Join("\n",
             "render:",

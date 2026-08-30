@@ -37,7 +37,7 @@ public class JintSliceIntegrationTests {
 
     [Fact]
     public void AwaitedValueTaskResolvesToTheResultValueDirectly() {
-        // Documents why the JS HTTP wrappers must NOT destructure `{ Result }`:
+        // Documents why the JS HTTP wrappers must not destructure the Result property.
         // modern Jint task interop resolves an awaited ValueTask<T> to T itself.
         var engine = new Engine(options => {
             options.ExperimentalFeatures = ExperimentalFeature.All;
@@ -78,7 +78,7 @@ public class JintSliceIntegrationTests {
             options.MaxStatements(10_000);
         });
 
-        // Many small executions must NOT accumulate toward the budget.
+        // Many small executions must not accumulate toward the budget.
         for (var i = 0; i < 50; i++) {
             engine.Execute("for (let i = 0; i < 100; i++) {}");
         }

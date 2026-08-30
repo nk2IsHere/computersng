@@ -31,6 +31,8 @@ public class NetworkComputerApi : IComputerApi {
     }
 }
 
+public record RouterInfo(string Address, int? Channel);
+
 internal record HttpResponseBytes(
     int StatusCode,
     IDictionary<string, string> Headers,
@@ -68,51 +70,28 @@ internal class NetworkComputerState {
                 $"Payload exceeds maximum size of {_configuration.Network.MaxPayloadBytes} bytes");
         }
 
-        var coveringRouters = CoveringRouterPorts();
-        if (coveringRouters.Count == 0) {
-            throw new InvalidOperationException("No router in range - computer is offline");
-        }
-
-        var datagram = new Datagram(
-            Guid.NewGuid(),
-            GetAddress(),
+        var sent = NetworkDispatch.Send(
+            _registry,
+            _routers,
+            _computerPort.Id,
             address,
-            _configuration.Network.MessageTtl,
-            payload
+            payload,
+            _configuration.Network.MessageTtl
         );
 
-        coveringRouters.ForEach(router => router.Deliver(datagram, null));
+        if (!sent) {
+            throw new InvalidOperationException("No router in range - computer is offline");
+        }
     }
 
     public string GetAddress() {
         return _computerPort.Id.Last;
     }
 
-    public string[] ListReachable() {
-        return _registry
-            .ReachableComputers(_computerPort.Id)
-            .Select(id => id.Last)
-            .OrderBy(address => address)
-            .ToArray();
-    }
-
-    public List<Dictionary<string, object?>> GetRouters() {
+    public List<RouterInfo> GetRouters() {
         return CoveringRouterPorts()
-            .Select(router => new Dictionary<string, object?> {
-                ["address"] = router.Id.Last,
-                ["channel"] = router.Channel
-            })
+            .Select(router => new RouterInfo(router.Id.Last, router.Channel))
             .ToList();
-    }
-
-    public void ConfigureRouter(string routerAddress, int? channel) {
-        var router = CoveringRouterPorts().FirstOrDefault(port => port.Id.Last == routerAddress);
-        if (router is null) {
-            throw new InvalidOperationException($"No covering router with address '{routerAddress}'");
-        }
-
-        router.Channel = channel;
-        _registry.Invalidate();
     }
 
     private List<IRouterPort> CoveringRouterPorts() {

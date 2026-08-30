@@ -1,3 +1,5 @@
+import { AddListener } from "./Events"
+import { Call } from "./Rpc"
 
 export async function HttpRequestBytes(url, method = 'GET', data = null, headers = {}) {
     if(typeof url !== 'string') {
@@ -22,7 +24,6 @@ export async function HttpRequestBytes(url, method = 'GET', data = null, headers
     
     headers = new Map(Object.entries(headers ?? {}));
 
-    // Awaiting the host call resolves directly to the response object (Jint task interop).
     const { StatusCode, Headers, Body } = await Network.RequestHttpBytes(url, method, headers, data);
     return {
         statusCode: StatusCode,
@@ -54,7 +55,6 @@ export async function HttpRequestString(url, method = 'GET', data = null, header
     
     headers = new Map(Object.entries(headers ?? {}));
 
-    // Awaiting the host call resolves directly to the response object (Jint task interop).
     const { StatusCode, Headers, Body } = await Network.RequestHttpString(url, method, headers, data);
     return {
         statusCode: StatusCode,
@@ -83,25 +83,57 @@ export function GetAddress() {
     return Network.GetAddress()
 }
 
-export function ListReachable() {
-    return [...Network.ListReachable()]
-}
-
 export function GetRouters() {
     return [...Network.GetRouters()].map(router => ({
-        address: router.address,
-        channel: router.channel ?? null
+        address: router.Address,
+        channel: router.Channel ?? null
     }))
 }
 
-export function ConfigureRouter(routerAddress, channel) {
-    if(typeof routerAddress !== 'string') {
+let nextDiscoverCid = 1
+
+export async function Discover({ collectFrames = 120 } = {}) {
+    const cid = `d${nextDiscoverCid++}`
+    const found = new Set()
+
+    const unsubscribe = AddListener((event) => {
+        if (event.Type !== "NetworkMessage") {
+            return false
+        }
+        const [, payload] = event.Data
+        try {
+            const parsed = JSON.parse(payload)
+            if (parsed !== null && parsed.re === cid && parsed.ok === true) {
+                for (const address of parsed.data.endpoints) {
+                    found.add(address)
+                }
+                return true
+            }
+        } catch { /* not for us */ }
+        return false
+    })
+
+    try {
+        SendJson("*", { cid, cmd: "discover" })
+        for (let frame = 0; frame < collectFrames; frame++) {
+            await System.NextFrame()
+        }
+    } finally {
+        unsubscribe()
+    }
+
+    found.delete(GetAddress())
+    return [...found].sort()
+}
+
+export async function ConfigureRouter(routerAddress, channel, options = {}) {
+    if (typeof routerAddress !== 'string') {
         throw new Error('routerAddress must be a string')
     }
 
-    if(channel !== null && !Number.isInteger(channel)) {
+    if (channel !== null && !Number.isInteger(channel)) {
         throw new Error('channel must be an integer or null')
     }
 
-    Network.ConfigureRouter(routerAddress, channel)
+    await Call(routerAddress, "configure", { channel }, options)
 }

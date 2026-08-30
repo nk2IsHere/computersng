@@ -17,7 +17,8 @@ public class RouterActorTests {
         Network = new NetworkConfiguration {
             BlockedAddresses = new List<string>(),
             AllowedAddresses = new List<string>(),
-            RouterQueueLimit = queueLimit
+            RouterQueueLimit = queueLimit,
+            MessageTtl = 16
         }
     };
 
@@ -30,15 +31,15 @@ public class RouterActorTests {
         RouterStatefulDataContextEntry router = null!;
         var routerLookup = new ContextLookup<IRouterPort>(
             () => new HashSet<ContextEntry<IRouterPort>> { new(R1, router) });
-        var computerLookup = new ContextLookup<IComputerPort>(
-            () => new HashSet<ContextEntry<IComputerPort>> { new(C1, computer) });
+        var endpointLookup = new ContextLookup<INetworkEndpoint>(
+            () => new HashSet<ContextEntry<INetworkEndpoint>> { new(C1, computer) });
 
         var registry = new NetworkRegistry(new TestMonitor(), configuration, routerLookup);
         router = new RouterStatefulDataContextEntry(
-            FactoryId, R1, new TestMonitor(), configuration, registry, computerLookup, routerLookup);
+            FactoryId, R1, new TestMonitor(), configuration, registry, endpointLookup, routerLookup);
 
-        registry.Register(new Placement(R1, NetworkNodeKind.Router, "Farm", 0, 0));
-        registry.Register(new Placement(C1, NetworkNodeKind.Computer, "Farm", 1, 0));
+        registry.Register(new Placement(R1, NodeRole.Router, "Farm", 0, 0));
+        registry.Register(new Placement(C1, NodeRole.Endpoint, "Farm", 1, 0));
         return (router, registry, computer);
     }
 
@@ -49,10 +50,9 @@ public class RouterActorTests {
         router.Deliver(new Datagram(Guid.NewGuid(), "far", "c1", 16, "hi"), null);
         router.Fire(new TickRouterEvent(1));
 
-        var networkEvent = Assert.IsType<NetworkMessageComputerEvent>(Assert.Single(computer.FiredEvents));
-        Assert.Equal(C1, networkEvent.ComputerId);
-        Assert.Equal("far", networkEvent.SourceAddress);
-        Assert.Equal("hi", networkEvent.Payload);
+        var received = Assert.Single(computer.ReceivedDatagrams);
+        Assert.Equal("far", received.SourceAddress);
+        Assert.Equal("hi", received.Payload);
     }
 
     [Fact]
@@ -61,7 +61,7 @@ public class RouterActorTests {
         router.Deliver(new Datagram(Guid.NewGuid(), "far", "c1", 16, "hi"), null); // not started
         router.Start();
         router.Fire(new TickRouterEvent(1));
-        Assert.Empty(computer.FiredEvents);
+        Assert.Empty(computer.ReceivedDatagrams);
     }
 
     [Fact]
@@ -72,7 +72,7 @@ public class RouterActorTests {
             router.Deliver(new Datagram(Guid.NewGuid(), "far", "c1", 16, $"m{i}"), null);
         }
         router.Fire(new TickRouterEvent(1));
-        Assert.Equal(2, computer.FiredEvents.Count);
+        Assert.Equal(2, computer.ReceivedDatagrams.Count);
     }
 
     [Fact]
@@ -83,15 +83,18 @@ public class RouterActorTests {
         router.Stop();
         router.Start();
         router.Fire(new TickRouterEvent(1));
-        Assert.Empty(computer.FiredEvents);
+        Assert.Empty(computer.ReceivedDatagrams);
     }
 
     [Fact]
     public void ChannelSurvivesStoreRestore() {
         var (router, _, _) = Make();
-        router.Channel = 7;
-        var state = router.Store(Context.Empty);
+        router.Start();
+        router.Deliver(new Datagram(Guid.NewGuid(), "c1", "r1", 16, "{\"cid\":\"s1\",\"cmd\":\"configure\",\"channel\":7}"), null);
+        router.Fire(new TickRouterEvent(1));
+        Assert.Equal(7, router.Channel);
 
+        var state = router.Store(Context.Empty);
         var (fresh, _, _) = Make();
         fresh.Restore(Context.Empty, state);
         Assert.Equal(7, fresh.Channel);

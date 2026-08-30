@@ -60,6 +60,17 @@ storage:
   # The path to the directory containing the persistent storage files.
   externalStorageFolder: "storage/"
 
+# Peripheral configuration
+peripheral:
+  # Maximum objects a machine group flood fill may visit.
+  maxGroupSize: 256
+
+  # Maximum queued commands a peripheral processes per game tick.
+  maxCommandsPerTick: 16
+
+  # Maximum addresses that may subscribe to a peripheral's events.
+  maxSubscribersPerPeripheral: 16
+
 # Network configuration
 network:
   # Mode of 

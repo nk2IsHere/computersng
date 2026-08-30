@@ -5,6 +5,9 @@ using Computers.Core;
 using Computers.Game;
 using Computers.Game.Domain;
 using Computers.Game.Utils;
+using Computers.Peripheral;
+using Computers.Peripheral.Domain;
+using Computers.Peripheral.Domain.Event;
 using Computers.Router;
 using Computers.Router.Domain;
 using Computers.Router.Domain.Event;
@@ -56,6 +59,12 @@ public class ModEntry : Mod {
     private static readonly Id RouterRecipeId = GameRecipeBaseId / "Router";
     
     private static readonly Id RouterMachineId = GameMachineBaseId / "Router";
+
+    private static readonly Id PeripheralTileSheetId = GameTileSheetBaseId / "MachineController";
+    private static readonly Id PeripheralBigCraftableId = GameBigCraftableBaseId / "MachineController";
+    private static readonly Id PeripheralRecipeId = GameRecipeBaseId / "MachineController";
+
+    private static readonly Id PeripheralMachineId = GameMachineBaseId / "MachineController";
     
     public override void Entry(IModHelper helper) {
         DiskItemPatches.Apply(BaseId);
@@ -215,6 +224,56 @@ public class ModEntry : Mod {
                         AllowFairyDust = false,
                         WobbleWhileWorking = false,
                         InteractMethod = "Computers.ModEntry, Computers: RouterMachineInteractMethod",
+                    }
+                )
+            ),
+            new IContextEntry.StatelessDataContextEntry(
+                PeripheralTileSheetId,
+                typeof(TileSheet),
+                new TileSheet(PeripheralTileSheetId, "assets/MachineController.png")
+            ),
+            new IContextEntry.StatelessDataContextEntry(
+                PeripheralBigCraftableId,
+                typeof(BigCraftableData),
+                new BigCraftableData {
+                    Name = PeripheralBigCraftableId,
+                    DisplayName = "Machine Controller",
+                    Description = "Controls an edge-connected group of machines and chests over the network.",
+                    Price = 1000,
+                    Fragility = 0,
+                    CanBePlacedOutdoors = true,
+                    CanBePlacedIndoors = true,
+                    IsLamp = false,
+                    Texture = PeripheralTileSheetId,
+                    SpriteIndex = 0,
+                    ContextTags = null,
+                    CustomFields = null
+                }
+            ),
+            new IContextEntry.StatelessDataContextEntry(
+                PeripheralRecipeId,
+                typeof(Recipe),
+                new Recipe(
+                    PeripheralBigCraftableId,
+                    new Dictionary<string, int> {
+                        { "380", 5 }
+                    },
+                    true,
+                    new IRecipeRequirement.NoneRequired(),
+                    "Machine Controller"
+                )
+            ),
+            new IContextEntry.StatelessDataContextEntry(
+                PeripheralMachineId,
+                typeof(Machine),
+                new Machine(
+                    $"(BC){PeripheralBigCraftableId}",
+                    new MachineData {
+                        HasInput = false,
+                        HasOutput = false,
+                        AllowFairyDust = false,
+                        WobbleWhileWorking = false,
+                        InteractMethod = "Computers.ModEntry, Computers: PeripheralMachineInteractMethod",
                     }
                 )
             ),
@@ -400,7 +459,7 @@ public class ModEntry : Mod {
                     initializer.GetSingle<IMonitor>(),
                     initializer.GetSingle<Configuration>(),
                     initializer.GetSingle<NetworkRegistry>(ServiceBaseId / "NetworkRegistry"),
-                    initializer.Lookup<IComputerPort>(),
+                    initializer.Lookup<INetworkEndpoint>(),
                     initializer.Lookup<IRouterPort>()
                 )
             ),
@@ -423,6 +482,45 @@ public class ModEntry : Mod {
                 typeof(IEventHandler),
                 initializer => new RouterTickDispatcher(
                     initializer.Lookup<IRouterPort>()
+                )
+            ),
+            new IContextEntry.ServiceContextEntry(
+                ServiceBaseId / "MachineWorld",
+                typeof(IMachineWorld),
+                _ => new StardewMachineWorld()
+            ),
+            new IContextEntry.ServiceContextEntry(
+                ServiceBaseId / "PeripheralFactory",
+                typeof(IStatefulDataContextEntryFactory),
+                initializer => new MachineControllerStatefulDataContextEntryFactory(
+                    ServiceBaseId / "PeripheralFactory",
+                    PeripheralBigCraftableId,
+                    initializer.GetSingle<IMonitor>(),
+                    initializer.GetSingle<Configuration>(),
+                    initializer.GetSingle<NetworkRegistry>(ServiceBaseId / "NetworkRegistry"),
+                    initializer.Lookup<IRouterPort>(),
+                    initializer.GetSingle<IMachineWorld>(ServiceBaseId / "MachineWorld")
+                )
+            ),
+            new IContextEntry.ServiceContextEntry(
+                ServiceBaseId / "PeripheralTickDispatcher",
+                typeof(IEventHandler),
+                initializer => new PeripheralTickDispatcher(
+                    initializer.Lookup<IPeripheralPort>()
+                )
+            ),
+            new IContextEntry.ServiceContextEntry(
+                ServiceBaseId / "PeripheralStartDispatcher",
+                typeof(IEventHandler),
+                initializer => new PeripheralStartDispatcher(
+                    initializer.Lookup<IPeripheralPort>()
+                )
+            ),
+            new IContextEntry.ServiceContextEntry(
+                ServiceBaseId / "PeripheralStopDispatcher",
+                typeof(IEventHandler),
+                initializer => new PeripheralStopDispatcher(
+                    initializer.Lookup<IPeripheralPort>()
                 )
             )
         );
@@ -551,7 +649,7 @@ public class ModEntry : Mod {
         var registry = _context.GetSingle<NetworkRegistry>(ServiceBaseId / "NetworkRegistry");
         registry.Register(new Placement(
             computer.Id,
-            NetworkNodeKind.Computer,
+            NodeRole.Endpoint,
             machine.Location.NameOrUniqueName,
             (int) machine.TileLocation.X,
             (int) machine.TileLocation.Y
@@ -584,6 +682,25 @@ public class ModEntry : Mod {
         // Show router id and channel in a message box
         var routerPort = _context.GetSingle<IRouterPort>(routerId);
         Game1.showGlobalMessage($"Router Id: {routerId.Last}, Channel: {routerPort.Channel?.ToString() ?? "none"}");
+        return true;
+    }
+
+    public static bool PeripheralMachineInteractMethod(
+        Object machine,
+        GameLocation location,
+        Farmer player
+    ) {
+        var monitor = _context.GetSingle<IMonitor>(ServiceBaseId / "Monitor");
+        monitor.Log($"Interacted with machine controller. Machine: {machine}, Location: {location}, Player: {player}");
+
+        var modData = machine.modData;
+        if (modData == null || !modData.ContainsKey("PeripheralId")) {
+            monitor.Log("Machine controller does not have an id - cannot show it.");
+            return true;
+        }
+
+        var peripheralId = modData["PeripheralId"].AsId();
+        Game1.showGlobalMessage($"Machine Controller Id: {peripheralId.Last}");
         return true;
     }
 
@@ -624,7 +741,17 @@ public class ModEntry : Mod {
                 if (obj.modData.ContainsKey("RouterId")) {
                     placements.Add(new Placement(
                         obj.modData["RouterId"].AsId(),
-                        NetworkNodeKind.Router,
+                        NodeRole.Router,
+                        location.NameOrUniqueName,
+                        (int) tile.X,
+                        (int) tile.Y
+                    ));
+                }
+
+                if (obj.modData.ContainsKey("PeripheralId")) {
+                    placements.Add(new Placement(
+                        obj.modData["PeripheralId"].AsId(),
+                        NodeRole.Endpoint,
                         location.NameOrUniqueName,
                         (int) tile.X,
                         (int) tile.Y
@@ -635,7 +762,7 @@ public class ModEntry : Mod {
                 if (heldModData is not null && heldModData.ContainsKey("ComputerId")) {
                     placements.Add(new Placement(
                         heldModData["ComputerId"].AsId(),
-                        NetworkNodeKind.Computer,
+                        NodeRole.Endpoint,
                         location.NameOrUniqueName,
                         (int) tile.X,
                         (int) tile.Y
@@ -661,7 +788,18 @@ public class ModEntry : Mod {
                 HandleRouterAdded(obj, position);
                 registry.Register(new Placement(
                     obj.modData["RouterId"].AsId(),
-                    NetworkNodeKind.Router,
+                    NodeRole.Router,
+                    locationName,
+                    (int) position.X,
+                    (int) position.Y
+                ));
+            }
+
+            if (obj.ItemId == PeripheralBigCraftableId) {
+                HandlePeripheralAdded(obj, position);
+                registry.Register(new Placement(
+                    obj.modData["PeripheralId"].AsId(),
+                    NodeRole.Endpoint,
                     locationName,
                     (int) position.X,
                     (int) position.Y
@@ -672,7 +810,7 @@ public class ModEntry : Mod {
             if (heldModData is not null && heldModData.ContainsKey("ComputerId")) {
                 registry.Register(new Placement(
                     heldModData["ComputerId"].AsId(),
-                    NetworkNodeKind.Computer,
+                    NodeRole.Endpoint,
                     locationName,
                     (int) position.X,
                     (int) position.Y
@@ -697,7 +835,41 @@ public class ModEntry : Mod {
                 HandleRouterRemoved(routerId, obj, position);
                 registry.Unregister(routerId);
             }
+
+            if (objectData is not null && objectData.ContainsKey("PeripheralId")) {
+                var peripheralId = objectData["PeripheralId"].AsId();
+                HandlePeripheralRemoved(peripheralId);
+                registry.Unregister(peripheralId);
+            }
         }
+
+        // Any nearby object change may alter machine groups.
+        _context.Get<IPeripheralPort>().ForEach(peripheral => peripheral.Value.InvalidateGroup());
+    }
+
+    private static void HandlePeripheralAdded(Object obj, Vector2 position) {
+        var monitor = _context.GetSingle<IMonitor>(ServiceBaseId / "Monitor");
+        monitor.Log("Machine controller added.");
+
+        IPeripheralPort peripheral;
+        if (obj.modData.ContainsKey("PeripheralId")) {
+            monitor.Log("PeripheralId already exists.");
+            peripheral = _context.GetSingle<IPeripheralPort>(obj.modData["PeripheralId"].AsId());
+        } else {
+            peripheral = _context.ProduceSingle<MachineControllerStatefulDataContextEntry>(ServiceBaseId / "PeripheralFactory");
+            monitor.Log($"Setting PeripheralId to {peripheral.Id}");
+            obj.modData["PeripheralId"] = peripheral.Id;
+        }
+
+        peripheral.Start();
+    }
+
+    private static void HandlePeripheralRemoved(Id peripheralId) {
+        var monitor = _context.GetSingle<IMonitor>(ServiceBaseId / "Monitor");
+        monitor.Log($"Machine controller with id {peripheralId} was removed.");
+
+        var peripheral = _context.GetSingle<IPeripheralPort>(peripheralId);
+        peripheral.Stop();
     }
 
     private static void HandleRouterAdded(Object obj, Vector2 position) {

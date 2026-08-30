@@ -3,7 +3,7 @@ import { ConfigureRouter, GetRouters } from "../Core/Network"
 
 export default {
     command: "router-channel",
-    description: "Set or clear a covering router's channel",
+    description: "Set or clear a reachable router's channel and await its ack",
     usage: ".router-channel <routerAddress> <channel|clear>",
     action: async (args, console, context) => {
         const [routerAddress, channelInput] = CommandArguments(context, args)
@@ -19,8 +19,8 @@ export default {
         }
 
         try {
-            ConfigureRouter(routerAddress, channel)
-            console.Info(`Router ${routerAddress} channel set to ${channel ?? "none"}`)
+            await ConfigureRouter(routerAddress, channel)
+            console.Info(`Router ${routerAddress} acked: channel set to ${channel ?? "none"}`)
             console.Info(`Covering routers now: ${JSON.stringify(GetRouters())}`)
             return CommandResult(context)
         } catch (e) {

@@ -1,4 +1,5 @@
 import { Keys } from "../Core/Constants"
+import { FireResult } from "./FireResult"
 
 export class ConsoleView {
     constructor(
@@ -31,8 +32,7 @@ export class ConsoleView {
 
         this.currentInputOffset = 0
 
-        // Render caches: rebuilding wrapped lines and the input line every frame is the
-        // main source of per-frame string garbage, so both are cached until invalidated.
+        // Render caches
         this.cachedLines = []
         this.cachedLinesRevision = -1
         this.cachedInputLine = ""
@@ -86,7 +86,7 @@ export class ConsoleView {
         const maxLines = Math.floor(height / fontCharacterHeight)
         const maxCharactersPerLine = Math.floor(width / fontCharacterWidth)
 
-        // Split the logs into lines by width (cached until the console changes)
+        // Split the logs into lines by width
         const lines = this.WrappedLines(maxCharactersPerLine)
 
         // Render the lines by offset
@@ -116,7 +116,7 @@ export class ConsoleView {
             currentY += fontCharacterHeight
         }
 
-        // Render the input line (cached until the input or its prompt state changes)
+        // Render the input line
         if (allowInput) {
             const currentInput = this.InputLine(maxCharactersPerLine)
 
@@ -148,7 +148,7 @@ export class ConsoleView {
                 .some((name) => currentlyHeldKeys.includes(Keys.fromName(name)))
 
             if (modifierHeld) {
-                // Ctrl/Cmd+V: paste clipboard at the cursor (newlines collapse to spaces).
+                // Paste
                 if (key.name === "V") {
                     const pasted = (System.GetClipboard() ?? "").replace(/\r/g, "").replace(/\n/g, " ")
                     if (pasted.length > 0) {
@@ -158,7 +158,7 @@ export class ConsoleView {
                     }
                 }
 
-                // Ctrl/Cmd+C: copy the current input line to the clipboard.
+                // Copy
                 if (key.name === "C") {
                     System.SetClipboard(this.currentInput)
                     this.console.Info("Input copied to clipboard")
@@ -228,5 +228,7 @@ export class ConsoleView {
                 this.inputHistoryCursor = null
             }
         }
+
+        return FireResult.Passed
     }
 }

@@ -18,6 +18,17 @@ const facts = [
     "You can find the computer id in the console by typing `.id`",
     "You can change mod configuration by going to Mods/Computers/assets/Configuration.yml",
     "You can execute arbitrary script at startup by overriding the `Startup.js` file in the Persistent or External layer",
+    "Computers talk over routers. Place a router within 10 tiles and check your coverage with `.net-ls`",
+    "Routers within 16 tiles of each other mesh automatically. Matching channels bridge routers globally",
+    "Set a router channel with `.router-channel <address> <channel>`",
+    "Network is fire-and-forget like UDP, check how `Call` is made from /Core/Rpc when you need a reply",
+    "Network messages travel one router hop per game tick and die when their TTL runs out. There is no delivery guarantee",
+    "The address `*` broadcasts to every router",
+    "Discovery takes time. Farther routers answer later",
+    "You can serve your own RPC commands in Startup.js by adding to `rpcServerView.handlers`",
+    "Peripherals speak JSON RPC",
+    "Subscribe to a Machine Controller's `machineReady` pushes with `Subscribe` from /Core/Peripheral",
+    "A crashed or unbooted computer is silent on the network. If it does not answer ping, it is not really there",
     "More facts will be added in the future"
 ]
 

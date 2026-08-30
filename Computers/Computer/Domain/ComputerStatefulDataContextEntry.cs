@@ -143,6 +143,10 @@ public class ComputerStatefulDataContextEntry : IContextEntry.StatefulDataContex
         return _frameGate.Task;
     }
 
+    public void ReceiveDatagram(Datagram datagram) {
+        Fire(new NetworkMessageComputerEvent(Id, datagram.MessageId, datagram.SourceAddress, datagram.Payload));
+    }
+
     public IDictionary<string, object> GetStorage(IComputerApi api) {
         if(_storage.TryGetValue(api.Name, out var value)) {
             return (IDictionary<string, object>) value;
