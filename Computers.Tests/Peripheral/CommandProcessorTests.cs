@@ -1,4 +1,5 @@
 using Computers.MachineController.Domain;
+using Computers.Peripheral.Domain;
 using Computers.MachineController.Domain.Wire;
 using Computers.Router.Domain.Wire;
 using Newtonsoft.Json.Linq;
@@ -35,9 +36,10 @@ public class CommandProcessorTests {
         }
     }
 
-    private static (MachineControllerCommandProcessor Processor, FakeOps Ops) Make(int maxSubscribers = 16) {
+    private static (MachineControllerCommandProcessor Processor, FakeOps Ops, PeripheralSubscriptions Subscriptions) Make(int maxSubscribers = 16) {
         var ops = new FakeOps();
-        return (new MachineControllerCommandProcessor(ops, maxSubscribers), ops);
+        var subscriptions = new PeripheralSubscriptions(new[] { "ready" }, maxSubscribers);
+        return (new MachineControllerCommandProcessor(ops, subscriptions), ops, subscriptions);
     }
 
     private static Reply Process(MachineControllerCommandProcessor processor, string json, string source = "c1") {
@@ -48,7 +50,7 @@ public class CommandProcessorTests {
 
     [Fact]
     public void PingEchoesCidAndReportsKind() {
-        var (processor, _) = Make();
+        var (processor, _, _) = Make();
         var reply = Process(processor, "{\"cid\":\"abc\",\"cmd\":\"ping\"}");
         Assert.Equal("abc", reply.Re.Value<string>());
         Assert.True(reply.Ok);
@@ -57,14 +59,14 @@ public class CommandProcessorTests {
 
     [Fact]
     public void NumericCidIsEchoedAsNumber() {
-        var (processor, _) = Make();
+        var (processor, _, _) = Make();
         var reply = Process(processor, "{\"cid\":7,\"cmd\":\"ping\"}");
         Assert.Equal(7, reply.Re.Value<int>());
     }
 
     [Fact]
     public void ListReturnsTheSnapshot() {
-        var (processor, ops) = Make();
+        var (processor, ops, _) = Make();
         var reply = Process(processor, "{\"cid\":\"1\",\"cmd\":\"list\"}");
         Assert.True(reply.Ok);
         Assert.IsType<GroupSnapshot>(reply.Data);
@@ -73,21 +75,21 @@ public class CommandProcessorTests {
 
     [Fact]
     public void CollectAllMapsToNullTarget() {
-        var (processor, ops) = Make();
+        var (processor, ops, _) = Make();
         Process(processor, "{\"cid\":\"1\",\"cmd\":\"collect\",\"machine\":\"all\"}");
         Assert.Contains("collect:all,all", ops.Calls);
     }
 
     [Fact]
     public void TargetedCollectPassesCoordinates() {
-        var (processor, ops) = Make();
+        var (processor, ops, _) = Make();
         Process(processor, "{\"cid\":\"1\",\"cmd\":\"collect\",\"machine\":{\"x\":3,\"y\":4}}");
         Assert.Contains("collect:3,4", ops.Calls);
     }
 
     [Fact]
     public void GroupOpExceptionBecomesFailureReply() {
-        var (processor, _) = Make();
+        var (processor, _, _) = Make();
         var reply = Process(processor, "{\"cid\":\"1\",\"cmd\":\"collect\",\"machine\":{\"x\":99,\"y\":0}}");
         Assert.False(reply.Ok);
         Assert.Equal("machine not in group", reply.Error);
@@ -95,7 +97,7 @@ public class CommandProcessorTests {
 
     [Fact]
     public void InsertMapsArgumentsIncludingOptionalChest() {
-        var (processor, ops) = Make();
+        var (processor, ops, _) = Make();
         Process(processor, "{\"cid\":\"1\",\"cmd\":\"insert\",\"machine\":{\"x\":1,\"y\":2},\"itemId\":\"378\",\"count\":2,\"fromChest\":{\"x\":5,\"y\":6}}");
         Assert.Contains("insert:1,2,378,2,5,6", ops.Calls);
 
@@ -105,7 +107,7 @@ public class CommandProcessorTests {
 
     [Fact]
     public void RescanInvokesOps() {
-        var (processor, ops) = Make();
+        var (processor, ops, _) = Make();
         var reply = Process(processor, "{\"cid\":\"1\",\"cmd\":\"rescan\"}");
         Assert.True(reply.Ok);
         Assert.Contains("rescan", ops.Calls);
@@ -113,7 +115,7 @@ public class CommandProcessorTests {
 
     [Fact]
     public void UnknownCommandIsAFailureReply() {
-        var (processor, _) = Make();
+        var (processor, _, _) = Make();
         var reply = Process(processor, "{\"cid\":\"1\",\"cmd\":\"frobnicate\"}");
         Assert.False(reply.Ok);
         Assert.Contains("unknown command", reply.Error);
@@ -121,20 +123,20 @@ public class CommandProcessorTests {
 
     [Fact]
     public void PayloadWithoutCidIsDropped() {
-        var (processor, _) = Make();
+        var (processor, _, _) = Make();
         Assert.Null(processor.Process("c1", JObject.Parse("{\"cmd\":\"ping\"}")));
     }
 
     [Fact]
     public void SubscribeManagesReadySubscribers() {
-        var (processor, _) = Make(maxSubscribers: 2);
+        var (processor, _, subscriptions) = Make(maxSubscribers: 2);
 
         Process(processor, "{\"cid\":\"1\",\"cmd\":\"subscribe\",\"events\":[\"ready\"]}", source: "c1");
-        Assert.Contains("c1", processor.ReadySubscribers);
+        Assert.Contains("c1", subscriptions.Subscribers("ready"));
 
         // duplicate subscribe is idempotent
         Process(processor, "{\"cid\":\"2\",\"cmd\":\"subscribe\",\"events\":[\"ready\"]}", source: "c1");
-        Assert.Single(processor.ReadySubscribers);
+        Assert.Single(subscriptions.Subscribers("ready"));
 
         Process(processor, "{\"cid\":\"3\",\"cmd\":\"subscribe\",\"events\":[\"ready\"]}", source: "c2");
         var overflow = Process(processor, "{\"cid\":\"4\",\"cmd\":\"subscribe\",\"events\":[\"ready\"]}", source: "c3");
@@ -142,14 +144,14 @@ public class CommandProcessorTests {
         Assert.Equal("subscriber limit reached", overflow.Error);
 
         Process(processor, "{\"cid\":\"5\",\"cmd\":\"unsubscribe\",\"events\":[\"ready\"]}", source: "c1");
-        Assert.DoesNotContain("c1", processor.ReadySubscribers);
+        Assert.DoesNotContain("c1", subscriptions.Subscribers("ready"));
     }
 
     // --- Wire-format pins: the serialized bytes must stay identical to the shipped protocol ---
 
     [Fact]
     public void SuccessReplySerializesToTheFrozenWireFormat() {
-        var (processor, _) = Make();
+        var (processor, _, _) = Make();
         var reply = Process(processor, "{\"cid\":\"abc\",\"cmd\":\"ping\"}");
         Assert.Equal(
             "{\"re\":\"abc\",\"ok\":true,\"data\":{\"type\":\"machineController\"},\"error\":null}",
@@ -158,7 +160,7 @@ public class CommandProcessorTests {
 
     [Fact]
     public void FailureReplySerializesToTheFrozenWireFormat() {
-        var (processor, _) = Make();
+        var (processor, _, _) = Make();
         var reply = Process(processor, "{\"cid\":9,\"cmd\":\"frobnicate\"}");
         Assert.Equal(
             "{\"re\":9,\"ok\":false,\"data\":null,\"error\":\"unknown command 'frobnicate'\"}",

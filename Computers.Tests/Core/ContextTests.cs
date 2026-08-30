@@ -123,6 +123,33 @@ public class ContextTests {
     }
 
     [Fact]
+    public void RestoreSkipsEntriesWhoseFactoryIsGoneAndKeepsRestoringTheRest() {
+        // Mirrors a factory rename between saves: the orphaned entry must not abort
+        // the whole restore.
+        var original = CreateContextWithFactory();
+        var survivor = original.ProduceSingle<CounterEntry>(FactoryId);
+        survivor.Value = 7;
+
+        var state = original.Store();
+        var orphanState = ContextEntryState.Empty;
+        orphanState.Id = "data.orphan.x1".AsId();
+        orphanState.FactoryId = "svc.gone".AsId();
+        var withOrphan = new Dictionary<Id, Dictionary<string, object>> {
+            // The orphan comes first so an abort would take the survivor with it.
+            [orphanState.Id!] = orphanState.Serialize()
+        };
+        foreach (var (id, data) in state) {
+            withOrphan[id] = data;
+        }
+
+        var restored = CreateContextWithFactory();
+        var skipped = restored.Restore(withOrphan);
+
+        Assert.Equal(new[] { "data.orphan.x1".AsId() }, skipped);
+        Assert.Equal(7, restored.GetSingle<CounterEntry>(survivor.Id).Value);
+    }
+
+    [Fact]
     public void ContextEntryStateGetOrDefaultFallsBack() {
         var state = ContextEntryState.Empty;
         Assert.Equal("fallback", state.GetOrDefault("missing", "fallback"));

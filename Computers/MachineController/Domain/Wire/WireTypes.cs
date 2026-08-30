@@ -44,8 +44,6 @@ public record CollectResult(IReadOnlyList<CollectedItem> Moved);
 
 public record InsertResult(MachinePosition Machine, string Loaded);
 
-public record PingResult(string Type);
-
 public record MachineReadyEvent(string Event, MachineMemberSnapshot Machine);
 
 public abstract record PeripheralRequest;
@@ -64,7 +62,3 @@ public record InsertRequest(
     int Count,
     MachinePosition? FromChest
 ) : PeripheralRequest;
-
-public record SubscribeRequest(IReadOnlyList<string> Events) : PeripheralRequest;
-
-public record UnsubscribeRequest(IReadOnlyList<string> Events) : PeripheralRequest;

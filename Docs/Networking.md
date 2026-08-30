@@ -40,7 +40,8 @@ A message is a request when it has `cid` and `cmd` and no `re`. Replies echo the
 ## Ping convention
 
 Well-behaved endpoints answer `ping` with a self-description. Known types are `computer`
-served by the OS by default, `machineController` and `router`. A crashed or unbooted
+served by the OS by default, `machineController`, `weatherStation`, `playerSensor` and
+`router`. A crashed or unbooted
 computer answers nothing. Override or extend your computer's answers by adding handlers to
 `rpcServerView.handlers` in `Startup.js`.
 
@@ -71,6 +72,33 @@ bridge routers across locations.
 
 The controller groups machines and chests connected edge to edge around it. Subscribers
 receive `machineReady` event pushes when a machine in the group becomes ready.
+
+## Weather station commands
+
+| Command | Args | Reply data |
+|---|---|---|
+| `ping` | | `{ type: "weatherStation" }` |
+| `read` | | `{ time, day, season, year, weather, weatherTomorrow, dailyLuck }` |
+| `subscribe` | `{ events: ["day", "time"] }` | ack |
+| `unsubscribe` | `{ events: [...] }` | ack |
+
+The station reads its own location's weather, so an Island station reports Island rain.
+Subscribers receive `{ event: "day" | "time", reading }` pushes when the day or the ten
+minute game clock changes.
+
+## Player sensor commands
+
+| Command | Args | Reply data |
+|---|---|---|
+| `ping` | | `{ type: "playerSensor", radius }` |
+| `read` | | `{ players: [{ kind, name, x, y }], npcs: [...] }` |
+| `configure` | `{ radius: 1..64 }` | ack |
+| `subscribe` | `{ events: ["presence"] }` | ack |
+| `unsubscribe` | `{ events: [...] }` | ack |
+
+The sensor sees players and NPCs within its radius. The default comes from
+`playerSensor.radius` (8 tiles) and `configure` overrides it per sensor, surviving saves. Subscribers receive `{ event: "presence", entered: [...], left: [...] }`
+pushes when someone enters or leaves the radius.
 
 ## Console commands
 

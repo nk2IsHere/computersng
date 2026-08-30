@@ -43,7 +43,11 @@ Make processing of Stardew's resources a configurable function pipe-like process
 
 ## Docs
 
-- [Networking](Docs/Networking.md) - the LAN wire protocol, router firmware and machine controller commands
+- [Computer](Docs/Computer.md) - placing computers, disks, how programs run and the JS environment
+- [Console and commands](Docs/Console.md) - the console, JS evaluation, piping and every command
+- [Storage](Docs/Storage.md) - the layered file system, external storage and Startup.js
+- [Networking](Docs/Networking.md) - the LAN wire protocol, router firmware and peripheral command tables
+- [Peripherals](Docs/Peripherals.md) - setting up routers and using every peripheral
 
 ## TODOs
 
@@ -87,9 +91,9 @@ Make processing of Stardew's resources a configurable function pipe-like process
 ### More peripherals
 
 - [x] Add CI with build + tests and tagged releases
-- [ ] Move subscribe/event-push handling into shared peripheral code
-- [ ] Add weather station peripheral
-- [ ] Add player sensor peripheral
+- [x] Move subscribe/event-push handling into shared peripheral code
+- [x] Add weather station peripheral
+- [x] Add player sensor peripheral
 - [ ] Add mailer peripheral
 - [ ] Add shipping controller peripheral
 - [ ] Add speaker peripheral
