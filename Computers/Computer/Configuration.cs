@@ -14,15 +14,25 @@ public class Configuration {
     
     public NetworkConfiguration Network { get; set; } = null!;
 
+    public PeripheralConfiguration Peripheral { get; set; } = new();
+
     public MachineControllerConfiguration MachineController { get; set; } = new();
+
+    public PlayerSensorConfiguration PlayerSensor { get; set; } = new();
+}
+
+public class PeripheralConfiguration {
+    public int MaxCommandsPerTick { get; set; } = 16;
+
+    public int MaxSubscribers { get; set; } = 16;
 }
 
 public class MachineControllerConfiguration {
     public int MaxGroupSize { get; set; } = 256;
+}
 
-    public int MaxCommandsPerTick { get; set; } = 16;
-
-    public int MaxSubscribersPerPeripheral { get; set; } = 16;
+public class PlayerSensorConfiguration {
+    public int Radius { get; set; } = 8;
 }
 
 public class ResourceConfiguration {

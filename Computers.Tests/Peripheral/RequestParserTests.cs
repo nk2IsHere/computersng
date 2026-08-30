@@ -62,23 +62,6 @@ public class RequestParserTests {
     }
 
     [Fact]
-    public void SubscribeParsesEvents() {
-        var request = Assert.IsType<SubscribeRequest>(
-            RequestParser.ParseBody(Payload("{\"cmd\":\"subscribe\",\"events\":[\"ready\"]}")));
-        Assert.Equal(new[] { "ready" }, request.Events);
-
-        Assert.IsType<UnsubscribeRequest>(
-            RequestParser.ParseBody(Payload("{\"cmd\":\"unsubscribe\",\"events\":[\"ready\"]}")));
-    }
-
-    [Fact]
-    public void SubscribeWithoutReadyThrows() {
-        var exception = Assert.Throws<GroupOpException>(
-            () => RequestParser.ParseBody(Payload("{\"cmd\":\"subscribe\",\"events\":[\"other\"]}")));
-        Assert.Equal("only the 'ready' event is supported", exception.Message);
-    }
-
-    [Fact]
     public void UnknownCommandThrowsWithExactMessage() {
         var exception = Assert.Throws<GroupOpException>(
             () => RequestParser.ParseBody(Payload("{\"cmd\":\"frobnicate\"}")));

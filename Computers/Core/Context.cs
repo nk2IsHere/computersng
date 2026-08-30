@@ -81,21 +81,37 @@ public class Context {
 
         return state;
     }
-    
-    public void Restore(Dictionary<Id, Dictionary<string, object>> state) {
+
+    public IReadOnlyList<Id> Restore(Dictionary<Id, Dictionary<string, object>> state) {
+        var skipped = new List<Id>();
         foreach (var (id, data) in state) {
             var entryState = ContextEntryState.Deserialize(data);
             if (!_entries.TryGetValue(id, out var entry)) {
-                // Find factory for the entry
-                var factoryId = entryState.FactoryId ?? throw new KeyNotFoundException($"Factory id for entry '{id}' not found.");
+                var factoryId = entryState.FactoryId;
+                if (factoryId is null || !_entries.ContainsKey(factoryId)) {
+                    skipped.Add(id);
+                    continue;
+                }
+
                 var factory = GetSingle<IStatefulDataContextEntryFactory>(factoryId);
-                
                 entry = factory.ProduceValue(entryState);
                 _entries[id] = entry;
             }
 
             entry.Restore(this, entryState);
         }
+
+        return skipped;
+    }
+
+    public bool TryGetSingle<T>(Id id, out T value) {
+        if (!_entries.ContainsKey(id)) {
+            value = default!;
+            return false;
+        }
+
+        value = GetSingle<T>(id);
+        return true;
     }
 
     private T _GetOrAddCached<T>(Id id, Func<T> factory) {

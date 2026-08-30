@@ -37,12 +37,6 @@ public static class RequestParser {
                 return new InsertRequest(machine, itemId, count, fromChest);
             }
 
-            case "subscribe":
-                return new SubscribeRequest(ReadReadyEvents(payload));
-
-            case "unsubscribe":
-                return new UnsubscribeRequest(ReadReadyEvents(payload));
-
             default:
                 throw new GroupOpException($"unknown command '{cmd}'");
         }
@@ -60,14 +54,5 @@ public static class RequestParser {
         }
 
         return new MachinePosition(x.Value, y.Value);
-    }
-
-    private static IReadOnlyList<string> ReadReadyEvents(JObject payload) {
-        var events = payload["events"] as JArray;
-        if (events is null || events.All(e => e.Value<string>() != "ready")) {
-            throw new GroupOpException("only the 'ready' event is supported");
-        }
-
-        return events.Select(e => e.Value<string>()!).ToList();
     }
 }

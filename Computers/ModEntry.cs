@@ -4,14 +4,19 @@ using Computers.Computer.Domain.Event;
 using Computers.Core;
 using Computers.Game;
 using Computers.Game.Domain;
+using Computers.Game.Patch;
 using Computers.Game.Utils;
 using Computers.MachineController;
 using Computers.MachineController.Domain;
 using Computers.Peripheral;
+using Computers.PlayerSensor;
+using Computers.PlayerSensor.Domain;
 using Computers.Peripheral.Domain.Event;
 using Computers.Router;
 using Computers.Router.Domain;
 using Computers.Router.Domain.Event;
+using Computers.WeatherStation;
+using Computers.WeatherStation.Domain;
 using Microsoft.Xna.Framework;
 using StardewValley;
 using StardewValley.GameData.BigCraftables;
@@ -61,14 +66,24 @@ public class ModEntry : Mod {
     
     private static readonly Id RouterMachineId = GameMachineBaseId / "Router";
 
-    private static readonly Id PeripheralTileSheetId = GameTileSheetBaseId / "MachineController";
-    private static readonly Id MachineControllerBigCraftableId = GameBigCraftableBaseId / "MachineController";
-    private static readonly Id PeripheralRecipeId = GameRecipeBaseId / "MachineController";
+    private static readonly Id MachineControllerTileSheetId = GameTileSheetBaseId / "MachineController";
 
-    private static readonly Id PeripheralMachineId = GameMachineBaseId / "MachineController";
+    private static readonly Id WeatherStationTileSheetId = GameTileSheetBaseId / "WeatherStation";
+    private static readonly Id WeatherStationBigCraftableId = GameBigCraftableBaseId / "WeatherStation";
+    private static readonly Id WeatherStationRecipeId = GameRecipeBaseId / "WeatherStation";
+    private static readonly Id WeatherStationMachineId = GameMachineBaseId / "WeatherStation";
+
+    private static readonly Id PlayerSensorTileSheetId = GameTileSheetBaseId / "PlayerSensor";
+    private static readonly Id PlayerSensorBigCraftableId = GameBigCraftableBaseId / "PlayerSensor";
+    private static readonly Id PlayerSensorRecipeId = GameRecipeBaseId / "PlayerSensor";
+    private static readonly Id PlayerSensorMachineId = GameMachineBaseId / "PlayerSensor";
+    private static readonly Id MachineControllerBigCraftableId = GameBigCraftableBaseId / "MachineController";
+    private static readonly Id MachineControllerRecipeId = GameRecipeBaseId / "MachineController";
+
+    private static readonly Id MachineControllerMachineId = GameMachineBaseId / "MachineController";
     
     public override void Entry(IModHelper helper) {
-        DiskItemPatches.Apply(BaseId);
+        ItemIdentityPatches.Apply(BaseId);
 
         _context = Core.Context.Create(
             new IContextEntry.StatelessDataContextEntry(
@@ -82,7 +97,7 @@ public class ModEntry : Mod {
                 new BigCraftableData {
                     Name = ComputerBigCraftableId,
                     DisplayName = "Computer",
-                    Description = "A computer.",
+                    Description = "A programmable computer. Insert a disk and it boots a JavaScript console you can script.",
                     Price = 1000,
                     Fragility = 0,
                     CanBePlacedOutdoors = true,
@@ -156,7 +171,7 @@ public class ModEntry : Mod {
                 new ObjectData {
                     Name = DiskItemId,
                     DisplayName = "Disk",
-                    Description = "A disk.",
+                    Description = "Holds a computer's identity and files. The computer that boots it remembers everything.",
                     Price = 100,
                     Type = "Crafting",
                     Category = Object.CraftingCategory,
@@ -189,7 +204,7 @@ public class ModEntry : Mod {
                 new BigCraftableData {
                     Name = RouterBigCraftableId,
                     DisplayName = "Router",
-                    Description = "A router.",
+                    Description = "Connects nearby computers and peripherals into a network. Routers mesh with each other and matching channels bridge locations.",
                     Price = 1000,
                     Fragility = 0,
                     CanBePlacedOutdoors = true,
@@ -229,9 +244,9 @@ public class ModEntry : Mod {
                 )
             ),
             new IContextEntry.StatelessDataContextEntry(
-                PeripheralTileSheetId,
+                MachineControllerTileSheetId,
                 typeof(TileSheet),
-                new TileSheet(PeripheralTileSheetId, "assets/MachineController.png")
+                new TileSheet(MachineControllerTileSheetId, "assets/MachineController.png")
             ),
             new IContextEntry.StatelessDataContextEntry(
                 MachineControllerBigCraftableId,
@@ -245,14 +260,14 @@ public class ModEntry : Mod {
                     CanBePlacedOutdoors = true,
                     CanBePlacedIndoors = true,
                     IsLamp = false,
-                    Texture = PeripheralTileSheetId,
+                    Texture = MachineControllerTileSheetId,
                     SpriteIndex = 0,
                     ContextTags = null,
                     CustomFields = null
                 }
             ),
             new IContextEntry.StatelessDataContextEntry(
-                PeripheralRecipeId,
+                MachineControllerRecipeId,
                 typeof(Recipe),
                 new Recipe(
                     MachineControllerBigCraftableId,
@@ -265,10 +280,112 @@ public class ModEntry : Mod {
                 )
             ),
             new IContextEntry.StatelessDataContextEntry(
-                PeripheralMachineId,
+                MachineControllerMachineId,
                 typeof(Machine),
                 new Machine(
                     $"(BC){MachineControllerBigCraftableId}",
+                    new MachineData {
+                        HasInput = false,
+                        HasOutput = false,
+                        AllowFairyDust = false,
+                        WobbleWhileWorking = false,
+                        InteractMethod = "Computers.ModEntry, Computers: PeripheralMachineInteractMethod",
+                    }
+                )
+            ),
+            new IContextEntry.StatelessDataContextEntry(
+                WeatherStationTileSheetId,
+                typeof(TileSheet),
+                new TileSheet(WeatherStationTileSheetId, "assets/WeatherStation.png")
+            ),
+            new IContextEntry.StatelessDataContextEntry(
+                WeatherStationBigCraftableId,
+                typeof(BigCraftableData),
+                new BigCraftableData {
+                    Name = WeatherStationBigCraftableId,
+                    DisplayName = "Weather Station",
+                    Description = "Reads time, date, weather and luck over the network.",
+                    Price = 500,
+                    Fragility = 0,
+                    CanBePlacedOutdoors = true,
+                    CanBePlacedIndoors = true,
+                    IsLamp = false,
+                    Texture = WeatherStationTileSheetId,
+                    SpriteIndex = 0,
+                    ContextTags = null,
+                    CustomFields = null
+                }
+            ),
+            new IContextEntry.StatelessDataContextEntry(
+                WeatherStationRecipeId,
+                typeof(Recipe),
+                new Recipe(
+                    WeatherStationBigCraftableId,
+                    new Dictionary<string, int> {
+                        { "787", 1 },
+                        { "338", 2 }
+                    },
+                    true,
+                    new IRecipeRequirement.NoneRequired(),
+                    "Weather Station"
+                )
+            ),
+            new IContextEntry.StatelessDataContextEntry(
+                WeatherStationMachineId,
+                typeof(Machine),
+                new Machine(
+                    $"(BC){WeatherStationBigCraftableId}",
+                    new MachineData {
+                        HasInput = false,
+                        HasOutput = false,
+                        AllowFairyDust = false,
+                        WobbleWhileWorking = false,
+                        InteractMethod = "Computers.ModEntry, Computers: PeripheralMachineInteractMethod",
+                    }
+                )
+            ),
+            new IContextEntry.StatelessDataContextEntry(
+                PlayerSensorTileSheetId,
+                typeof(TileSheet),
+                new TileSheet(PlayerSensorTileSheetId, "assets/PlayerSensor.png")
+            ),
+            new IContextEntry.StatelessDataContextEntry(
+                PlayerSensorBigCraftableId,
+                typeof(BigCraftableData),
+                new BigCraftableData {
+                    Name = PlayerSensorBigCraftableId,
+                    DisplayName = "Player Sensor",
+                    Description = "Detects players and NPCs nearby and reports them over the network.",
+                    Price = 500,
+                    Fragility = 0,
+                    CanBePlacedOutdoors = true,
+                    CanBePlacedIndoors = true,
+                    IsLamp = false,
+                    Texture = PlayerSensorTileSheetId,
+                    SpriteIndex = 0,
+                    ContextTags = null,
+                    CustomFields = null
+                }
+            ),
+            new IContextEntry.StatelessDataContextEntry(
+                PlayerSensorRecipeId,
+                typeof(Recipe),
+                new Recipe(
+                    PlayerSensorBigCraftableId,
+                    new Dictionary<string, int> {
+                        { "787", 1 },
+                        { "336", 1 }
+                    },
+                    true,
+                    new IRecipeRequirement.NoneRequired(),
+                    "Player Sensor"
+                )
+            ),
+            new IContextEntry.StatelessDataContextEntry(
+                PlayerSensorMachineId,
+                typeof(Machine),
+                new Machine(
+                    $"(BC){PlayerSensorBigCraftableId}",
                     new MachineData {
                         HasInput = false,
                         HasOutput = false,
@@ -491,6 +608,42 @@ public class ModEntry : Mod {
                 _ => new StardewMachineWorld()
             ),
             new IContextEntry.ServiceContextEntry(
+                ServiceBaseId / "WeatherWorld",
+                typeof(IWeatherWorld),
+                _ => new StardewWeatherWorld()
+            ),
+            new IContextEntry.ServiceContextEntry(
+                ServiceBaseId / "SensorWorld",
+                typeof(ISensorWorld),
+                _ => new StardewSensorWorld()
+            ),
+            new IContextEntry.ServiceContextEntry(
+                ServiceBaseId / "WeatherStationFactory",
+                typeof(IStatefulDataContextEntryFactory),
+                initializer => new WeatherStationStatefulDataContextEntryFactory(
+                    ServiceBaseId / "WeatherStationFactory",
+                    WeatherStationBigCraftableId,
+                    initializer.GetSingle<IMonitor>(),
+                    initializer.GetSingle<Configuration>(),
+                    initializer.GetSingle<NetworkRegistry>(ServiceBaseId / "NetworkRegistry"),
+                    initializer.Lookup<IRouterPort>(),
+                    initializer.GetSingle<IWeatherWorld>(ServiceBaseId / "WeatherWorld")
+                )
+            ),
+            new IContextEntry.ServiceContextEntry(
+                ServiceBaseId / "PlayerSensorFactory",
+                typeof(IStatefulDataContextEntryFactory),
+                initializer => new PlayerSensorStatefulDataContextEntryFactory(
+                    ServiceBaseId / "PlayerSensorFactory",
+                    PlayerSensorBigCraftableId,
+                    initializer.GetSingle<IMonitor>(),
+                    initializer.GetSingle<Configuration>(),
+                    initializer.GetSingle<NetworkRegistry>(ServiceBaseId / "NetworkRegistry"),
+                    initializer.Lookup<IRouterPort>(),
+                    initializer.GetSingle<ISensorWorld>(ServiceBaseId / "SensorWorld")
+                )
+            ),
+            new IContextEntry.ServiceContextEntry(
                 ServiceBaseId / "MachineControllerFactory",
                 typeof(IStatefulDataContextEntryFactory),
                 initializer => new MachineControllerStatefulDataContextEntryFactory(
@@ -635,9 +788,9 @@ public class ModEntry : Mod {
         }
 
         IComputerPort computer;
-        if (outputItem.modData.ContainsKey("ComputerId")) {
+        if (outputItem.modData.ContainsKey("ComputerId") && _context.TryGetSingle<IComputerPort>(outputItem.modData["ComputerId"].AsId(), out var existingComputer)) {
             monitor.Log("ComputerId already exists.");
-            computer = _context.GetSingle<IComputerPort>(outputItem.modData["ComputerId"].AsId());
+            computer = existingComputer;
         }
         else {
             computer = _context.ProduceSingle<ComputerStatefulDataContextEntry>(ServiceBaseId / "ComputerFactory");
@@ -732,7 +885,10 @@ public class ModEntry : Mod {
         }
         
         monitor.Log("Loading data.");
-        _context.Restore(deserializedData);
+        var skipped = _context.Restore(deserializedData);
+        foreach (var skippedId in skipped) {
+            monitor.Log($"Skipped restoring '{skippedId}': its factory is gone. The stale state drops from the next save.", LogLevel.Warn);
+        }
 
         // Rebuild network placements from the loaded world (positions are not part of the save state).
         var registry = _context.GetSingle<NetworkRegistry>(ServiceBaseId / "NetworkRegistry");
@@ -852,7 +1008,11 @@ public class ModEntry : Mod {
     private static readonly IReadOnlyDictionary<string, Func<IPeripheralPort>> PeripheralProducersByItemId =
         new Dictionary<string, Func<IPeripheralPort>> {
             [MachineControllerBigCraftableId] = () =>
-                _context.ProduceSingle<MachineControllerStatefulDataContextEntry>(ServiceBaseId / "MachineControllerFactory")
+                _context.ProduceSingle<MachineControllerStatefulDataContextEntry>(ServiceBaseId / "MachineControllerFactory"),
+            [WeatherStationBigCraftableId] = () =>
+                _context.ProduceSingle<WeatherStationStatefulDataContextEntry>(ServiceBaseId / "WeatherStationFactory"),
+            [PlayerSensorBigCraftableId] = () =>
+                _context.ProduceSingle<PlayerSensorStatefulDataContextEntry>(ServiceBaseId / "PlayerSensorFactory")
         };
 
     private static void HandlePeripheralAdded(Object obj, Vector2 position, Func<IPeripheralPort> producePeripheral) {
@@ -860,9 +1020,9 @@ public class ModEntry : Mod {
         monitor.Log("Peripheral added.");
 
         IPeripheralPort peripheral;
-        if (obj.modData.ContainsKey("PeripheralId")) {
+        if (obj.modData.ContainsKey("PeripheralId") && _context.TryGetSingle<IPeripheralPort>(obj.modData["PeripheralId"].AsId(), out var existingPeripheral)) {
             monitor.Log("PeripheralId already exists.");
-            peripheral = _context.GetSingle<IPeripheralPort>(obj.modData["PeripheralId"].AsId());
+            peripheral = existingPeripheral;
         } else {
             peripheral = producePeripheral();
             monitor.Log($"Setting PeripheralId to {peripheral.Id}");
@@ -876,7 +1036,10 @@ public class ModEntry : Mod {
         var monitor = _context.GetSingle<IMonitor>(ServiceBaseId / "Monitor");
         monitor.Log($"Peripheral with id {peripheralId} was removed.");
 
-        var peripheral = _context.GetSingle<IPeripheralPort>(peripheralId);
+        if (!_context.TryGetSingle<IPeripheralPort>(peripheralId, out var peripheral)) {
+            monitor.Log($"Peripheral {peripheralId} has no entry, nothing to stop.", LogLevel.Warn);
+            return;
+        }
         peripheral.Stop();
     }
 
@@ -885,9 +1048,9 @@ public class ModEntry : Mod {
         monitor.Log("Router added.");
 
         IRouterPort router;
-        if (obj.modData.ContainsKey("RouterId")) {
+        if (obj.modData.ContainsKey("RouterId") && _context.TryGetSingle<IRouterPort>(obj.modData["RouterId"].AsId(), out var existingRouter)) {
             monitor.Log("RouterId already exists.");
-            router = _context.GetSingle<IRouterPort>(obj.modData["RouterId"].AsId());
+            router = existingRouter;
         } else {
             router = _context.ProduceSingle<RouterStatefulDataContextEntry>(ServiceBaseId / "RouterFactory");
             monitor.Log($"Setting RouterId to {router.Id}");
@@ -901,7 +1064,10 @@ public class ModEntry : Mod {
         var monitor = _context.GetSingle<IMonitor>(ServiceBaseId / "Monitor");
         monitor.Log($"Router with id {routerId} was removed.");
         
-        var router = _context.GetSingle<IRouterPort>(routerId);
+        if (!_context.TryGetSingle<IRouterPort>(routerId, out var router)) {
+            monitor.Log($"Router {routerId} has no entry, nothing to stop.", LogLevel.Warn);
+            return;
+        }
         router.Stop();
     }
     
@@ -917,8 +1083,11 @@ public class ModEntry : Mod {
         monitor.Log($"Computer with id {computerId} was removed.");
         
         // Stop computer
-        var computerState = _context.GetSingle<IComputerPort>(computerId);
-        computerState.Fire(new StopComputerEvent(computerState.Id));
+        if (_context.TryGetSingle<IComputerPort>(computerId, out var computerState)) {
+            computerState.Fire(new StopComputerEvent(computerState.Id));
+        } else {
+            monitor.Log($"Computer {computerId} has no entry, nothing to stop.", LogLevel.Warn);
+        }
             
         // Make a disk with the script
         Game1.createItemDebris(

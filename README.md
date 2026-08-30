@@ -43,7 +43,11 @@ Make processing of Stardew's resources a configurable function pipe-like process
 
 ## Docs
 
-- [Networking](Docs/Networking.md) - the LAN wire protocol, router firmware and machine controller commands
+- [Computer](Docs/Computer.md) - placing computers, disks, how programs run and the JS environment
+- [Console and commands](Docs/Console.md) - the console, JS evaluation, piping and every command
+- [Storage](Docs/Storage.md) - the layered file system, external storage and Startup.js
+- [Network and peripherals](Docs/Peripherals.md) - setting up routers and using every peripheral
+- [Networking](Docs/Networking.md) - the LAN wire protocol, router firmware and peripheral command tables
 
 ## TODOs
 
