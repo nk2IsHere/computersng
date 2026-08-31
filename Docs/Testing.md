@@ -18,7 +18,7 @@ COMPUTERS_E2E=1 DOTNET_ROOT_X64=$HOME/.dotnet-x64 dotnet test --arch x64 --filte
 Runs only where the game is installed. Do not start it while a manually
 launched game is open.
 
-## The harness mod
+## E2E mod
 
 All e2e code lives in the separate mod project `Computers.E2e`, deployed as its own
 mod folder beside the main mod. It serves a localhost TCP control channel
@@ -66,9 +66,4 @@ Tile addressed commands take an optional `location` defaulting to the farm.
 | `startSplitScreen` | none | adds the second split screen player in process |
 | `quit` | none | exits the game cleanly |
 
-Tile and menu commands accept an optional `screen` argument, default zero, and run
-under that split screen's context. The harness also drives farmhand joins end to end,
-it activates a free farmhand slot and completes the naming dialog automatically, it
-dismisses every player's end of day shipping summary so day changes complete
-unattended, and it disables the unfocused window frame throttle so background game
-processes run at full speed during multi process scenarios.
+Tile and menu commands accept an optional `screen` argument, and run under that split screen's context.
