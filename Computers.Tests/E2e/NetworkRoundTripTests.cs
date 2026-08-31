@@ -43,12 +43,14 @@ public class NetworkRoundTripTests {
     [E2eFact]
     public void ComputerReadsWeatherOverTheNetwork() {
         var client = _fixture.Client;
-        client.Place("computer", 58, 18);
-        client.Place("router", 60, 18);
-        client.Place("weatherStation", 62, 18);
-        client.WriteDisk(58, 18, "/Startup.js", Program);
-        client.RestartComputer(58, 18);
-        var result = JObject.Parse(client.PollDisk(58, 18, "/result.json", TimeSpan.FromSeconds(90)));
+        var (ex, ey) = _fixture.FarmhouseEntry;
+        var (x, y) = (ex - 6, ey + 2);
+        client.Place("computer", x, y);
+        client.Place("router", ex - 4, y);
+        client.Place("weatherStation", ex - 2, y);
+        client.WriteDisk(x, y, "/Startup.js", Program);
+        client.RestartComputer(x, y);
+        var result = JObject.Parse(client.PollDisk(x, y, "/result.json", TimeSpan.FromSeconds(90)));
         Assert.True(result["ok"]!.Value<bool>(), result.ToString());
         Assert.False(string.IsNullOrEmpty(result["weather"]!.Value<string>()));
     }

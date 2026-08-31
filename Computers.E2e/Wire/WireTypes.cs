@@ -31,13 +31,15 @@ public record WaitTicksRequest(int Count) : E2eRequest;
 
 public record QueryShippingBinRequest : E2eRequest;
 
+public record QueryFarmhouseRequest : E2eRequest;
+
 public record SaveGameRequest : E2eRequest;
 
 public record QuitRequest : E2eRequest;
 
 public record StatusResult(string GameMode, bool SaveLoaded, int PlayerCount, bool WorldReady);
 
-public record PlaceResult(string Id);
+public record PlaceResult(string? Id);
 
 public record ReadDiskResult(string Content);
 
@@ -46,3 +48,5 @@ public record ShippedItem(string ItemId, string Name, int Count);
 public record ShippingBinResult(IReadOnlyList<ShippedItem> Items);
 
 public record ObjectResult(string ItemId, string? Id, IReadOnlyList<ShippedItem>? ChestItems);
+
+public record FarmhouseResult(int X, int Y);

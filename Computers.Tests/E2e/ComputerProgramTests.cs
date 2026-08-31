@@ -22,10 +22,12 @@ public class ComputerProgramTests {
     [E2eFact]
     public void StartupProgramWritesAMarkerFile() {
         var client = _fixture.Client;
-        client.Place("computer", 56, 18);
-        client.WriteDisk(56, 18, "/Startup.js", Program);
-        client.RestartComputer(56, 18);
-        var content = client.PollDisk(56, 18, "/result.json", TimeSpan.FromSeconds(60));
+        var (ex, ey) = _fixture.FarmhouseEntry;
+        var (x, y) = (ex - 8, ey + 2);
+        client.Place("computer", x, y);
+        client.WriteDisk(x, y, "/Startup.js", Program);
+        client.RestartComputer(x, y);
+        var content = client.PollDisk(x, y, "/result.json", TimeSpan.FromSeconds(60));
         var result = JObject.Parse(content);
         Assert.True(result["ok"]!.Value<bool>());
         Assert.Equal("alive", result["marker"]!.Value<string>());

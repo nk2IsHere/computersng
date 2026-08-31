@@ -42,6 +42,12 @@ public class E2eOperations {
         ["speaker"] = ModEntry.SpeakerBigCraftableId
     };
 
+    // Vanilla machines the place command accepts. They carry no mod identity, so
+    // placement completes as soon as the object exists.
+    private static readonly IReadOnlyDictionary<string, string> VanillaItemsByName = new Dictionary<string, string> {
+        ["furnace"] = "13"
+    };
+
     private sealed class Operation : IPendingOperation {
         private readonly Func<(bool Finished, object? Data)> _poll;
 
@@ -86,6 +92,7 @@ public class E2eOperations {
             QueryObjectRequest query => Immediate(() => QueryObject(query)),
             WaitTicksRequest wait => WaitTicks(wait.Count),
             QueryShippingBinRequest => Immediate(QueryShippingBin),
+            QueryFarmhouseRequest => Immediate(QueryFarmhouse),
             SaveGameRequest => SaveGame(),
             QuitRequest => Immediate(Quit),
             _ => throw new E2eRequestException("command is not implemented")
@@ -108,7 +115,8 @@ public class E2eOperations {
     }
 
     private static IPendingOperation Place(PlaceRequest request) {
-        if (!ItemsByName.TryGetValue(request.Item, out var itemId)) {
+        var isVanilla = VanillaItemsByName.TryGetValue(request.Item, out var itemId);
+        if (!isVanilla && !ItemsByName.TryGetValue(request.Item, out itemId)) {
             throw new E2eRequestException($"unknown item '{request.Item}'");
         }
 
@@ -129,6 +137,10 @@ public class E2eOperations {
                     placed.performObjectDropInAction(disk, false, Game1.player);
                 }
                 return (false, null);
+            }
+
+            if (isVanilla) {
+                return (true, new PlaceResult(null));
             }
 
             var id = IdentityOf(placed);
@@ -219,6 +231,11 @@ public class E2eOperations {
     private static IPendingOperation WaitTicks(int count) {
         var remaining = count;
         return new Operation(() => (--remaining <= 0, null));
+    }
+
+    private static object QueryFarmhouse() {
+        var entry = Game1.getFarm().GetMainFarmHouseEntry();
+        return new FarmhouseResult(entry.X, entry.Y);
     }
 
     private static object QueryShippingBin() {

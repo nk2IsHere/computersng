@@ -43,14 +43,16 @@ public class ShippingTests {
     [E2eFact]
     public void SoldItemLandsInTheShippingBin() {
         var client = _fixture.Client;
-        client.Place("computer", 56, 20);
-        client.Place("router", 58, 20);
-        client.Place("shippingController", 60, 20);
-        client.PlaceChest(60, 21, new[] { ("388", 5) });
+        var (ex, ey) = _fixture.FarmhouseEntry;
+        var (x, y) = (ex - 8, ey + 4);
+        client.Place("computer", x, y);
+        client.Place("router", ex - 6, y);
+        client.Place("shippingController", ex - 4, y);
+        client.PlaceChest(ex - 4, y + 1, new[] { ("388", 5) });
         client.WaitTicks(60);
-        client.WriteDisk(56, 20, "/Startup.js", Program);
-        client.RestartComputer(56, 20);
-        var result = JObject.Parse(client.PollDisk(56, 20, "/result.json", TimeSpan.FromSeconds(90)));
+        client.WriteDisk(x, y, "/Startup.js", Program);
+        client.RestartComputer(x, y);
+        var result = JObject.Parse(client.PollDisk(x, y, "/result.json", TimeSpan.FromSeconds(90)));
         Assert.True(result["ok"]!.Value<bool>(), result.ToString());
         var bin = client.QueryShippingBin();
         var wood = bin["items"]!.Single(item => item["itemId"]!.Value<string>() == "388");

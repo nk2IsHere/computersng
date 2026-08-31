@@ -91,28 +91,30 @@ public class SaveReloadTests {
     [E2eFact]
     public void StateSurvivesSaveAndColdReload() {
         var client = _fixture.Client;
-        var computerId = client.Place("computer", 62, 20);
-        var routerId = client.Place("advancedRouter", 64, 20);
-        var sensorId = client.Place("advancedPlayerSensor", 66, 20);
+        var (ex, ey) = _fixture.FarmhouseEntry;
+        var (x, y) = (ex - 2, ey + 4);
+        var computerId = client.Place("computer", x, y);
+        var routerId = client.Place("advancedRouter", ex, y);
+        var sensorId = client.Place("advancedPlayerSensor", ex + 2, y);
 
-        client.WriteDisk(62, 20, "/Startup.js", ConfigureProgram);
-        client.RestartComputer(62, 20);
-        var configured = JObject.Parse(client.PollDisk(62, 20, "/configured.json", TimeSpan.FromSeconds(90)));
+        client.WriteDisk(x, y, "/Startup.js", ConfigureProgram);
+        client.RestartComputer(x, y);
+        var configured = JObject.Parse(client.PollDisk(x, y, "/configured.json", TimeSpan.FromSeconds(90)));
         Assert.True(configured["ok"]!.Value<bool>(), configured.ToString());
 
-        client.WriteDisk(62, 20, "/marker.txt", "survives");
+        client.WriteDisk(x, y, "/marker.txt", "survives");
         client.SaveGame();
         _fixture.RestartGame();
         client = _fixture.Client;
 
-        Assert.Equal("survives", client.ReadDisk(62, 20, "/marker.txt"));
-        Assert.Equal(computerId, client.QueryObject(62, 20)["id"]!.Value<string>());
-        Assert.Equal(routerId, client.QueryObject(64, 20)["id"]!.Value<string>());
-        Assert.Equal(sensorId, client.QueryObject(66, 20)["id"]!.Value<string>());
+        Assert.Equal("survives", client.ReadDisk(x, y, "/marker.txt"));
+        Assert.Equal(computerId, client.QueryObject(x, y)["id"]!.Value<string>());
+        Assert.Equal(routerId, client.QueryObject(ex, y)["id"]!.Value<string>());
+        Assert.Equal(sensorId, client.QueryObject(ex + 2, y)["id"]!.Value<string>());
 
-        client.WriteDisk(62, 20, "/Startup.js", ReadbackProgram);
-        client.RestartComputer(62, 20);
-        var readback = JObject.Parse(client.PollDisk(62, 20, "/readback.json", TimeSpan.FromSeconds(90)));
+        client.WriteDisk(x, y, "/Startup.js", ReadbackProgram);
+        client.RestartComputer(x, y);
+        var readback = JObject.Parse(client.PollDisk(x, y, "/readback.json", TimeSpan.FromSeconds(90)));
         Assert.True(readback["ok"]!.Value<bool>(), readback.ToString());
         Assert.Equal(3, readback["channel"]!.Value<int>());
         Assert.Equal(5, readback["radius"]!.Value<int>());

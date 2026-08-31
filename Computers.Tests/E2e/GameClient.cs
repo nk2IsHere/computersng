@@ -51,6 +51,15 @@ public sealed class GameClient : IDisposable {
         return Send("place", new { item, x, y, location })!["id"]!.Value<string>()!;
     }
 
+    public void PlaceVanilla(string item, int x, int y, string? location = null) {
+        Send("place", new { item, x, y, location });
+    }
+
+    public (int X, int Y) QueryFarmhouse() {
+        var data = Send("queryFarmhouse")!;
+        return (data["x"]!.Value<int>(), data["y"]!.Value<int>());
+    }
+
     public void PlaceChest(int x, int y, (string ItemId, int Count)[] items, string? location = null) {
         Send("placeChest", new { x, y, location, items = items.Select(i => new { itemId = i.ItemId, count = i.Count }).ToArray() });
     }
@@ -61,6 +70,10 @@ public sealed class GameClient : IDisposable {
 
     public string ReadDisk(int x, int y, string path, string? location = null) {
         return Send("readDisk", new { x, y, location, path })!["content"]!.Value<string>()!;
+    }
+
+    public void Remove(int x, int y, string? location = null) {
+        Send("remove", new { x, y, location });
     }
 
     public void RestartComputer(int x, int y, string? location = null) {

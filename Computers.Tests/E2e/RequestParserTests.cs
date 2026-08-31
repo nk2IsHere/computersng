@@ -38,6 +38,7 @@ public class RequestParserTests {
     public void ParsesArgumentFreeCommands() {
         Assert.IsType<StatusRequest>(RequestParser.Parse("status", new JObject()));
         Assert.IsType<QueryShippingBinRequest>(RequestParser.Parse("queryShippingBin", new JObject()));
+        Assert.IsType<QueryFarmhouseRequest>(RequestParser.Parse("queryFarmhouse", new JObject()));
         Assert.IsType<SaveGameRequest>(RequestParser.Parse("saveGame", new JObject()));
         Assert.IsType<QuitRequest>(RequestParser.Parse("quit", new JObject()));
     }

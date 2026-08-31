@@ -20,6 +20,9 @@ public sealed class GameFixture : IDisposable {
 
     public GameClient Client { get; private set; }
 
+    // The main farmhouse door tile, the anchor every scenario places relative to.
+    public (int X, int Y) FarmhouseEntry { get; private set; }
+
     public GameFixture() {
         if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("COMPUTERS_E2E"))) {
             throw new InvalidOperationException("the e2e fixture requires COMPUTERS_E2E");
@@ -34,6 +37,7 @@ public sealed class GameFixture : IDisposable {
 
         LaunchHost(newWorld: true);
         Client = Connect(_hostPort, waitForWorld: true);
+        FarmhouseEntry = Client.QueryFarmhouse();
     }
 
     private void LaunchHost(bool newWorld) {
@@ -50,6 +54,7 @@ public sealed class GameFixture : IDisposable {
         KillAll();
         LaunchHost(newWorld: false);
         Client = Connect(_hostPort, waitForWorld: true);
+        FarmhouseEntry = Client.QueryFarmhouse();
     }
 
     public GameClient LaunchFarmhand() {

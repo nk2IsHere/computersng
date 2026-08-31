@@ -16,6 +16,7 @@ public static class RequestParser {
             "queryObject" => new QueryObjectRequest(RequireInt(payload, "x"), RequireInt(payload, "y"), ReadLocation(payload)),
             "waitTicks" => new WaitTicksRequest(RequirePositiveInt(payload, "count")),
             "queryShippingBin" => new QueryShippingBinRequest(),
+            "queryFarmhouse" => new QueryFarmhouseRequest(),
             "saveGame" => new SaveGameRequest(),
             "quit" => new QuitRequest(),
             _ => throw new E2eRequestException($"unknown command '{cmd}'")

@@ -47,7 +47,7 @@ Tile addressed commands take an optional `location` defaulting to the farm.
 | Command | Args | Purpose |
 |---|---|---|
 | `status` | none | game mode, save loaded, player count and `worldReady`, which only turns true once a save load has settled |
-| `place` | `item`, `x`, `y` | places a big craftable via short name, a computer also gets a disk inserted, replies with the created id |
+| `place` | `item`, `x`, `y` | places a big craftable via short name, a computer also gets a disk inserted, replies with the created id. Vanilla machines such as `furnace` are placeable too and reply without an id |
 | `placeChest` | `x`, `y`, `items` | places a chest stocked with `{itemId, count}` items |
 | `remove` | `x`, `y` | removes the object at the tile |
 | `writeDisk` | `x`, `y`, `path`, `content` | writes a file into the computer's persistent storage |
@@ -57,5 +57,6 @@ Tile addressed commands take an optional `location` defaulting to the farm.
 | `queryObject` | `x`, `y` | item id and mod id at the tile, plus chest contents when it is a chest |
 | `waitTicks` | `count` | replies after that many game ticks |
 | `queryShippingBin` | none | contents of the farm shipping bin |
+| `queryFarmhouse` | none | the main farmhouse door tile, the anchor scenarios place relative to |
 | `saveGame` | none | runs the real end of day save, replies once saved |
 | `quit` | none | exits the game cleanly |
