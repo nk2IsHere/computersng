@@ -103,6 +103,18 @@ public class ContextTests {
     }
 
     [Fact]
+    public void ProduceSingleThroughFactoryInstanceRegistersRetrievableEntry() {
+        // Mirrors peripheral placement, where the factory comes from a context
+        // lookup and the caller only knows the value type it wants back.
+        var context = CreateContextWithFactory();
+        var factory = context.GetSingle<IStatefulDataContextEntryFactory>(FactoryId);
+
+        var produced = context.ProduceSingle<CounterEntry>(factory);
+
+        Assert.Same(produced, context.GetSingle<CounterEntry>(produced.Id));
+    }
+
+    [Fact]
     public void StoreRestoreRoundTripsThroughSaveSerialization() {
         // Mirrors HandleSave/HandleLoad: Store -> JSON string -> Deserialize -> Restore
         // into a fresh context that recreates the entry via its FactoryId.

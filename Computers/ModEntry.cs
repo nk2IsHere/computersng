@@ -886,12 +886,61 @@ public class ModEntry : Mod {
                     initializer.GetSingle<Configuration>(ServiceBaseId / "Configuration")
                 )
             ),
-            // The computer domain publishes frames through this port only. The tap
-            // bridges to the live screen cast once the multiplayer wiring has run.
+            new IContextEntry.ServiceContextEntry(
+                ServiceBaseId / "PlayerTransport",
+                typeof(SmapiPlayerTransport),
+                initializer => new SmapiPlayerTransport(
+                    initializer.GetSingle<IModHelper>(ServiceBaseId / "ModHelper"),
+                    ModManifest
+                )
+            ),
+            new IContextEntry.ServiceContextEntry(
+                ServiceBaseId / "HostChannel",
+                typeof(Multiplayer.Domain.HostChannel),
+                initializer => {
+                    var monitor = initializer.GetSingle<IMonitor>(ServiceBaseId / "Monitor");
+                    return new Multiplayer.Domain.HostChannel(
+                        initializer.GetSingle<SmapiPlayerTransport>(ServiceBaseId / "PlayerTransport"),
+                        message => monitor.Log(message)
+                    );
+                }
+            ),
+            new IContextEntry.ServiceContextEntry(
+                ServiceBaseId / "ScreenCast",
+                typeof(Multiplayer.Domain.ScreenCast),
+                initializer => {
+                    var monitor = initializer.GetSingle<IMonitor>(ServiceBaseId / "Monitor");
+                    var configuration = initializer.GetSingle<Configuration>(ServiceBaseId / "Configuration");
+                    return new Multiplayer.Domain.ScreenCast(
+                        initializer.GetSingle<Multiplayer.Domain.HostChannel>(ServiceBaseId / "HostChannel"),
+                        configuration.Multiplayer.CastTicksPerFrame,
+                        configuration.Multiplayer.MaxViewersPerComputer,
+                        message => monitor.Log(message)
+                    );
+                }
+            ),
+            new IContextEntry.ServiceContextEntry(
+                ServiceBaseId / "ClientChannels",
+                typeof(StardewModdingAPI.Utilities.PerScreen<Multiplayer.Domain.ClientChannel>),
+                initializer => {
+                    var monitor = initializer.GetSingle<IMonitor>(ServiceBaseId / "Monitor");
+                    var configuration = initializer.GetSingle<Configuration>(ServiceBaseId / "Configuration");
+                    var transport = initializer.GetSingle<SmapiPlayerTransport>(ServiceBaseId / "PlayerTransport");
+                    return new StardewModdingAPI.Utilities.PerScreen<Multiplayer.Domain.ClientChannel>(
+                        () => new Multiplayer.Domain.ClientChannel(
+                            transport,
+                            configuration.Multiplayer.CallTimeoutTicks,
+                            message => monitor.Log(message)
+                        )
+                    );
+                }
+            ),
             new IContextEntry.ServiceContextEntry(
                 ServiceBaseId / "FrameTap",
                 typeof(IFrameTap),
-                _ => new Multiplayer.ScreenCastFrameTap(CastSink)
+                initializer => new Multiplayer.ScreenCastFrameTap(
+                    initializer.GetSingle<Multiplayer.Domain.ScreenCast>(ServiceBaseId / "ScreenCast")
+                )
             ),
             new IContextEntry.ServiceContextEntry(
                 ServiceBaseId / "SchedulerPulseDispatcher",
@@ -1053,7 +1102,7 @@ public class ModEntry : Mod {
             ),
             new IContextEntry.ServiceContextEntry(
                 ServiceBaseId / "MailerFactory",
-                typeof(IStatefulDataContextEntryFactory),
+                typeof(IPeripheralFactory),
                 initializer => new MailerStatefulDataContextEntryFactory(
                     ServiceBaseId / "MailerFactory",
                     MailerBigCraftableId,
@@ -1066,7 +1115,7 @@ public class ModEntry : Mod {
             ),
             new IContextEntry.ServiceContextEntry(
                 ServiceBaseId / "ShippingControllerFactory",
-                typeof(IStatefulDataContextEntryFactory),
+                typeof(IPeripheralFactory),
                 initializer => new ShippingControllerStatefulDataContextEntryFactory(
                     ServiceBaseId / "ShippingControllerFactory",
                     ShippingControllerBigCraftableId,
@@ -1080,7 +1129,7 @@ public class ModEntry : Mod {
             ),
             new IContextEntry.ServiceContextEntry(
                 ServiceBaseId / "SpeakerFactory",
-                typeof(IStatefulDataContextEntryFactory),
+                typeof(IPeripheralFactory),
                 initializer => new SpeakerStatefulDataContextEntryFactory(
                     ServiceBaseId / "SpeakerFactory",
                     SpeakerBigCraftableId,
@@ -1093,7 +1142,7 @@ public class ModEntry : Mod {
             ),
             new IContextEntry.ServiceContextEntry(
                 ServiceBaseId / "AdvancedMachineControllerFactory",
-                typeof(IStatefulDataContextEntryFactory),
+                typeof(IPeripheralFactory),
                 initializer => new MachineControllerStatefulDataContextEntryFactory(
                     ServiceBaseId / "AdvancedMachineControllerFactory",
                     AdvancedMachineControllerBigCraftableId,
@@ -1107,7 +1156,7 @@ public class ModEntry : Mod {
             ),
             new IContextEntry.ServiceContextEntry(
                 ServiceBaseId / "AdvancedShippingControllerFactory",
-                typeof(IStatefulDataContextEntryFactory),
+                typeof(IPeripheralFactory),
                 initializer => new ShippingControllerStatefulDataContextEntryFactory(
                     ServiceBaseId / "AdvancedShippingControllerFactory",
                     AdvancedShippingControllerBigCraftableId,
@@ -1121,7 +1170,7 @@ public class ModEntry : Mod {
             ),
             new IContextEntry.ServiceContextEntry(
                 ServiceBaseId / "AdvancedPlayerSensorFactory",
-                typeof(IStatefulDataContextEntryFactory),
+                typeof(IPeripheralFactory),
                 initializer => new PlayerSensorStatefulDataContextEntryFactory(
                     ServiceBaseId / "AdvancedPlayerSensorFactory",
                     AdvancedPlayerSensorBigCraftableId,
@@ -1149,7 +1198,7 @@ public class ModEntry : Mod {
             ),
             new IContextEntry.ServiceContextEntry(
                 ServiceBaseId / "WeatherStationFactory",
-                typeof(IStatefulDataContextEntryFactory),
+                typeof(IPeripheralFactory),
                 initializer => new WeatherStationStatefulDataContextEntryFactory(
                     ServiceBaseId / "WeatherStationFactory",
                     WeatherStationBigCraftableId,
@@ -1162,7 +1211,7 @@ public class ModEntry : Mod {
             ),
             new IContextEntry.ServiceContextEntry(
                 ServiceBaseId / "PlayerSensorFactory",
-                typeof(IStatefulDataContextEntryFactory),
+                typeof(IPeripheralFactory),
                 initializer => new PlayerSensorStatefulDataContextEntryFactory(
                     ServiceBaseId / "PlayerSensorFactory",
                     PlayerSensorBigCraftableId,
@@ -1176,7 +1225,7 @@ public class ModEntry : Mod {
             ),
             new IContextEntry.ServiceContextEntry(
                 ServiceBaseId / "MachineControllerFactory",
-                typeof(IStatefulDataContextEntryFactory),
+                typeof(IPeripheralFactory),
                 initializer => new MachineControllerStatefulDataContextEntryFactory(
                     ServiceBaseId / "MachineControllerFactory",
                     MachineControllerBigCraftableId,
@@ -1255,76 +1304,61 @@ public class ModEntry : Mod {
         RegisterDevAutoload(helper);
     }
 
-    private static SmapiPlayerTransport? _playerTransport;
-    private static Multiplayer.Domain.HostChannel? _hostChannel;
-    private static Multiplayer.Domain.ScreenCast? _screenCast;
-    private static StardewModdingAPI.Utilities.PerScreen<Multiplayer.Domain.ClientChannel>? _clientChannels;
+    private static Multiplayer.Domain.ClientChannel CurrentClientChannel =>
+        _context.GetSingle<StardewModdingAPI.Utilities.PerScreen<Multiplayer.Domain.ClientChannel>>(
+            ServiceBaseId / "ClientChannels"
+        ).Value;
 
-    private static Multiplayer.IScreenCastSink CastSink =>
-        (Multiplayer.IScreenCastSink?) _screenCast ?? new Multiplayer.NullScreenCastSink();
-
-    private static Multiplayer.Domain.ClientChannel? CurrentClientChannel => 
-        _clientChannels?.Value;
-
-    private void RegisterMultiplayer(IModHelper helper) {
-        var monitor = _context.GetSingle<IMonitor>(ServiceBaseId / "Monitor");
-        var configuration = _context.GetSingle<Configuration>(ServiceBaseId / "Configuration");
-
-        _playerTransport = new SmapiPlayerTransport(helper, ModManifest);
-        _hostChannel = new Multiplayer.Domain.HostChannel(_playerTransport, message => monitor.Log(message));
-        _screenCast = new Multiplayer.Domain.ScreenCast(
-            _hostChannel,
-            configuration.Multiplayer.CastTicksPerFrame,
-            configuration.Multiplayer.MaxViewersPerComputer,
-            message => monitor.Log(message)
+    private static void RegisterMultiplayer(IModHelper helper) {
+        var transport = _context.GetSingle<SmapiPlayerTransport>(ServiceBaseId / "PlayerTransport");
+        var hostChannel = _context.GetSingle<Multiplayer.Domain.HostChannel>(ServiceBaseId / "HostChannel");
+        var screenCast = _context.GetSingle<Multiplayer.Domain.ScreenCast>(ServiceBaseId / "ScreenCast");
+        var clientChannels = _context.GetSingle<StardewModdingAPI.Utilities.PerScreen<Multiplayer.Domain.ClientChannel>>(
+            ServiceBaseId / "ClientChannels"
         );
-        _clientChannels = new StardewModdingAPI.Utilities.PerScreen<Multiplayer.Domain.ClientChannel>(
-            () => new Multiplayer.Domain.ClientChannel(
-                _playerTransport,
-                configuration.Multiplayer.CallTimeoutTicks,
-                message => monitor.Log(message)
-            )
-        );
+
         RegisterChannelHandlers();
 
         helper.Events.GameLoop.UpdateTicked += (_, _) => {
-            _playerTransport.NoteLocalPlayer();
-            if (_playerTransport.IsHost) {
-                _hostChannel.Tick();
-                _screenCast.Tick();
+            transport.NoteLocalPlayer();
+            if (transport.IsHost) {
+                hostChannel.Tick();
+                screenCast.Tick();
                 TryStampPendingComputers();
             }
             else {
-                _clientChannels.Value.Tick();
+                clientChannels.Value.Tick();
             }
         };
 
         helper.Events.Multiplayer.PeerDisconnected += (_, e) => {
             if (StardewModdingAPI.Context.ScreenId == 0) {
-                _screenCast.DropPlayer(e.Peer.PlayerID);
+                screenCast.DropPlayer(e.Peer.PlayerID);
             }
         };
     }
 
-    private void RegisterChannelHandlers() {
+    private static void RegisterChannelHandlers() {
         var configuration = _context.GetSingle<Configuration>(ServiceBaseId / "Configuration");
+        var hostChannel = _context.GetSingle<Multiplayer.Domain.HostChannel>(ServiceBaseId / "HostChannel");
+        var screenCast = _context.GetSingle<Multiplayer.Domain.ScreenCast>(ServiceBaseId / "ScreenCast");
 
-        _hostChannel!.Register("openScreen", (playerId, request) => {
+        hostChannel.Register("openScreen", (playerId, request) => {
             var open = (Multiplayer.Domain.Wire.OpenScreenRequest) request;
             var obj = ChannelObjectAt(open.X, open.Y, open.Location);
             var heldModData = obj.HeldObjectModData();
             if (heldModData is null || !heldModData.TryGetValue("ComputerId", out var computerId)) {
                 throw new Multiplayer.Domain.Wire.ChannelRequestException("no computer at that tile");
             }
-            return _screenCast!.Subscribe(computerId, playerId, configuration.Render.CanvasWidth, configuration.Render.CanvasHeight);
+            return screenCast.Subscribe(computerId, playerId, configuration.Render.CanvasWidth, configuration.Render.CanvasHeight);
         });
 
-        _hostChannel.Register("closeScreen", (playerId, request) => {
-            _screenCast!.Unsubscribe(((Multiplayer.Domain.Wire.CloseScreenRequest) request).ComputerId, playerId);
+        hostChannel.Register("closeScreen", (playerId, request) => {
+            screenCast.Unsubscribe(((Multiplayer.Domain.Wire.CloseScreenRequest) request).ComputerId, playerId);
             return null;
         });
 
-        _hostChannel.Register("screenInput", (_, request) => {
+        hostChannel.Register("screenInput", (_, request) => {
             var input = (Computers.Multiplayer.Domain.Wire.ScreenInputRequest) request;
             if (!_context.TryGetSingle<IComputerPort>(input.ComputerId.AsId(), out var computer)) {
                 return null;
@@ -1346,7 +1380,7 @@ public class ModEntry : Mod {
             return null;
         });
 
-        _hostChannel.Register("initializeComputer", (_, request) => {
+        hostChannel.Register("initializeComputer", (_, request) => {
             var init = (Multiplayer.Domain.Wire.InitializeComputerRequest) request;
             PendingComputerStamps.Add(new PendingStamp(init.X, init.Y, init.Location) { TicksLeft = 600 });
             TryStampPendingComputers();
@@ -1490,7 +1524,7 @@ public class ModEntry : Mod {
         }
 
         if (!Game1.IsMasterGame || StardewModdingAPI.Context.ScreenId != 0) {
-            CurrentClientChannel?.Send("initializeComputer", new {
+            CurrentClientChannel.Send("initializeComputer", new {
                 x = (int) machine.TileLocation.X,
                 y = (int) machine.TileLocation.Y,
                 location = machine.Location.NameOrUniqueName
@@ -1544,13 +1578,9 @@ public class ModEntry : Mod {
         var routerId = modData["RouterId"].AsId();
         monitor.Log($"Router has id: {routerId}");
 
-        // The router entity only exists on the host, other instances show the id alone.
-        if (_context.TryGetSingle<IRouterPort>(routerId, out var routerPort)) {
-            Game1.showGlobalMessage($"Router Id: {routerId.Last}, Channel: {routerPort.Channel?.ToString() ?? "none"}");
-        }
-        else {
-            Game1.showGlobalMessage($"Router Id: {routerId.Last}");
-        }
+        Game1.showGlobalMessage(_context.TryGetSingle<IRouterPort>(routerId, out var routerPort)
+            ? $"Router Id: {routerId.Last}, Channel: {routerPort.Channel?.ToString() ?? "none"}"
+            : $"Router Id: {routerId.Last}");
         return true;
     }
 
@@ -1605,7 +1635,7 @@ public class ModEntry : Mod {
             monitor.Log($"Skipped restoring '{skippedId}': its factory is gone. The stale state drops from the next save.", LogLevel.Warn);
         }
 
-        // Rebuild network placements from the loaded world (positions are not part of the save state).
+        // Rebuild network placements from the loaded world.
         var registry = _context.GetSingle<NetworkRegistry>(ServiceBaseId / "NetworkRegistry");
         var placements = new List<Placement>();
         Utility.ForEachLocation(location => {
@@ -1673,8 +1703,8 @@ public class ModEntry : Mod {
                 ));
             }
 
-            if (PeripheralProducersByItemId.TryGetValue(obj.ItemId, out var producePeripheral)) {
-                HandlePeripheralAdded(obj, position, producePeripheral);
+            if (PeripheralFactoryFor(obj.ItemId) is { } peripheralFactory) {
+                HandlePeripheralAdded(obj, position, peripheralFactory);
                 registry.Register(new Placement(
                     obj.modData["PeripheralId"].AsId(),
                     NodeRole.Endpoint,
@@ -1725,30 +1755,13 @@ public class ModEntry : Mod {
         _context.Get<IPeripheralPort>().ForEach(peripheral => peripheral.Value.NotifyWorldChanged());
     }
 
-    // Each peripheral kind maps its big craftable to a producer for its entity.
-    private static readonly IReadOnlyDictionary<string, Func<IPeripheralPort>> PeripheralProducersByItemId =
-        new Dictionary<string, Func<IPeripheralPort>> {
-            [MachineControllerBigCraftableId] = () =>
-                _context.ProduceSingle<MachineControllerStatefulDataContextEntry>(ServiceBaseId / "MachineControllerFactory"),
-            [WeatherStationBigCraftableId] = () =>
-                _context.ProduceSingle<WeatherStationStatefulDataContextEntry>(ServiceBaseId / "WeatherStationFactory"),
-            [PlayerSensorBigCraftableId] = () =>
-                _context.ProduceSingle<PlayerSensorStatefulDataContextEntry>(ServiceBaseId / "PlayerSensorFactory"),
-            [MailerBigCraftableId] = () =>
-                _context.ProduceSingle<MailerStatefulDataContextEntry>(ServiceBaseId / "MailerFactory"),
-            [ShippingControllerBigCraftableId] = () =>
-                _context.ProduceSingle<ShippingControllerStatefulDataContextEntry>(ServiceBaseId / "ShippingControllerFactory"),
-            [SpeakerBigCraftableId] = () =>
-                _context.ProduceSingle<SpeakerStatefulDataContextEntry>(ServiceBaseId / "SpeakerFactory"),
-            [AdvancedMachineControllerBigCraftableId] = () =>
-                _context.ProduceSingle<MachineControllerStatefulDataContextEntry>(ServiceBaseId / "AdvancedMachineControllerFactory"),
-            [AdvancedShippingControllerBigCraftableId] = () =>
-                _context.ProduceSingle<ShippingControllerStatefulDataContextEntry>(ServiceBaseId / "AdvancedShippingControllerFactory"),
-            [AdvancedPlayerSensorBigCraftableId] = () =>
-                _context.ProduceSingle<PlayerSensorStatefulDataContextEntry>(ServiceBaseId / "AdvancedPlayerSensorFactory")
-        };
+    private static IPeripheralFactory? PeripheralFactoryFor(string itemId) {
+        return _context.Get<IPeripheralFactory>()
+            .Select(entry => entry.Value)
+            .SingleOrDefault(factory => factory.ItemId == itemId);
+    }
 
-    private static void HandlePeripheralAdded(Object obj, Vector2 position, Func<IPeripheralPort> producePeripheral) {
+    private static void HandlePeripheralAdded(Object obj, Vector2 position, IPeripheralFactory factory) {
         var monitor = _context.GetSingle<IMonitor>(ServiceBaseId / "Monitor");
         monitor.Log("Peripheral added.");
 
@@ -1757,7 +1770,7 @@ public class ModEntry : Mod {
             monitor.Log("PeripheralId already exists.");
             peripheral = existingPeripheral;
         } else {
-            peripheral = producePeripheral();
+            peripheral = _context.ProduceSingle<IPeripheralPort>(factory);
             monitor.Log($"Setting PeripheralId to {peripheral.Id}");
             obj.modData["PeripheralId"] = peripheral.Id;
         }
@@ -1816,7 +1829,7 @@ public class ModEntry : Mod {
         monitor.Log($"Computer with id {computerId} was removed.");
 
         // Anyone still viewing this screen remotely gets told it closed.
-        _screenCast?.DropComputer(computerId);
+        _context.GetSingle<Multiplayer.Domain.ScreenCast>(ServiceBaseId / "ScreenCast").DropComputer(computerId);
 
         // Stop computer
         if (_context.TryGetSingle<IComputerPort>(computerId, out var computerState)) {
@@ -1838,9 +1851,6 @@ public class ModEntry : Mod {
         var monitor = _context.GetSingle<IMonitor>(ServiceBaseId / "Monitor");
         monitor.Log($"Remote screen open requested on screen {StardewModdingAPI.Context.ScreenId}, master game {Game1.IsMasterGame}.");
         var channel = CurrentClientChannel;
-        if (channel is null) {
-            return;
-        }
         var configuration = _context.GetSingle<Configuration>(ServiceBaseId / "Configuration");
         var assetLoader = _context.GetSingle<IRedundantLoader>(ServiceBaseId / "AssetsLoader");
         channel.Call(

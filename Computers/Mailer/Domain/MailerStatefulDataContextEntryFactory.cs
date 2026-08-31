@@ -1,12 +1,13 @@
 using Computers.Computer;
 using Computers.Core;
+using Computers.Peripheral;
 using Computers.Router;
 using Computers.Router.Domain;
 using StardewModdingAPI;
 
 namespace Computers.Mailer.Domain;
 
-public class MailerStatefulDataContextEntryFactory : IStatefulDataContextEntryFactory {
+public class MailerStatefulDataContextEntryFactory : IPeripheralFactory {
 
     private readonly Id _basePeripheralId;
 
@@ -35,6 +36,8 @@ public class MailerStatefulDataContextEntryFactory : IStatefulDataContextEntryFa
     }
 
     public Id FactoryId { get; }
+
+    public Id ItemId => _basePeripheralId;
 
     public IContextEntry ProduceValue() {
         return ProduceValue(ContextEntryState.Empty);

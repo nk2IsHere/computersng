@@ -7,10 +7,3 @@ public interface IScreenCastSink {
 
     void PublishFrame(string computerId, FramePayload payload, int rawVersion);
 }
-
-public sealed class NullScreenCastSink : IScreenCastSink {
-    public bool HasViewers(string computerId) => false;
-
-    public void PublishFrame(string computerId, FramePayload payload, int rawVersion) {
-    }
-}

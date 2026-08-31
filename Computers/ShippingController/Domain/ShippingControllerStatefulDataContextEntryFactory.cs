@@ -7,7 +7,7 @@ using StardewModdingAPI;
 
 namespace Computers.ShippingController.Domain;
 
-public class ShippingControllerStatefulDataContextEntryFactory : IStatefulDataContextEntryFactory {
+public class ShippingControllerStatefulDataContextEntryFactory : IPeripheralFactory {
 
     private readonly Id _basePeripheralId;
 
@@ -39,6 +39,8 @@ public class ShippingControllerStatefulDataContextEntryFactory : IStatefulDataCo
     }
 
     public Id FactoryId { get; }
+
+    public Id ItemId => _basePeripheralId;
 
     public IContextEntry ProduceValue() {
         return ProduceValue(ContextEntryState.Empty);
