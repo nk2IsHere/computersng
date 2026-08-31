@@ -78,22 +78,18 @@ public static class RemoteScreen {
             if (frameComputerId != computerId) {
                 return;
             }
-            FramePayload payload;
+            DecodedFrame frame;
             try {
-                payload = FrameCodec.Decode(body);
+                frame = FrameCodec.Decode(body, font!);
             } catch (Exception) {
                 return;
             }
-            if (payload.Background is not null) {
-                FramePayloadConverter.DecodeLayer(payload.Background, background);
-            }
-            if (payload.Foreground is not null) {
-                FramePayloadConverter.DecodeLayer(payload.Foreground, foreground);
-            }
+            frame.Background?.ApplyTo(background);
+            frame.Foreground?.ApplyTo(foreground);
             FrameComposer.Compose(
                 canvas,
                 background,
-                FramePayloadConverter.ToRenderCommands(payload.Commands, font!),
+                frame.Commands,
                 foreground,
                 width,
                 height

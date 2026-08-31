@@ -938,9 +938,7 @@ public class ModEntry : Mod {
             new IContextEntry.ServiceContextEntry(
                 ServiceBaseId / "FrameTap",
                 typeof(IFrameTap),
-                initializer => new Multiplayer.ScreenCastFrameTap(
-                    initializer.GetSingle<Multiplayer.Domain.ScreenCast>(ServiceBaseId / "ScreenCast")
-                )
+                initializer => initializer.GetSingle<Multiplayer.Domain.ScreenCast>(ServiceBaseId / "ScreenCast")
             ),
             new IContextEntry.ServiceContextEntry(
                 ServiceBaseId / "SchedulerPulseDispatcher",
