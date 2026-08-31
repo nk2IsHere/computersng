@@ -25,6 +25,7 @@
 
     <ItemGroup>
       <InternalsVisibleTo Include="Computers.Tests" />
+      <InternalsVisibleTo Include="Computers.E2e" />
     </ItemGroup>
 
 </Project>

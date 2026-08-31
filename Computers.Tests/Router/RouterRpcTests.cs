@@ -1,10 +1,12 @@
 using Computers.Computer;
 using Computers.Core;
+using Computers.Peripheral;
 using Computers.Router;
 using Computers.Router.Domain;
 using Computers.Tests.TestDoubles;
 using Newtonsoft.Json.Linq;
 using Xunit;
+using Context = Computers.Core.Context;
 
 namespace Computers.Tests.Router;
 
@@ -26,7 +28,9 @@ public class RouterRpcTests {
         }
     };
 
-    private static (RouterStatefulDataContextEntry Router, NetworkRegistry Registry, FakeComputerPort Computer) Make() {
+    private static (RouterStatefulDataContextEntry Router, NetworkRegistry Registry, FakeComputerPort Computer) Make(
+        PeripheralTier tier = PeripheralTier.Advanced
+    ) {
         var configuration = TestConfiguration();
         var computer = new FakeComputerPort(C1);
 
@@ -38,7 +42,7 @@ public class RouterRpcTests {
 
         var registry = new NetworkRegistry(new TestMonitor(), configuration, routerLookup);
         router = new RouterStatefulDataContextEntry(
-            FactoryId, R1, new TestMonitor(), configuration, registry, endpointLookup, routerLookup);
+            FactoryId, R1, new TestMonitor(), configuration, registry, endpointLookup, routerLookup, tier);
 
         registry.Register(new Placement(R1, NodeRole.Router, "Farm", 0, 0));
         registry.Register(new Placement(C1, NodeRole.Endpoint, "Farm", 1, 0));
@@ -79,6 +83,7 @@ public class RouterRpcTests {
         Assert.Equal("p1", reply!["re"]!.Value<string>());
         Assert.True(reply["ok"]!.Value<bool>());
         Assert.Equal("router", reply["data"]!["type"]!.Value<string>());
+        Assert.Equal("advanced", reply["data"]!["tier"]!.Value<string>());
         Assert.Equal(4, reply["data"]!["channel"]!.Value<int>());
         Assert.Equal("r1", computer.ReceivedDatagrams[0].SourceAddress);
     }
@@ -126,6 +131,29 @@ public class RouterRpcTests {
         Assert.NotNull(reply);
         Assert.False(reply!["ok"]!.Value<bool>());
         Assert.Contains("reboot", reply["error"]!.Value<string>());
+    }
+
+    [Fact]
+    public void BasicRouterRejectsConfigure() {
+        var (router, _, computer) = Make(tier: PeripheralTier.Basic);
+        SendToRouter(router, "r1", "{\"cid\":\"b1\",\"cmd\":\"configure\",\"channel\":7}");
+
+        var reply = SingleReplyAfterTwoTicks(router, computer);
+        Assert.False(reply!["ok"]!.Value<bool>());
+        Assert.Equal("channels require an advanced router", reply["error"]!.Value<string>());
+        Assert.Null(router.Channel);
+    }
+
+    [Fact]
+    public void BasicRouterReadsStoredChannelAsNull() {
+        var (advanced, _, _) = Make(tier: PeripheralTier.Advanced);
+        advanced.Deliver(new Datagram(Guid.NewGuid(), "c1", "r1", 16, "{\"cid\":\"m1\",\"cmd\":\"configure\",\"channel\":7}"), null);
+        advanced.Fire(new TickRouterEvent(1));
+        var state = advanced.Store(Context.Empty);
+
+        var (basic, _, _) = Make(tier: PeripheralTier.Basic);
+        basic.Restore(Context.Empty, state);
+        Assert.Null(basic.Channel);
     }
 
     [Fact]

@@ -8,12 +8,18 @@ using Computers.Game.Patch;
 using Computers.Game.Utils;
 using Computers.MachineController;
 using Computers.MachineController.Domain;
+using Computers.Mailer;
+using Computers.Mailer.Domain;
 using Computers.Peripheral;
 using Computers.PlayerSensor;
 using Computers.PlayerSensor.Domain;
 using Computers.Peripheral.Domain.Event;
 using Computers.Router;
 using Computers.Router.Domain;
+using Computers.ShippingController;
+using Computers.ShippingController.Domain;
+using Computers.Speaker;
+using Computers.Speaker.Domain;
 using Computers.Router.Domain.Event;
 using Computers.WeatherStation;
 using Computers.WeatherStation.Domain;
@@ -31,6 +37,9 @@ namespace Computers;
 
 public class ModEntry : Mod {
     private static Core.Context _context = null!; // This will be initialized in Entry
+
+    // The e2e harness mod resolves entities such as computers through the shared context.
+    internal static Core.Context SharedContext => _context;
     
     // Base Id
     private static readonly Id BaseId = "tools.kot.nk2.computers".AsId();
@@ -50,18 +59,18 @@ public class ModEntry : Mod {
     
     // Game-related Ids
     private static readonly Id ComputerTileSheetId = GameTileSheetBaseId / "Computer";
-    private static readonly Id ComputerBigCraftableId = GameBigCraftableBaseId / "Computer";
+    internal static readonly Id ComputerBigCraftableId = GameBigCraftableBaseId / "Computer";
     private static readonly Id ComputerRecipeId = GameRecipeBaseId / "Computer";
     
     private static readonly Id ComputerMachineId = GameMachineBaseId / "Computer";
     private static readonly Id ComputerMachineOutputRuleId = ComputerMachineId / "OutputRule";
 
     private static readonly Id DiskTileSheetId = GameTileSheetBaseId / "Disk";
-    private static readonly Id DiskItemId = GameItemBaseId / "Disk";
+    internal static readonly Id DiskItemId = GameItemBaseId / "Disk";
     private static readonly Id DiskRecipeId = GameRecipeBaseId / "Disk";
     
     private static readonly Id RouterTileSheetId = GameTileSheetBaseId / "Router";
-    private static readonly Id RouterBigCraftableId = GameBigCraftableBaseId / "Router";
+    internal static readonly Id RouterBigCraftableId = GameBigCraftableBaseId / "Router";
     private static readonly Id RouterRecipeId = GameRecipeBaseId / "Router";
     
     private static readonly Id RouterMachineId = GameMachineBaseId / "Router";
@@ -69,16 +78,51 @@ public class ModEntry : Mod {
     private static readonly Id MachineControllerTileSheetId = GameTileSheetBaseId / "MachineController";
 
     private static readonly Id WeatherStationTileSheetId = GameTileSheetBaseId / "WeatherStation";
-    private static readonly Id WeatherStationBigCraftableId = GameBigCraftableBaseId / "WeatherStation";
+    internal static readonly Id WeatherStationBigCraftableId = GameBigCraftableBaseId / "WeatherStation";
     private static readonly Id WeatherStationRecipeId = GameRecipeBaseId / "WeatherStation";
     private static readonly Id WeatherStationMachineId = GameMachineBaseId / "WeatherStation";
 
     private static readonly Id PlayerSensorTileSheetId = GameTileSheetBaseId / "PlayerSensor";
-    private static readonly Id PlayerSensorBigCraftableId = GameBigCraftableBaseId / "PlayerSensor";
+
+    private static readonly Id MailerTileSheetId = GameTileSheetBaseId / "Mailer";
+    internal static readonly Id MailerBigCraftableId = GameBigCraftableBaseId / "Mailer";
+    private static readonly Id MailerRecipeId = GameRecipeBaseId / "Mailer";
+    private static readonly Id MailerMachineId = GameMachineBaseId / "Mailer";
+
+    private static readonly Id ShippingControllerTileSheetId = GameTileSheetBaseId / "ShippingController";
+    internal static readonly Id ShippingControllerBigCraftableId = GameBigCraftableBaseId / "ShippingController";
+    private static readonly Id ShippingControllerRecipeId = GameRecipeBaseId / "ShippingController";
+    private static readonly Id ShippingControllerMachineId = GameMachineBaseId / "ShippingController";
+
+    private static readonly Id SpeakerTileSheetId = GameTileSheetBaseId / "Speaker";
+    internal static readonly Id SpeakerBigCraftableId = GameBigCraftableBaseId / "Speaker";
+    private static readonly Id SpeakerRecipeId = GameRecipeBaseId / "Speaker";
+    private static readonly Id SpeakerMachineId = GameMachineBaseId / "Speaker";
+    internal static readonly Id PlayerSensorBigCraftableId = GameBigCraftableBaseId / "PlayerSensor";
     private static readonly Id PlayerSensorRecipeId = GameRecipeBaseId / "PlayerSensor";
     private static readonly Id PlayerSensorMachineId = GameMachineBaseId / "PlayerSensor";
-    private static readonly Id MachineControllerBigCraftableId = GameBigCraftableBaseId / "MachineController";
+    internal static readonly Id MachineControllerBigCraftableId = GameBigCraftableBaseId / "MachineController";
     private static readonly Id MachineControllerRecipeId = GameRecipeBaseId / "MachineController";
+
+    private static readonly Id AdvancedMachineControllerTileSheetId = GameTileSheetBaseId / "AdvancedMachineController";
+    internal static readonly Id AdvancedMachineControllerBigCraftableId = GameBigCraftableBaseId / "AdvancedMachineController";
+    private static readonly Id AdvancedMachineControllerRecipeId = GameRecipeBaseId / "AdvancedMachineController";
+    private static readonly Id AdvancedMachineControllerMachineId = GameMachineBaseId / "AdvancedMachineController";
+
+    private static readonly Id AdvancedShippingControllerTileSheetId = GameTileSheetBaseId / "AdvancedShippingController";
+    internal static readonly Id AdvancedShippingControllerBigCraftableId = GameBigCraftableBaseId / "AdvancedShippingController";
+    private static readonly Id AdvancedShippingControllerRecipeId = GameRecipeBaseId / "AdvancedShippingController";
+    private static readonly Id AdvancedShippingControllerMachineId = GameMachineBaseId / "AdvancedShippingController";
+
+    private static readonly Id AdvancedPlayerSensorTileSheetId = GameTileSheetBaseId / "AdvancedPlayerSensor";
+    internal static readonly Id AdvancedPlayerSensorBigCraftableId = GameBigCraftableBaseId / "AdvancedPlayerSensor";
+    private static readonly Id AdvancedPlayerSensorRecipeId = GameRecipeBaseId / "AdvancedPlayerSensor";
+    private static readonly Id AdvancedPlayerSensorMachineId = GameMachineBaseId / "AdvancedPlayerSensor";
+
+    private static readonly Id AdvancedRouterTileSheetId = GameTileSheetBaseId / "AdvancedRouter";
+    internal static readonly Id AdvancedRouterBigCraftableId = GameBigCraftableBaseId / "AdvancedRouter";
+    private static readonly Id AdvancedRouterRecipeId = GameRecipeBaseId / "AdvancedRouter";
+    private static readonly Id AdvancedRouterMachineId = GameMachineBaseId / "AdvancedRouter";
 
     private static readonly Id MachineControllerMachineId = GameMachineBaseId / "MachineController";
     
@@ -395,6 +439,365 @@ public class ModEntry : Mod {
                     }
                 )
             ),
+            new IContextEntry.StatelessDataContextEntry(
+                MailerTileSheetId,
+                typeof(TileSheet),
+                new TileSheet(MailerTileSheetId, "assets/Mailer.png")
+            ),
+            new IContextEntry.StatelessDataContextEntry(
+                MailerBigCraftableId,
+                typeof(BigCraftableData),
+                new BigCraftableData {
+                    Name = MailerBigCraftableId,
+                    DisplayName = "Mailer",
+                    Description = "Shows notifications and sends in-game mail over the network.",
+                    Price = 500,
+                    Fragility = 0,
+                    CanBePlacedOutdoors = true,
+                    CanBePlacedIndoors = true,
+                    IsLamp = false,
+                    Texture = MailerTileSheetId,
+                    SpriteIndex = 0,
+                    ContextTags = null,
+                    CustomFields = null
+                }
+            ),
+            new IContextEntry.StatelessDataContextEntry(
+                MailerRecipeId,
+                typeof(Recipe),
+                new Recipe(
+                    MailerBigCraftableId,
+                    new Dictionary<string, int> {
+                        { "787", 1 },
+                        { "388", 25 }
+                    },
+                    true,
+                    new IRecipeRequirement.NoneRequired(),
+                    "Mailer"
+                )
+            ),
+            new IContextEntry.StatelessDataContextEntry(
+                MailerMachineId,
+                typeof(Machine),
+                new Machine(
+                    $"(BC){MailerBigCraftableId}",
+                    new MachineData {
+                        HasInput = false,
+                        HasOutput = false,
+                        AllowFairyDust = false,
+                        WobbleWhileWorking = false,
+                        InteractMethod = "Computers.ModEntry, Computers: PeripheralMachineInteractMethod",
+                    }
+                )
+            ),
+            new IContextEntry.StatelessDataContextEntry(
+                ShippingControllerTileSheetId,
+                typeof(TileSheet),
+                new TileSheet(ShippingControllerTileSheetId, "assets/ShippingController.png")
+            ),
+            new IContextEntry.StatelessDataContextEntry(
+                ShippingControllerBigCraftableId,
+                typeof(BigCraftableData),
+                new BigCraftableData {
+                    Name = ShippingControllerBigCraftableId,
+                    DisplayName = "Shipping Controller",
+                    Description = "Sells items from adjacent chests through the shipping bin over the network.",
+                    Price = 800,
+                    Fragility = 0,
+                    CanBePlacedOutdoors = true,
+                    CanBePlacedIndoors = true,
+                    IsLamp = false,
+                    Texture = ShippingControllerTileSheetId,
+                    SpriteIndex = 0,
+                    ContextTags = null,
+                    CustomFields = null
+                }
+            ),
+            new IContextEntry.StatelessDataContextEntry(
+                ShippingControllerRecipeId,
+                typeof(Recipe),
+                new Recipe(
+                    ShippingControllerBigCraftableId,
+                    new Dictionary<string, int> {
+                        { "787", 1 },
+                        { "335", 2 }
+                    },
+                    true,
+                    new IRecipeRequirement.NoneRequired(),
+                    "Shipping Controller"
+                )
+            ),
+            new IContextEntry.StatelessDataContextEntry(
+                ShippingControllerMachineId,
+                typeof(Machine),
+                new Machine(
+                    $"(BC){ShippingControllerBigCraftableId}",
+                    new MachineData {
+                        HasInput = false,
+                        HasOutput = false,
+                        AllowFairyDust = false,
+                        WobbleWhileWorking = false,
+                        InteractMethod = "Computers.ModEntry, Computers: PeripheralMachineInteractMethod",
+                    }
+                )
+            ),
+            new IContextEntry.StatelessDataContextEntry(
+                SpeakerTileSheetId,
+                typeof(TileSheet),
+                new TileSheet(SpeakerTileSheetId, "assets/Speaker.png")
+            ),
+            new IContextEntry.StatelessDataContextEntry(
+                SpeakerBigCraftableId,
+                typeof(BigCraftableData),
+                new BigCraftableData {
+                    Name = SpeakerBigCraftableId,
+                    DisplayName = "Speaker",
+                    Description = "Plays game sound cues over the network.",
+                    Price = 400,
+                    Fragility = 0,
+                    CanBePlacedOutdoors = true,
+                    CanBePlacedIndoors = true,
+                    IsLamp = false,
+                    Texture = SpeakerTileSheetId,
+                    SpriteIndex = 0,
+                    ContextTags = null,
+                    CustomFields = null
+                }
+            ),
+            new IContextEntry.StatelessDataContextEntry(
+                SpeakerRecipeId,
+                typeof(Recipe),
+                new Recipe(
+                    SpeakerBigCraftableId,
+                    new Dictionary<string, int> {
+                        { "787", 1 },
+                        { "338", 1 }
+                    },
+                    true,
+                    new IRecipeRequirement.NoneRequired(),
+                    "Speaker"
+                )
+            ),
+            new IContextEntry.StatelessDataContextEntry(
+                SpeakerMachineId,
+                typeof(Machine),
+                new Machine(
+                    $"(BC){SpeakerBigCraftableId}",
+                    new MachineData {
+                        HasInput = false,
+                        HasOutput = false,
+                        AllowFairyDust = false,
+                        WobbleWhileWorking = false,
+                        InteractMethod = "Computers.ModEntry, Computers: PeripheralMachineInteractMethod",
+                    }
+                )
+            ),
+            new IContextEntry.StatelessDataContextEntry(
+                AdvancedMachineControllerTileSheetId,
+                typeof(TileSheet),
+                new TileSheet(AdvancedMachineControllerTileSheetId, "assets/AdvancedMachineController.png")
+            ),
+            new IContextEntry.StatelessDataContextEntry(
+                AdvancedMachineControllerBigCraftableId,
+                typeof(BigCraftableData),
+                new BigCraftableData {
+                    Name = AdvancedMachineControllerBigCraftableId,
+                    DisplayName = "Advanced Machine Controller",
+                    Description = "Controls an edge-connected group of machines and chests over the network. Reaches the whole connected group.",
+                    Price = 2000,
+                    Fragility = 0,
+                    CanBePlacedOutdoors = true,
+                    CanBePlacedIndoors = true,
+                    IsLamp = false,
+                    Texture = AdvancedMachineControllerTileSheetId,
+                    SpriteIndex = 0,
+                    ContextTags = null,
+                    CustomFields = null
+                }
+            ),
+            new IContextEntry.StatelessDataContextEntry(
+                AdvancedMachineControllerRecipeId,
+                typeof(Recipe),
+                new Recipe(
+                    AdvancedMachineControllerBigCraftableId,
+                    new Dictionary<string, int> {
+                        { "380", 5 },
+                        { "337", 1 }
+                    },
+                    true,
+                    new IRecipeRequirement.NoneRequired(),
+                    "Advanced Machine Controller"
+                )
+            ),
+            new IContextEntry.StatelessDataContextEntry(
+                AdvancedMachineControllerMachineId,
+                typeof(Machine),
+                new Machine(
+                    $"(BC){AdvancedMachineControllerBigCraftableId}",
+                    new MachineData {
+                        HasInput = false,
+                        HasOutput = false,
+                        AllowFairyDust = false,
+                        WobbleWhileWorking = false,
+                        InteractMethod = "Computers.ModEntry, Computers: PeripheralMachineInteractMethod",
+                    }
+                )
+            ),
+            new IContextEntry.StatelessDataContextEntry(
+                AdvancedShippingControllerTileSheetId,
+                typeof(TileSheet),
+                new TileSheet(AdvancedShippingControllerTileSheetId, "assets/AdvancedShippingController.png")
+            ),
+            new IContextEntry.StatelessDataContextEntry(
+                AdvancedShippingControllerBigCraftableId,
+                typeof(BigCraftableData),
+                new BigCraftableData {
+                    Name = AdvancedShippingControllerBigCraftableId,
+                    DisplayName = "Advanced Shipping Controller",
+                    Description = "Sells items from the whole connected chest group through the shipping bin over the network.",
+                    Price = 1600,
+                    Fragility = 0,
+                    CanBePlacedOutdoors = true,
+                    CanBePlacedIndoors = true,
+                    IsLamp = false,
+                    Texture = AdvancedShippingControllerTileSheetId,
+                    SpriteIndex = 0,
+                    ContextTags = null,
+                    CustomFields = null
+                }
+            ),
+            new IContextEntry.StatelessDataContextEntry(
+                AdvancedShippingControllerRecipeId,
+                typeof(Recipe),
+                new Recipe(
+                    AdvancedShippingControllerBigCraftableId,
+                    new Dictionary<string, int> {
+                        { "787", 1 },
+                        { "335", 2 },
+                        { "337", 1 }
+                    },
+                    true,
+                    new IRecipeRequirement.NoneRequired(),
+                    "Advanced Shipping Controller"
+                )
+            ),
+            new IContextEntry.StatelessDataContextEntry(
+                AdvancedShippingControllerMachineId,
+                typeof(Machine),
+                new Machine(
+                    $"(BC){AdvancedShippingControllerBigCraftableId}",
+                    new MachineData {
+                        HasInput = false,
+                        HasOutput = false,
+                        AllowFairyDust = false,
+                        WobbleWhileWorking = false,
+                        InteractMethod = "Computers.ModEntry, Computers: PeripheralMachineInteractMethod",
+                    }
+                )
+            ),
+            new IContextEntry.StatelessDataContextEntry(
+                AdvancedPlayerSensorTileSheetId,
+                typeof(TileSheet),
+                new TileSheet(AdvancedPlayerSensorTileSheetId, "assets/AdvancedPlayerSensor.png")
+            ),
+            new IContextEntry.StatelessDataContextEntry(
+                AdvancedPlayerSensorBigCraftableId,
+                typeof(BigCraftableData),
+                new BigCraftableData {
+                    Name = AdvancedPlayerSensorBigCraftableId,
+                    DisplayName = "Advanced Player Sensor",
+                    Description = "Detects players and NPCs far around and reports them over the network.",
+                    Price = 1000,
+                    Fragility = 0,
+                    CanBePlacedOutdoors = true,
+                    CanBePlacedIndoors = true,
+                    IsLamp = false,
+                    Texture = AdvancedPlayerSensorTileSheetId,
+                    SpriteIndex = 0,
+                    ContextTags = null,
+                    CustomFields = null
+                }
+            ),
+            new IContextEntry.StatelessDataContextEntry(
+                AdvancedPlayerSensorRecipeId,
+                typeof(Recipe),
+                new Recipe(
+                    AdvancedPlayerSensorBigCraftableId,
+                    new Dictionary<string, int> {
+                        { "787", 1 },
+                        { "336", 1 },
+                        { "337", 1 }
+                    },
+                    true,
+                    new IRecipeRequirement.NoneRequired(),
+                    "Advanced Player Sensor"
+                )
+            ),
+            new IContextEntry.StatelessDataContextEntry(
+                AdvancedPlayerSensorMachineId,
+                typeof(Machine),
+                new Machine(
+                    $"(BC){AdvancedPlayerSensorBigCraftableId}",
+                    new MachineData {
+                        HasInput = false,
+                        HasOutput = false,
+                        AllowFairyDust = false,
+                        WobbleWhileWorking = false,
+                        InteractMethod = "Computers.ModEntry, Computers: PeripheralMachineInteractMethod",
+                    }
+                )
+            ),
+            new IContextEntry.StatelessDataContextEntry(
+                AdvancedRouterTileSheetId,
+                typeof(TileSheet),
+                new TileSheet(AdvancedRouterTileSheetId, "assets/AdvancedRouter.png")
+            ),
+            new IContextEntry.StatelessDataContextEntry(
+                AdvancedRouterBigCraftableId,
+                typeof(BigCraftableData),
+                new BigCraftableData {
+                    Name = AdvancedRouterBigCraftableId,
+                    DisplayName = "Advanced Router",
+                    Description = "Connects computers and peripherals into a network. Bridges locations by channel.",
+                    Price = 2000,
+                    Fragility = 0,
+                    CanBePlacedOutdoors = true,
+                    CanBePlacedIndoors = true,
+                    IsLamp = false,
+                    Texture = AdvancedRouterTileSheetId,
+                    SpriteIndex = 0,
+                    ContextTags = null,
+                    CustomFields = null
+                }
+            ),
+            new IContextEntry.StatelessDataContextEntry(
+                AdvancedRouterRecipeId,
+                typeof(Recipe),
+                new Recipe(
+                    AdvancedRouterBigCraftableId,
+                    new Dictionary<string, int> {
+                        { "787", 1 },
+                        { "337", 1 }
+                    },
+                    true,
+                    new IRecipeRequirement.NoneRequired(),
+                    "Advanced Router"
+                )
+            ),
+            new IContextEntry.StatelessDataContextEntry(
+                AdvancedRouterMachineId,
+                typeof(Machine),
+                new Machine(
+                    $"(BC){AdvancedRouterBigCraftableId}",
+                    new MachineData {
+                        HasInput = false,
+                        HasOutput = false,
+                        AllowFairyDust = false,
+                        WobbleWhileWorking = false,
+                        InteractMethod = "Computers.ModEntry, Computers: RouterMachineInteractMethod",
+                    }
+                )
+            ),
             new IContextEntry.ServiceContextEntry(
                 ServiceBaseId / "Monitor",
                 typeof(IMonitor),
@@ -484,6 +887,60 @@ public class ModEntry : Mod {
                 )
             ),
             new IContextEntry.ServiceContextEntry(
+                ServiceBaseId / "PlayerTransport",
+                typeof(SmapiPlayerTransport),
+                initializer => new SmapiPlayerTransport(
+                    initializer.GetSingle<IModHelper>(ServiceBaseId / "ModHelper"),
+                    ModManifest
+                )
+            ),
+            new IContextEntry.ServiceContextEntry(
+                ServiceBaseId / "HostChannel",
+                typeof(Multiplayer.Domain.HostChannel),
+                initializer => {
+                    var monitor = initializer.GetSingle<IMonitor>(ServiceBaseId / "Monitor");
+                    return new Multiplayer.Domain.HostChannel(
+                        initializer.GetSingle<SmapiPlayerTransport>(ServiceBaseId / "PlayerTransport"),
+                        message => monitor.Log(message)
+                    );
+                }
+            ),
+            new IContextEntry.ServiceContextEntry(
+                ServiceBaseId / "ScreenCast",
+                typeof(Multiplayer.Domain.ScreenCast),
+                initializer => {
+                    var monitor = initializer.GetSingle<IMonitor>(ServiceBaseId / "Monitor");
+                    var configuration = initializer.GetSingle<Configuration>(ServiceBaseId / "Configuration");
+                    return new Multiplayer.Domain.ScreenCast(
+                        initializer.GetSingle<Multiplayer.Domain.HostChannel>(ServiceBaseId / "HostChannel"),
+                        configuration.Multiplayer.CastTicksPerFrame,
+                        configuration.Multiplayer.MaxViewersPerComputer,
+                        message => monitor.Log(message)
+                    );
+                }
+            ),
+            new IContextEntry.ServiceContextEntry(
+                ServiceBaseId / "ClientChannels",
+                typeof(StardewModdingAPI.Utilities.PerScreen<Multiplayer.Domain.ClientChannel>),
+                initializer => {
+                    var monitor = initializer.GetSingle<IMonitor>(ServiceBaseId / "Monitor");
+                    var configuration = initializer.GetSingle<Configuration>(ServiceBaseId / "Configuration");
+                    var transport = initializer.GetSingle<SmapiPlayerTransport>(ServiceBaseId / "PlayerTransport");
+                    return new StardewModdingAPI.Utilities.PerScreen<Multiplayer.Domain.ClientChannel>(
+                        () => new Multiplayer.Domain.ClientChannel(
+                            transport,
+                            configuration.Multiplayer.CallTimeoutTicks,
+                            message => monitor.Log(message)
+                        )
+                    );
+                }
+            ),
+            new IContextEntry.ServiceContextEntry(
+                ServiceBaseId / "FrameTap",
+                typeof(IFrameTap),
+                initializer => initializer.GetSingle<Multiplayer.Domain.ScreenCast>(ServiceBaseId / "ScreenCast")
+            ),
+            new IContextEntry.ServiceContextEntry(
                 ServiceBaseId / "SchedulerPulseDispatcher",
                 typeof(IEventHandler),
                 initializer => new SchedulerPulseDispatcher(
@@ -558,7 +1015,8 @@ public class ModEntry : Mod {
                     initializer.GetSingle<IRedundantLoader>(ServiceBaseId / "DataLoader"),
                     initializer.GetSingle<NetworkRegistry>(ServiceBaseId / "NetworkRegistry"),
                     initializer.Lookup<IRouterPort>(),
-                    initializer.GetSingle<ComputerScheduler>(ServiceBaseId / "ComputerScheduler")
+                    initializer.GetSingle<ComputerScheduler>(ServiceBaseId / "ComputerScheduler"),
+                    initializer.GetSingle<IFrameTap>(ServiceBaseId / "FrameTap")
                 )
             ),
             new IContextEntry.ServiceContextEntry(
@@ -578,7 +1036,8 @@ public class ModEntry : Mod {
                     initializer.GetSingle<Configuration>(),
                     initializer.GetSingle<NetworkRegistry>(ServiceBaseId / "NetworkRegistry"),
                     initializer.Lookup<INetworkEndpoint>(),
-                    initializer.Lookup<IRouterPort>()
+                    initializer.Lookup<IRouterPort>(),
+                    PeripheralTier.Basic
                 )
             ),
             new IContextEntry.ServiceContextEntry(
@@ -618,8 +1077,126 @@ public class ModEntry : Mod {
                 _ => new StardewSensorWorld()
             ),
             new IContextEntry.ServiceContextEntry(
-                ServiceBaseId / "WeatherStationFactory",
+                ServiceBaseId / "MailerWorld",
+                typeof(IMailerWorld),
+                initializer => new StardewMailerWorld(initializer.GetSingle<IModHelper>())
+            ),
+            new IContextEntry.ServiceContextEntry(
+                ServiceBaseId / "ShippingWorld",
+                typeof(IShippingWorld),
+                _ => new StardewShippingWorld()
+            ),
+            new IContextEntry.ServiceContextEntry(
+                ServiceBaseId / "SpeakerWorld",
+                typeof(ISpeakerWorld),
+                _ => new StardewSpeakerWorld()
+            ),
+            new IContextEntry.ServiceContextEntry(
+                ServiceBaseId / "MailPatcher",
+                typeof(IPatcherService),
+                initializer => new MailPatcherService(
+                    initializer.Lookup<ILetterSource>()
+                )
+            ),
+            new IContextEntry.ServiceContextEntry(
+                ServiceBaseId / "MailerFactory",
+                typeof(IPeripheralFactory),
+                initializer => new MailerStatefulDataContextEntryFactory(
+                    ServiceBaseId / "MailerFactory",
+                    MailerBigCraftableId,
+                    initializer.GetSingle<IMonitor>(),
+                    initializer.GetSingle<Configuration>(),
+                    initializer.GetSingle<NetworkRegistry>(ServiceBaseId / "NetworkRegistry"),
+                    initializer.Lookup<IRouterPort>(),
+                    initializer.GetSingle<IMailerWorld>(ServiceBaseId / "MailerWorld")
+                )
+            ),
+            new IContextEntry.ServiceContextEntry(
+                ServiceBaseId / "ShippingControllerFactory",
+                typeof(IPeripheralFactory),
+                initializer => new ShippingControllerStatefulDataContextEntryFactory(
+                    ServiceBaseId / "ShippingControllerFactory",
+                    ShippingControllerBigCraftableId,
+                    initializer.GetSingle<IMonitor>(),
+                    initializer.GetSingle<Configuration>(),
+                    initializer.GetSingle<NetworkRegistry>(ServiceBaseId / "NetworkRegistry"),
+                    initializer.Lookup<IRouterPort>(),
+                    initializer.GetSingle<IShippingWorld>(ServiceBaseId / "ShippingWorld"),
+                    PeripheralTier.Basic
+                )
+            ),
+            new IContextEntry.ServiceContextEntry(
+                ServiceBaseId / "SpeakerFactory",
+                typeof(IPeripheralFactory),
+                initializer => new SpeakerStatefulDataContextEntryFactory(
+                    ServiceBaseId / "SpeakerFactory",
+                    SpeakerBigCraftableId,
+                    initializer.GetSingle<IMonitor>(),
+                    initializer.GetSingle<Configuration>(),
+                    initializer.GetSingle<NetworkRegistry>(ServiceBaseId / "NetworkRegistry"),
+                    initializer.Lookup<IRouterPort>(),
+                    initializer.GetSingle<ISpeakerWorld>(ServiceBaseId / "SpeakerWorld")
+                )
+            ),
+            new IContextEntry.ServiceContextEntry(
+                ServiceBaseId / "AdvancedMachineControllerFactory",
+                typeof(IPeripheralFactory),
+                initializer => new MachineControllerStatefulDataContextEntryFactory(
+                    ServiceBaseId / "AdvancedMachineControllerFactory",
+                    AdvancedMachineControllerBigCraftableId,
+                    initializer.GetSingle<IMonitor>(),
+                    initializer.GetSingle<Configuration>(),
+                    initializer.GetSingle<NetworkRegistry>(ServiceBaseId / "NetworkRegistry"),
+                    initializer.Lookup<IRouterPort>(),
+                    initializer.GetSingle<IMachineWorld>(ServiceBaseId / "MachineWorld"),
+                    PeripheralTier.Advanced
+                )
+            ),
+            new IContextEntry.ServiceContextEntry(
+                ServiceBaseId / "AdvancedShippingControllerFactory",
+                typeof(IPeripheralFactory),
+                initializer => new ShippingControllerStatefulDataContextEntryFactory(
+                    ServiceBaseId / "AdvancedShippingControllerFactory",
+                    AdvancedShippingControllerBigCraftableId,
+                    initializer.GetSingle<IMonitor>(),
+                    initializer.GetSingle<Configuration>(),
+                    initializer.GetSingle<NetworkRegistry>(ServiceBaseId / "NetworkRegistry"),
+                    initializer.Lookup<IRouterPort>(),
+                    initializer.GetSingle<IShippingWorld>(ServiceBaseId / "ShippingWorld"),
+                    PeripheralTier.Advanced
+                )
+            ),
+            new IContextEntry.ServiceContextEntry(
+                ServiceBaseId / "AdvancedPlayerSensorFactory",
+                typeof(IPeripheralFactory),
+                initializer => new PlayerSensorStatefulDataContextEntryFactory(
+                    ServiceBaseId / "AdvancedPlayerSensorFactory",
+                    AdvancedPlayerSensorBigCraftableId,
+                    initializer.GetSingle<IMonitor>(),
+                    initializer.GetSingle<Configuration>(),
+                    initializer.GetSingle<NetworkRegistry>(ServiceBaseId / "NetworkRegistry"),
+                    initializer.Lookup<IRouterPort>(),
+                    initializer.GetSingle<ISensorWorld>(ServiceBaseId / "SensorWorld"),
+                    PeripheralTier.Advanced
+                )
+            ),
+            new IContextEntry.ServiceContextEntry(
+                ServiceBaseId / "AdvancedRouterFactory",
                 typeof(IStatefulDataContextEntryFactory),
+                initializer => new RouterStatefulDataContextEntryFactory(
+                    ServiceBaseId / "AdvancedRouterFactory",
+                    AdvancedRouterBigCraftableId,
+                    initializer.GetSingle<IMonitor>(),
+                    initializer.GetSingle<Configuration>(),
+                    initializer.GetSingle<NetworkRegistry>(ServiceBaseId / "NetworkRegistry"),
+                    initializer.Lookup<INetworkEndpoint>(),
+                    initializer.Lookup<IRouterPort>(),
+                    PeripheralTier.Advanced
+                )
+            ),
+            new IContextEntry.ServiceContextEntry(
+                ServiceBaseId / "WeatherStationFactory",
+                typeof(IPeripheralFactory),
                 initializer => new WeatherStationStatefulDataContextEntryFactory(
                     ServiceBaseId / "WeatherStationFactory",
                     WeatherStationBigCraftableId,
@@ -632,7 +1209,7 @@ public class ModEntry : Mod {
             ),
             new IContextEntry.ServiceContextEntry(
                 ServiceBaseId / "PlayerSensorFactory",
-                typeof(IStatefulDataContextEntryFactory),
+                typeof(IPeripheralFactory),
                 initializer => new PlayerSensorStatefulDataContextEntryFactory(
                     ServiceBaseId / "PlayerSensorFactory",
                     PlayerSensorBigCraftableId,
@@ -640,12 +1217,13 @@ public class ModEntry : Mod {
                     initializer.GetSingle<Configuration>(),
                     initializer.GetSingle<NetworkRegistry>(ServiceBaseId / "NetworkRegistry"),
                     initializer.Lookup<IRouterPort>(),
-                    initializer.GetSingle<ISensorWorld>(ServiceBaseId / "SensorWorld")
+                    initializer.GetSingle<ISensorWorld>(ServiceBaseId / "SensorWorld"),
+                    PeripheralTier.Basic
                 )
             ),
             new IContextEntry.ServiceContextEntry(
                 ServiceBaseId / "MachineControllerFactory",
-                typeof(IStatefulDataContextEntryFactory),
+                typeof(IPeripheralFactory),
                 initializer => new MachineControllerStatefulDataContextEntryFactory(
                     ServiceBaseId / "MachineControllerFactory",
                     MachineControllerBigCraftableId,
@@ -653,7 +1231,8 @@ public class ModEntry : Mod {
                     initializer.GetSingle<Configuration>(),
                     initializer.GetSingle<NetworkRegistry>(ServiceBaseId / "NetworkRegistry"),
                     initializer.Lookup<IRouterPort>(),
-                    initializer.GetSingle<IMachineWorld>(ServiceBaseId / "MachineWorld")
+                    initializer.GetSingle<IMachineWorld>(ServiceBaseId / "MachineWorld"),
+                    PeripheralTier.Basic
                 )
             ),
             new IContextEntry.ServiceContextEntry(
@@ -680,25 +1259,179 @@ public class ModEntry : Mod {
         );
 
         var eventBus = _context.GetSingle<IEventBus>(ServiceBaseId / "EventBus");
-        
+
+        static bool IsMainScreen() {
+            return StardewModdingAPI.Context.ScreenId == 0;
+        }
+
         helper.Events.Content.AssetRequested += (_, e) => eventBus.Publish(new AssetRequestedEvent(e));
-        
-        helper.Events.GameLoop.GameLaunched += (_, e) => eventBus.Publish(new GameLaunchedEvent(e));
-        helper.Events.GameLoop.UpdateTicked += (_, e) => eventBus.Publish(new UpdateTickedEvent(e));
+
+        helper.Events.GameLoop.GameLaunched += (_, e) => {
+            if (IsMainScreen()) eventBus.Publish(new GameLaunchedEvent(e));
+        };
+        helper.Events.GameLoop.UpdateTicked += (_, e) => {
+            if (IsMainScreen()) eventBus.Publish(new UpdateTickedEvent(e));
+        };
         helper.Events.GameLoop.ReturnedToTitle += (_, e) => {
+            if (!IsMainScreen()) return;
             _context.GetSingle<NetworkRegistry>(ServiceBaseId / "NetworkRegistry").Clear();
             eventBus.Publish(new ReturnedToTitleEvent(e));
         };
-        
-        helper.Events.Input.ButtonPressed += (_, e) => eventBus.Publish(new ButtonPressedEvent(e));
-        helper.Events.Input.ButtonReleased += (_, e) => eventBus.Publish(new ButtonReleasedEvent(e));
-        
-        helper.Events.World.ObjectListChanged += (_, e) => HandleObjectListChanged(e);
-        helper.Events.GameLoop.SaveCreating += (_, _) => HandleSave();
-        helper.Events.GameLoop.Saving += (_, _) => HandleSave();
-        helper.Events.GameLoop.SaveLoaded += (_, e) => HandleLoad(e);
 
+        helper.Events.Input.ButtonPressed += (_, e) => {
+            if (IsMainScreen()) eventBus.Publish(new ButtonPressedEvent(e));
+        };
+        helper.Events.Input.ButtonReleased += (_, e) => {
+            if (IsMainScreen()) eventBus.Publish(new ButtonReleasedEvent(e));
+        };
+
+        helper.Events.World.ObjectListChanged += (_, e) => {
+            if (IsMainScreen()) HandleObjectListChanged(e);
+        };
+        helper.Events.GameLoop.SaveCreating += (_, _) => {
+            if (IsMainScreen()) HandleSave();
+        };
+        helper.Events.GameLoop.Saving += (_, _) => {
+            if (IsMainScreen()) HandleSave();
+        };
+        helper.Events.GameLoop.SaveLoaded += (_, e) => {
+            if (IsMainScreen()) HandleLoad(e);
+        };
+
+        RegisterMultiplayer(helper);
         RegisterDevAutoload(helper);
+    }
+
+    private static Multiplayer.Domain.ClientChannel CurrentClientChannel =>
+        _context.GetSingle<StardewModdingAPI.Utilities.PerScreen<Multiplayer.Domain.ClientChannel>>(
+            ServiceBaseId / "ClientChannels"
+        ).Value;
+
+    private static void RegisterMultiplayer(IModHelper helper) {
+        var transport = _context.GetSingle<SmapiPlayerTransport>(ServiceBaseId / "PlayerTransport");
+        var hostChannel = _context.GetSingle<Multiplayer.Domain.HostChannel>(ServiceBaseId / "HostChannel");
+        var screenCast = _context.GetSingle<Multiplayer.Domain.ScreenCast>(ServiceBaseId / "ScreenCast");
+        var clientChannels = _context.GetSingle<StardewModdingAPI.Utilities.PerScreen<Multiplayer.Domain.ClientChannel>>(
+            ServiceBaseId / "ClientChannels"
+        );
+
+        RegisterChannelHandlers();
+
+        helper.Events.GameLoop.UpdateTicked += (_, _) => {
+            transport.NoteLocalPlayer();
+            if (transport.IsHost) {
+                hostChannel.Tick();
+                screenCast.Tick();
+                TryStampPendingComputers();
+            }
+            else {
+                clientChannels.Value.Tick();
+            }
+        };
+
+        helper.Events.Multiplayer.PeerDisconnected += (_, e) => {
+            if (StardewModdingAPI.Context.ScreenId == 0) {
+                screenCast.DropPlayer(e.Peer.PlayerID);
+            }
+        };
+    }
+
+    private static void RegisterChannelHandlers() {
+        var configuration = _context.GetSingle<Configuration>(ServiceBaseId / "Configuration");
+        var hostChannel = _context.GetSingle<Multiplayer.Domain.HostChannel>(ServiceBaseId / "HostChannel");
+        var screenCast = _context.GetSingle<Multiplayer.Domain.ScreenCast>(ServiceBaseId / "ScreenCast");
+
+        hostChannel.Register("openScreen", (playerId, request) => {
+            var open = (Multiplayer.Domain.Wire.OpenScreenRequest) request;
+            var obj = ChannelObjectAt(open.X, open.Y, open.Location);
+            var heldModData = obj.HeldObjectModData();
+            if (heldModData is null || !heldModData.TryGetValue("ComputerId", out var computerId)) {
+                throw new Multiplayer.Domain.Wire.ChannelRequestException("no computer at that tile");
+            }
+            return screenCast.Subscribe(computerId, playerId, configuration.Render.CanvasWidth, configuration.Render.CanvasHeight);
+        });
+
+        hostChannel.Register("closeScreen", (playerId, request) => {
+            screenCast.Unsubscribe(((Multiplayer.Domain.Wire.CloseScreenRequest) request).ComputerId, playerId);
+            return null;
+        });
+
+        hostChannel.Register("screenInput", (_, request) => {
+            var input = (Computers.Multiplayer.Domain.Wire.ScreenInputRequest) request;
+            if (!_context.TryGetSingle<IComputerPort>(input.ComputerId.AsId(), out var computer)) {
+                return null;
+            }
+            switch (input.Kind) {
+                case "key":
+                    computer.Fire(new KeyPressedEvent(computer.Id, (Microsoft.Xna.Framework.Input.Keys) input.A));
+                    break;
+                case "leftClick":
+                    computer.Fire(new MouseLeftClickedEvent(computer.Id, input.A, input.B));
+                    break;
+                case "rightClick":
+                    computer.Fire(new MouseRightClickedEvent(computer.Id, input.A, input.B));
+                    break;
+                case "wheel":
+                    computer.Fire(new MouseWheelEvent(computer.Id, input.A));
+                    break;
+            }
+            return null;
+        });
+
+        hostChannel.Register("initializeComputer", (_, request) => {
+            var init = (Multiplayer.Domain.Wire.InitializeComputerRequest) request;
+            PendingComputerStamps.Add(new PendingStamp(init.X, init.Y, init.Location) { TicksLeft = 600 });
+            TryStampPendingComputers();
+            return null;
+        });
+    }
+
+    private static Object ChannelObjectAt(int x, int y, string locationName) {
+        var location = Game1.getLocationFromName(locationName)
+            ?? throw new Multiplayer.Domain.Wire.ChannelRequestException($"location '{locationName}' not found");
+        return !location.objects.TryGetValue(new Vector2(x, y), out var obj)
+            ? throw new Multiplayer.Domain.Wire.ChannelRequestException("no object at that tile") 
+            : obj;
+    }
+
+    private sealed record PendingStamp(int X, int Y, string Location) {
+        public int TicksLeft { get; set; }
+    }
+
+    private static readonly List<PendingStamp> PendingComputerStamps = new();
+
+    private static void TryStampPendingComputers() {
+        for (var index = PendingComputerStamps.Count - 1; index >= 0; index--) {
+            var pending = PendingComputerStamps[index];
+            if (--pending.TicksLeft <= 0) {
+                PendingComputerStamps.RemoveAt(index);
+                continue;
+            }
+
+            var location = Game1.getLocationFromName(pending.Location);
+            if (location is null || !location.objects.TryGetValue(new Vector2(pending.X, pending.Y), out var obj)) {
+                continue;
+            }
+
+            var held = obj.heldObject.Value;
+            if (held is null) {
+                continue;
+            }
+
+            if (!held.modData.ContainsKey("ComputerId")) {
+                var computer = _context.ProduceSingle<ComputerStatefulDataContextEntry>(ServiceBaseId / "ComputerFactory");
+                held.modData["ComputerId"] = computer.Id;
+                computer.Start();
+                _context.GetSingle<NetworkRegistry>(ServiceBaseId / "NetworkRegistry").Register(new Placement(
+                    computer.Id,
+                    NodeRole.Endpoint,
+                    location.NameOrUniqueName,
+                    pending.X,
+                    pending.Y
+                ));
+            }
+            PendingComputerStamps.RemoveAt(index);
+        }
     }
 
     private void RegisterDevAutoload(IModHelper helper) {
@@ -731,8 +1464,6 @@ public class ModEntry : Mod {
             }
 
             Monitor.Log($"Dev autoload: loading save '{saveFolder}'.", LogLevel.Info);
-            // Mirror LoadGameMenu.SaveFileSlot.Activate: start the load, then close the title menu -
-            // leaving TitleMenu active resets the game back to the title screen after the load.
             SaveGame.Load(saveFolder);
             Game1.exitActiveMenu();
         };
@@ -743,6 +1474,11 @@ public class ModEntry : Mod {
         GameLocation location,
         Farmer player
     ) {
+        if (!Game1.IsMasterGame || StardewModdingAPI.Context.ScreenId != 0) {
+            OpenRemoteScreen(machine, location);
+            return true;
+        }
+
         var monitor = _context.GetSingle<IMonitor>(ServiceBaseId / "Monitor");
         monitor.Log($"Interacted with computer machine. Machine: {machine}, Location: {location}, Player: {player}, Held Object: {machine.heldObject}");
 
@@ -750,8 +1486,6 @@ public class ModEntry : Mod {
         if (modData == null) {
             monitor.Log("Computer does not have a held object - cannot infer script.");
             Game1.showGlobalMessage("Computer has no disk inserted.");
-            // Return true so the game treats the click as handled; returning false makes the
-            // held action button retry next tick, showing the toast twice.
             return true;
         }
 
@@ -784,6 +1518,15 @@ public class ModEntry : Mod {
         var outputItem = inputItem.getOne();
         
         if (probe) {
+            return outputItem;
+        }
+
+        if (!Game1.IsMasterGame || StardewModdingAPI.Context.ScreenId != 0) {
+            CurrentClientChannel.Send("initializeComputer", new {
+                x = (int) machine.TileLocation.X,
+                y = (int) machine.TileLocation.Y,
+                location = machine.Location.NameOrUniqueName
+            });
             return outputItem;
         }
 
@@ -833,9 +1576,9 @@ public class ModEntry : Mod {
         var routerId = modData["RouterId"].AsId();
         monitor.Log($"Router has id: {routerId}");
 
-        // Show router id and channel in a message box
-        var routerPort = _context.GetSingle<IRouterPort>(routerId);
-        Game1.showGlobalMessage($"Router Id: {routerId.Last}, Channel: {routerPort.Channel?.ToString() ?? "none"}");
+        Game1.showGlobalMessage(_context.TryGetSingle<IRouterPort>(routerId, out var routerPort)
+            ? $"Router Id: {routerId.Last}, Channel: {routerPort.Channel?.ToString() ?? "none"}"
+            : $"Router Id: {routerId.Last}");
         return true;
     }
 
@@ -890,7 +1633,7 @@ public class ModEntry : Mod {
             monitor.Log($"Skipped restoring '{skippedId}': its factory is gone. The stale state drops from the next save.", LogLevel.Warn);
         }
 
-        // Rebuild network placements from the loaded world (positions are not part of the save state).
+        // Rebuild network placements from the loaded world.
         var registry = _context.GetSingle<NetworkRegistry>(ServiceBaseId / "NetworkRegistry");
         var placements = new List<Placement>();
         Utility.ForEachLocation(location => {
@@ -934,6 +1677,10 @@ public class ModEntry : Mod {
     }
 
     private static void HandleObjectListChanged(ObjectListChangedEventArgs args) {
+        if (!Game1.IsMasterGame) {
+            return;
+        }
+
         var monitor = _context.GetSingle<IMonitor>(ServiceBaseId / "Monitor");
         var registry = _context.GetSingle<NetworkRegistry>(ServiceBaseId / "NetworkRegistry");
         var locationName = args.Location.NameOrUniqueName;
@@ -941,8 +1688,10 @@ public class ModEntry : Mod {
         foreach (var (position, obj) in args.Added) {
             monitor.Log($"Added object at {position}: {obj}");
 
-            if (obj.ItemId == RouterBigCraftableId) {
-                HandleRouterAdded(obj, position);
+            if (obj.ItemId == RouterBigCraftableId || obj.ItemId == AdvancedRouterBigCraftableId) {
+                HandleRouterAdded(obj, position, obj.ItemId == AdvancedRouterBigCraftableId
+                    ? ServiceBaseId / "AdvancedRouterFactory"
+                    : ServiceBaseId / "RouterFactory");
                 registry.Register(new Placement(
                     obj.modData["RouterId"].AsId(),
                     NodeRole.Router,
@@ -952,8 +1701,8 @@ public class ModEntry : Mod {
                 ));
             }
 
-            if (PeripheralProducersByItemId.TryGetValue(obj.ItemId, out var producePeripheral)) {
-                HandlePeripheralAdded(obj, position, producePeripheral);
+            if (PeripheralFactoryFor(obj.ItemId) is { } peripheralFactory) {
+                HandlePeripheralAdded(obj, position, peripheralFactory);
                 registry.Register(new Placement(
                     obj.modData["PeripheralId"].AsId(),
                     NodeRole.Endpoint,
@@ -1004,18 +1753,13 @@ public class ModEntry : Mod {
         _context.Get<IPeripheralPort>().ForEach(peripheral => peripheral.Value.NotifyWorldChanged());
     }
 
-    // Each peripheral kind maps its big craftable to a producer for its entity.
-    private static readonly IReadOnlyDictionary<string, Func<IPeripheralPort>> PeripheralProducersByItemId =
-        new Dictionary<string, Func<IPeripheralPort>> {
-            [MachineControllerBigCraftableId] = () =>
-                _context.ProduceSingle<MachineControllerStatefulDataContextEntry>(ServiceBaseId / "MachineControllerFactory"),
-            [WeatherStationBigCraftableId] = () =>
-                _context.ProduceSingle<WeatherStationStatefulDataContextEntry>(ServiceBaseId / "WeatherStationFactory"),
-            [PlayerSensorBigCraftableId] = () =>
-                _context.ProduceSingle<PlayerSensorStatefulDataContextEntry>(ServiceBaseId / "PlayerSensorFactory")
-        };
+    private static IPeripheralFactory? PeripheralFactoryFor(string itemId) {
+        return _context.Get<IPeripheralFactory>()
+            .Select(entry => entry.Value)
+            .SingleOrDefault(factory => factory.ItemId == itemId);
+    }
 
-    private static void HandlePeripheralAdded(Object obj, Vector2 position, Func<IPeripheralPort> producePeripheral) {
+    private static void HandlePeripheralAdded(Object obj, Vector2 position, IPeripheralFactory factory) {
         var monitor = _context.GetSingle<IMonitor>(ServiceBaseId / "Monitor");
         monitor.Log("Peripheral added.");
 
@@ -1024,7 +1768,7 @@ public class ModEntry : Mod {
             monitor.Log("PeripheralId already exists.");
             peripheral = existingPeripheral;
         } else {
-            peripheral = producePeripheral();
+            peripheral = _context.ProduceSingle<IPeripheralPort>(factory);
             monitor.Log($"Setting PeripheralId to {peripheral.Id}");
             obj.modData["PeripheralId"] = peripheral.Id;
         }
@@ -1043,7 +1787,7 @@ public class ModEntry : Mod {
         peripheral.Stop();
     }
 
-    private static void HandleRouterAdded(Object obj, Vector2 position) {
+    private static void HandleRouterAdded(Object obj, Vector2 position, Id routerFactoryId) {
         var monitor = _context.GetSingle<IMonitor>(ServiceBaseId / "Monitor");
         monitor.Log("Router added.");
 
@@ -1052,7 +1796,7 @@ public class ModEntry : Mod {
             monitor.Log("RouterId already exists.");
             router = existingRouter;
         } else {
-            router = _context.ProduceSingle<RouterStatefulDataContextEntry>(ServiceBaseId / "RouterFactory");
+            router = _context.ProduceSingle<RouterStatefulDataContextEntry>(routerFactoryId);
             monitor.Log($"Setting RouterId to {router.Id}");
             obj.modData["RouterId"] = router.Id;
         }
@@ -1081,7 +1825,10 @@ public class ModEntry : Mod {
         }
         
         monitor.Log($"Computer with id {computerId} was removed.");
-        
+
+        // Anyone still viewing this screen remotely gets told it closed.
+        _context.GetSingle<Multiplayer.Domain.ScreenCast>(ServiceBaseId / "ScreenCast").DropComputer(computerId);
+
         // Stop computer
         if (_context.TryGetSingle<IComputerPort>(computerId, out var computerState)) {
             computerState.Fire(new StopComputerEvent(computerState.Id));
@@ -1098,6 +1845,30 @@ public class ModEntry : Mod {
         );
     }
     
+    private static void OpenRemoteScreen(Object machine, GameLocation location) {
+        var monitor = _context.GetSingle<IMonitor>(ServiceBaseId / "Monitor");
+        monitor.Log($"Remote screen open requested on screen {StardewModdingAPI.Context.ScreenId}, master game {Game1.IsMasterGame}.");
+        var channel = CurrentClientChannel;
+        var configuration = _context.GetSingle<Configuration>(ServiceBaseId / "Configuration");
+        var assetLoader = _context.GetSingle<IRedundantLoader>(ServiceBaseId / "AssetsLoader");
+        channel.Call(
+            "openScreen",
+            new {
+                x = (int) machine.TileLocation.X,
+                y = (int) machine.TileLocation.Y,
+                location = location.NameOrUniqueName
+            },
+            data => {
+                monitor.Log($"Remote screen opening on screen {StardewModdingAPI.Context.ScreenId}.");
+                RemoteScreen.Open(channel, data!["computerId"]!.ToObject<string>()!, configuration, assetLoader);
+            },
+            error => {
+                monitor.Log($"Remote screen open failed. {error}");
+                Game1.showGlobalMessage(error);
+            }
+        );
+    }
+
     private static void DrawScreen(IComputerPort computerPort) {
         var monitor = _context.GetSingle<IMonitor>(ServiceBaseId / "Monitor");
         var configuration = _context.GetSingle<Configuration>(ServiceBaseId / "Configuration");

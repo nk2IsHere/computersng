@@ -39,7 +39,7 @@ public class PlayerSensorEntryTests {
         PlayerSensorStatefulDataContextEntry Sensor,
         FakeSensorWorld World,
         FakeRouterPort Router
-    ) Make() {
+    ) Make(PeripheralTier tier = PeripheralTier.Basic) {
         var configuration = TestConfiguration();
         var routerPort = new FakeRouterPort(R1);
         var routers = new ContextLookup<IRouterPort>(
@@ -51,7 +51,7 @@ public class PlayerSensorEntryTests {
         registry.Register(new Placement(S1, NodeRole.Endpoint, "Farm", 5, 0));
 
         var sensor = new PlayerSensorStatefulDataContextEntry(
-            FactoryId, S1, new TestMonitor(), configuration, registry, routers, world);
+            FactoryId, S1, new TestMonitor(), configuration, registry, routers, world, tier);
         sensor.Fire(new StartPeripheralEvent());
         return (sensor, world, routerPort);
     }
@@ -115,6 +115,7 @@ public class PlayerSensorEntryTests {
 
         var reply = LastPayload(router);
         Assert.Equal("playerSensor", reply["data"]!["type"]!.Value<string>());
+        Assert.Equal("basic", reply["data"]!["tier"]!.Value<string>());
         Assert.Equal(8, reply["data"]!["radius"]!.Value<int>());
     }
 
@@ -137,6 +138,43 @@ public class PlayerSensorEntryTests {
     }
 
     [Fact]
+    public void ConfigureBeyondTheTierCapFails() {
+        var (sensor, world, router) = Make(tier: PeripheralTier.Basic);
+        world.Reading = Reading();
+        Send(sensor, "{\"cid\":\"c3\",\"cmd\":\"configure\",\"radius\":9}");
+        sensor.Fire(new TickPeripheralEvent(1));
+
+        var reply = LastPayload(router);
+        Assert.False(reply["ok"]!.Value<bool>());
+        Assert.Equal("radius must be between 1 and 8 for this tier", reply["error"]!.Value<string>());
+    }
+
+    [Fact]
+    public void AdvancedTierAcceptsLargeRadii() {
+        var (sensor, world, _) = Make(tier: PeripheralTier.Advanced);
+        world.Reading = Reading();
+        Send(sensor, "{\"cid\":\"c4\",\"cmd\":\"configure\",\"radius\":40}");
+        sensor.Fire(new TickPeripheralEvent(1));
+        sensor.Fire(new TickPeripheralEvent(2));
+
+        Assert.Equal(40, world.LastRadius);
+    }
+
+    [Fact]
+    public void RestoredRadiusClampsToTheTierCap() {
+        var (advanced, world, _) = Make(tier: PeripheralTier.Advanced);
+        world.Reading = Reading();
+        Send(advanced, "{\"cid\":\"c5\",\"cmd\":\"configure\",\"radius\":40}");
+        advanced.Fire(new TickPeripheralEvent(1));
+
+        var state = advanced.Store(Computers.Core.Context.Empty);
+        var (basic, _, _) = Make(tier: PeripheralTier.Basic);
+        basic.Restore(Computers.Core.Context.Empty, state);
+
+        Assert.Equal(8, basic.Radius);
+    }
+
+    [Fact]
     public void ConfigureRejectsAnInvalidRadius() {
         var (sensor, world, router) = Make();
         world.Reading = Reading();
@@ -145,7 +183,7 @@ public class PlayerSensorEntryTests {
 
         var reply = LastPayload(router);
         Assert.False(reply["ok"]!.Value<bool>());
-        Assert.Contains("radius must be between", reply["error"]!.Value<string>());
+        Assert.Contains("radius must be at least 1", reply["error"]!.Value<string>());
         Assert.Equal(8, sensor.Radius);
     }
 }

@@ -1,12 +1,13 @@
 using Computers.Computer;
 using Computers.Core;
+using Computers.Peripheral;
 using Computers.Router;
 using Computers.Router.Domain;
 using StardewModdingAPI;
 
 namespace Computers.PlayerSensor.Domain;
 
-public class PlayerSensorStatefulDataContextEntryFactory : IStatefulDataContextEntryFactory {
+public class PlayerSensorStatefulDataContextEntryFactory : IPeripheralFactory {
 
     private readonly Id _basePeripheralId;
 
@@ -15,6 +16,7 @@ public class PlayerSensorStatefulDataContextEntryFactory : IStatefulDataContextE
     private readonly NetworkRegistry _registry;
     private readonly ContextLookup<IRouterPort> _routers;
     private readonly ISensorWorld _sensorWorld;
+    private readonly PeripheralTier _tier;
 
     public PlayerSensorStatefulDataContextEntryFactory(
         Id id,
@@ -23,7 +25,8 @@ public class PlayerSensorStatefulDataContextEntryFactory : IStatefulDataContextE
         Configuration configuration,
         NetworkRegistry registry,
         ContextLookup<IRouterPort> routers,
-        ISensorWorld sensorWorld
+        ISensorWorld sensorWorld,
+        PeripheralTier tier
     ) {
         FactoryId = id;
         _basePeripheralId = basePeripheralId;
@@ -32,9 +35,12 @@ public class PlayerSensorStatefulDataContextEntryFactory : IStatefulDataContextE
         _registry = registry;
         _routers = routers;
         _sensorWorld = sensorWorld;
+        _tier = tier;
     }
 
     public Id FactoryId { get; }
+
+    public Id ItemId => _basePeripheralId;
 
     public IContextEntry ProduceValue() {
         return ProduceValue(ContextEntryState.Empty);
@@ -49,7 +55,8 @@ public class PlayerSensorStatefulDataContextEntryFactory : IStatefulDataContextE
             _configuration,
             _registry,
             _routers,
-            _sensorWorld
+            _sensorWorld,
+            _tier
         );
     }
 }

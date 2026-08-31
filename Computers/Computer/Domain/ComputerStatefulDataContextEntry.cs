@@ -45,7 +45,8 @@ public class ComputerStatefulDataContextEntry : IContextEntry.StatefulDataContex
         IRedundantLoader dataLoader,
         NetworkRegistry registry,
         ContextLookup<IRouterPort> routers,
-        ComputerScheduler scheduler
+        ComputerScheduler scheduler,
+        IFrameTap frameTap
     ) : base(factoryId, id) {
         _monitor = monitor;
         Configuration = configuration;
@@ -54,7 +55,7 @@ public class ComputerStatefulDataContextEntry : IContextEntry.StatefulDataContex
         _scheduler = scheduler;
         
         _computerApis = new List<IComputerApi> {
-            new RenderComputerApi(this),
+            new RenderComputerApi(this, frameTap),
             new EventComputerApi(this),
             new SystemComputerApi(this),
             new StorageComputerApi(
@@ -87,9 +88,24 @@ public class ComputerStatefulDataContextEntry : IContextEntry.StatefulDataContex
 
     public override void Restore(Context context, ContextEntryState state) {
         var computerState = state.GetOrDefault("Storage", new Dictionary<string, object>());
-        
-        _storage.Clear();
-        computerState.ForEach(pair => _storage.Add(pair.Key, pair.Value));
+
+        // The storage layers captured the nested per api dictionaries when the apis were
+        // constructed, which happens before restore runs. Swapping in the deserialized
+        // instances would orphan those captured dictionaries, so the persisted content is
+        // copied into the existing instances instead.
+        foreach (var pair in computerState) {
+            if (
+                pair.Value is IDictionary<string, object> restored
+                && _storage.TryGetValue(pair.Key, out var existing)
+                && existing is IDictionary<string, object> live
+            ) {
+                live.Clear();
+                restored.ForEach(entry => live[entry.Key] = entry.Value);
+            }
+            else {
+                _storage[pair.Key] = pair.Value;
+            }
+        }
     }
 
     public override ContextEntryState Store(Context context) {
@@ -151,11 +167,17 @@ public class ComputerStatefulDataContextEntry : IContextEntry.StatefulDataContex
         if(_storage.TryGetValue(api.Name, out var value)) {
             return (IDictionary<string, object>) value;
         }
-        
+
         var storage = new ConcurrentDictionary<string, object>();
         _storage.Add(api.Name, storage);
         return storage;
     }
+
+    // Typed access to the computer's persistent files, backed by the same dictionary
+    // the save round trips. Only the e2e harness reads and writes files from the host
+    // side, so this stays off the port.
+    internal IStorageLayer PersistentStorage =>
+        new PersistentStorageLayer(GetStorage(_computerApis.OfType<StorageComputerApi>().Single()));
 
     public void Reload() {
         _cancellationTokenSource = new CancellationTokenSource();
@@ -184,6 +206,7 @@ public class ComputerStatefulDataContextEntry : IContextEntry.StatefulDataContex
     }
 
     public void Start() {
+        _monitor.Log($"Computer {Id} started");
         _stopping = false;
         _disabled = false;
         Interlocked.Exchange(ref _needsBoot, 1);
@@ -191,6 +214,7 @@ public class ComputerStatefulDataContextEntry : IContextEntry.StatefulDataContex
     }
 
     public void Stop() {
+        _monitor.Log($"Computer {Id} stopped");
         _stopping = true;
         _scheduler.Unregister(Id);
         _cancellationTokenSource?.Cancel();
@@ -235,7 +259,7 @@ public class ComputerStatefulDataContextEntry : IContextEntry.StatefulDataContex
 
     private void HandleFatalScriptError() {
         if (Configuration.Engine.ShouldResetScriptOnFatalError) {
-            Interlocked.Exchange(ref _needsBoot, 1); // re-boot on next slice
+            Interlocked.Exchange(ref _needsBoot, 1); // reboot on next slice
         }
         else {
             _disabled = true;
@@ -244,13 +268,12 @@ public class ComputerStatefulDataContextEntry : IContextEntry.StatefulDataContex
     }
 
     private void Boot() {
+        _monitor.Log($"Computer {Id} booting");
         Reload();
 
-        // Expose settlement callbacks, then start Main. Execute runs synchronously until
-        // Main's first await (the statement budget guards a Main that never awaits) and the
-        // returned promise settles through later slices.
         Set("__computerOnScriptEnd", new Action(() =>
-            _monitor.Log($"Computer {Id}: entrypoint Main completed; computer is idle.")));
+            _monitor.Log($"Computer {Id}: entrypoint Main completed; computer is idle."))
+        );
         Set("__computerOnScriptError", new Action<string>(error => {
             _monitor.Log($"Computer {Id}: script error: {error}", LogLevel.Warn);
             HandleFatalScriptError();

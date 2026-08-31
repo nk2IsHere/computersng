@@ -14,6 +14,7 @@ namespace Computers.MachineController.Domain;
 public class MachineControllerStatefulDataContextEntry : PeripheralEntity<MachineControllerStatefulDataContextEntry> {
 
     private readonly IMachineWorld _machineWorld;
+    private readonly PeripheralTier _tier;
     private readonly DelegatingOps _ops = new();
     private readonly PeripheralSubscriptions _subscriptions;
     private readonly MachineControllerCommandProcessor _processor;
@@ -30,11 +31,13 @@ public class MachineControllerStatefulDataContextEntry : PeripheralEntity<Machin
         Configuration configuration,
         NetworkRegistry registry,
         ContextLookup<IRouterPort> routers,
-        IMachineWorld machineWorld
+        IMachineWorld machineWorld,
+        PeripheralTier tier
     ) : base(factoryId, id, monitor, configuration, registry, routers) {
         _machineWorld = machineWorld;
+        _tier = tier;
         _subscriptions = new PeripheralSubscriptions(new[] { "ready" }, configuration.Peripheral.MaxSubscribers);
-        _processor = new MachineControllerCommandProcessor(_ops, _subscriptions);
+        _processor = new MachineControllerCommandProcessor(_ops, _subscriptions, tier);
     }
 
     private class DelegatingOps : IMachineGroupOps {
@@ -82,7 +85,8 @@ public class MachineControllerStatefulDataContextEntry : PeripheralEntity<Machin
             location.GroupWorld,
             placement.X,
             placement.Y,
-            Configuration.MachineController.MaxGroupSize
+            Configuration.MachineController.MaxGroupSize,
+            _tier == PeripheralTier.Basic ? 1 : int.MaxValue
         );
         _groupDirty = false;
 

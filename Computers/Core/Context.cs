@@ -72,6 +72,14 @@ public class Context {
         var entry = (T) factory.ProduceValue();
         return PutSingle(entry);
     }
+
+    // Produces through a factory instance found by lookup, so the caller only
+    // needs the value type it wants back and never the concrete entry type.
+    public T ProduceSingle<T>(IStatefulDataContextEntryFactory factory) {
+        var entry = factory.ProduceValue();
+        _entries[entry.Id] = entry;
+        return _GetOrAddCached(entry.Id, () => (T) entry.GetValue(this));
+    }
     
     public Dictionary<Id, Dictionary<string, object>> Store() {
         var state = new Dictionary<Id, Dictionary<string, object>>();

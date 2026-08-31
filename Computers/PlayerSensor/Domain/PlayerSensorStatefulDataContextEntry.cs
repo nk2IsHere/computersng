@@ -1,5 +1,6 @@
 using Computers.Computer;
 using Computers.Core;
+using Computers.Peripheral;
 using Computers.Peripheral.Domain;
 using Computers.PlayerSensor.Domain.Wire;
 using Computers.Router;
@@ -11,9 +12,14 @@ using Context = Computers.Core.Context;
 
 namespace Computers.PlayerSensor.Domain;
 
+public static class SensorTiers {
+    public static int MaxRadius(PeripheralTier tier) => tier == PeripheralTier.Advanced ? 64 : 8;
+}
+
 public class PlayerSensorStatefulDataContextEntry : PeripheralEntity<PlayerSensorStatefulDataContextEntry> {
 
     private readonly ISensorWorld _sensorWorld;
+    private readonly PeripheralTier _tier;
     private readonly PeripheralSubscriptions _subscriptions;
     private readonly PlayerSensorCommandProcessor _processor;
 
@@ -29,14 +35,24 @@ public class PlayerSensorStatefulDataContextEntry : PeripheralEntity<PlayerSenso
         Configuration configuration,
         NetworkRegistry registry,
         ContextLookup<IRouterPort> routers,
-        ISensorWorld sensorWorld
+        ISensorWorld sensorWorld,
+        PeripheralTier tier
     ) : base(factoryId, id, monitor, configuration, registry, routers) {
         _sensorWorld = sensorWorld;
+        _tier = tier;
         _subscriptions = new PeripheralSubscriptions(new[] { "presence" }, configuration.Peripheral.MaxSubscribers);
-        _processor = new PlayerSensorCommandProcessor(_subscriptions, radius => _configuredRadius = radius);
+        _processor = new PlayerSensorCommandProcessor(_subscriptions, ConfigureRadius, tier);
     }
 
-    public int Radius => _configuredRadius ?? Configuration.PlayerSensor.Radius;
+    private void ConfigureRadius(int radius) {
+        var cap = SensorTiers.MaxRadius(_tier);
+        if (radius > cap) {
+            throw new PeripheralRequestException($"radius must be between 1 and {cap} for this tier");
+        }
+        _configuredRadius = radius;
+    }
+
+    public int Radius => Math.Min(_configuredRadius ?? Configuration.PlayerSensor.Radius, SensorTiers.MaxRadius(_tier));
 
     public override void Restore(Context context, ContextEntryState state) {
         var radius = state.GetOrDefault<object?>("Radius", null);

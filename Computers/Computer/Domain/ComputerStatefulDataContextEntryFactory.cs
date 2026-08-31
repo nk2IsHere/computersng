@@ -19,6 +19,7 @@ public class ComputerStatefulDataContextEntryFactory : IStatefulDataContextEntry
     private readonly NetworkRegistry _registry;
     private readonly ContextLookup<IRouterPort> _routers;
     private readonly ComputerScheduler _scheduler;
+    private readonly IFrameTap _frameTap;
 
     public ComputerStatefulDataContextEntryFactory(
         Id id,
@@ -31,7 +32,8 @@ public class ComputerStatefulDataContextEntryFactory : IStatefulDataContextEntry
         IRedundantLoader dataLoader,
         NetworkRegistry registry,
         ContextLookup<IRouterPort> routers,
-        ComputerScheduler scheduler
+        ComputerScheduler scheduler,
+        IFrameTap frameTap
     ) {
         FactoryId = id;
         _baseComputerId = baseComputerId;
@@ -44,6 +46,7 @@ public class ComputerStatefulDataContextEntryFactory : IStatefulDataContextEntry
         _registry = registry;
         _routers = routers;
         _scheduler = scheduler;
+        _frameTap = frameTap;
     }
 
     public Id FactoryId { get; }
@@ -65,7 +68,8 @@ public class ComputerStatefulDataContextEntryFactory : IStatefulDataContextEntry
             _dataLoader,
             _registry,
             _routers,
-            _scheduler
+            _scheduler,
+            _frameTap
         );
     }
 }

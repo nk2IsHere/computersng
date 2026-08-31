@@ -6,7 +6,9 @@ This is the gameplay guide. The wire protocol reference is in [Networking](Netwo
 
 Place a Router within 10 tiles of every computer and peripheral that should be online.
 Routers within 16 tiles of each other mesh automatically. To bridge locations, set the
-same channel on a router in each location with `.router-channel <address> <channel>`.
+same channel on an Advanced Router in each location with
+`.router-channel <address> <channel>`. Basic routers reject channels and only mesh by
+radius.
 
 Messages hop one router per game tick and are fire-and-forget, so distance costs time
 and delivery is never guaranteed. Everything reliable is built on request and reply.
@@ -56,6 +58,10 @@ hands the script its `rpcServerView`:
 rpcServerView.handlers.set("greet", (args, from) => ({ hello: from }))
 ```
 
+Tiered peripherals come in two craftables. The basic version reaches only its four
+adjacent tiles and the advanced version, costing an extra iridium bar, reaches the whole
+edge-connected group or long range. `ping` tells you which one answered.
+
 ## Machine controller
 
 Groups machines and chests connected edge to edge around it. `list` shows the group,
@@ -89,7 +95,8 @@ and daily luck. Subscribe to `day` for day changes and `time` for the ten minute
 
 ## Player sensor
 
-`read` returns players and NPCs within the sensor's radius, 8 tiles by default. Set a
+`read` returns players and NPCs within the sensor's radius, 8 tiles by default. The basic
+sensor caps at 8 tiles and the advanced one at 64. Set a
 per-sensor radius with `configure`, which survives saves, and check it with `ping`.
 Subscribe to `presence` for entered and left pushes.
 
@@ -99,4 +106,37 @@ Subscribe to `presence` for entered and left pushes.
 .peripheral ef56cd configure {"radius":16}
 .peripheral ef56cd subscribe {"events":["presence"]}
 .peripheral ef56cd unsubscribe {"events":["presence"]}
+```
+
+## Mailer
+
+`notify` pops a HUD message immediately. `mail` queues a real in-game letter for
+tomorrow's mailbox, which is how a far away base reports overnight.
+
+```
+.notify ab12cd The furnaces are done
+.mail ab12cd Iron ran out yesterday
+.peripheral ab12cd mail {"text":"Full report here","title":"Factory status"}
+```
+
+## Shipping controller
+
+Sells items from chests on its four adjacent tiles into the shipping bin. Money arrives
+with the nightly shipment like hand-shipped items.
+
+```
+.peripheral ef34ab ping
+.peripheral ef34ab list
+.price ef34ab 378
+.ship ef34ab 378
+.ship ef34ab 378 25
+```
+
+## Speaker
+
+Plays game sound cues positioned at the speaker.
+
+```
+.play cd56ef furnace
+.play cd56ef junimoMeep 1200
 ```

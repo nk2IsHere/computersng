@@ -1,12 +1,13 @@
 using Computers.Computer;
 using Computers.Core;
+using Computers.Peripheral;
 using Computers.Router;
 using Computers.Router.Domain;
 using StardewModdingAPI;
 
 namespace Computers.WeatherStation.Domain;
 
-public class WeatherStationStatefulDataContextEntryFactory : IStatefulDataContextEntryFactory {
+public class WeatherStationStatefulDataContextEntryFactory : IPeripheralFactory {
 
     private readonly Id _basePeripheralId;
 
@@ -35,6 +36,8 @@ public class WeatherStationStatefulDataContextEntryFactory : IStatefulDataContex
     }
 
     public Id FactoryId { get; }
+
+    public Id ItemId => _basePeripheralId;
 
     public IContextEntry ProduceValue() {
         return ProduceValue(ContextEntryState.Empty);

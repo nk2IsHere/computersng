@@ -40,6 +40,7 @@ Make processing of Stardew's resources a configurable function pipe-like process
     - Shipping controller - sells items from adjacent chests through the bin, queries prices
     - Speaker - plays game sound cues and music from scripts
     - Switchable devices - controllable sprinklers and lights
+    - Item transporter - moves items between chests over the network, so distant storages can feed each other
 
 ## Docs
 
@@ -48,6 +49,8 @@ Make processing of Stardew's resources a configurable function pipe-like process
 - [Storage](Docs/Storage.md) - the layered file system, external storage and Startup.js
 - [Networking](Docs/Networking.md) - the LAN wire protocol, router firmware and peripheral command tables
 - [Peripherals](Docs/Peripherals.md) - setting up routers and using every peripheral
+- [Testing](Docs/Testing.md) - the unit suite and the e2e harness that drives the real game
+- [Multiplayer](Docs/Multiplayer.md) - what farmhands can do, the player channel and screen casting
 
 ## TODOs
 
@@ -91,14 +94,20 @@ Make processing of Stardew's resources a configurable function pipe-like process
 ### More peripherals
 
 - [x] Add CI with build + tests and tagged releases
+- [x] Add e2e test harness driving the game over a control channel
 - [x] Move subscribe/event-push handling into shared peripheral code
 - [x] Add weather station peripheral
 - [x] Add player sensor peripheral
-- [ ] Add mailer peripheral
-- [ ] Add shipping controller peripheral
-- [ ] Add speaker peripheral
+- [x] Add mailer peripheral
+- [x] Add shipping controller peripheral
+- [x] Add speaker peripheral
 - [ ] Add switchable device peripherals
+- [ ] Add item transporter peripheral
 - [ ] Add monitor driven by computer over the network
+
+### Multiplayer
+
+- [x] Add multiplayer context syncing so farmhands can interact with computers and peripherals, entities stay host authoritative and clients proxy screens and input to the host
 
 ### For future
 

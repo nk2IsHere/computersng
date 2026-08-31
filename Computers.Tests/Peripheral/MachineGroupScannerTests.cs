@@ -83,6 +83,34 @@ public class MachineGroupScannerTests {
     }
 
     [Fact]
+    public void MaxDistanceOneYieldsOnlyAdjacentCells() {
+        // controller(0,0) - machine(1,0) - machine(2,0), chest above at (0,1)
+        var world = new GridWorld(new() {
+            [(1, 0)] = GroupCellKind.Machine,
+            [(2, 0)] = GroupCellKind.Machine,
+            [(0, 1)] = GroupCellKind.Chest
+        });
+
+        var group = MachineGroupScanner.Scan(world, 0, 0, 256, maxDistance: 1);
+
+        Assert.Equal(new[] { (1, 0) }, group.Machines);
+        Assert.Equal(new[] { (0, 1) }, group.Chests);
+    }
+
+    [Fact]
+    public void ConnectorsDoNotExtendReachAtMaxDistanceOne() {
+        var world = new GridWorld(new() {
+            [(1, 0)] = GroupCellKind.Connector,
+            [(2, 0)] = GroupCellKind.Machine
+        });
+
+        var group = MachineGroupScanner.Scan(world, 0, 0, 256, maxDistance: 1);
+
+        Assert.Empty(group.Machines);
+        Assert.Contains(new GroupMember(1, 0, GroupCellKind.Connector), group.Members);
+    }
+
+    [Fact]
     public void EmptySurroundingsYieldEmptyGroup() {
         var group = MachineGroupScanner.Scan(new GridWorld(new()), 0, 0, 256);
 

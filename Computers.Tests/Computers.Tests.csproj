@@ -21,6 +21,7 @@
 
     <ItemGroup>
         <ProjectReference Include="../Computers/Computers.csproj" />
+        <ProjectReference Include="../Computers.E2e/Computers.E2e.csproj" />
     </ItemGroup>
 
     <!-- Game assemblies are referenced with Private=false by ModBuildConfig; copy them so the test host can load them. -->

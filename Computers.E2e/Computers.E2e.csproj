@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net6.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <!-- The GAME_PATH environment variable overrides the local install path. -->
+        <GamePath>$(GAME_PATH)</GamePath>
+        <GamePath Condition="'$(GamePath)' == ''">/Users/nk2/Desktop/SVDev.app/Contents/MacOS</GamePath>
+        <EnableGameDebugging>false</EnableGameDebugging>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Newtonsoft.Json" Version="13.0.5-beta1" />
+        <PackageReference Include="Pathoschild.Stardew.ModBuildConfig" Version="4.4.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <!-- Private false keeps Computers.dll out of this mod folder. At runtime SMAPI -->
+        <!-- resolves it from the Computers mod, which the manifest declares as a dependency. -->
+        <ProjectReference Include="../Computers/Computers.csproj" Private="false" />
+    </ItemGroup>
+
+</Project>
