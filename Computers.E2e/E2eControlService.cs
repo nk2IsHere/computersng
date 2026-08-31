@@ -18,8 +18,22 @@ public sealed class E2eControlService : IDisposable {
     private readonly Func<E2eRequest, IPendingOperation> _createOperation;
     private readonly Action<string> _log;
 
-    private readonly ConcurrentQueue<(JToken Cid, E2eRequest Request)> _incoming = new();
-    private readonly List<(JToken Cid, IPendingOperation Operation, int StartedAtTick)> _live = new();
+    private readonly ConcurrentQueue<(JToken Cid, E2eRequest Request, int Screen)> _incoming = new();
+    private readonly List<LiveOperation> _live = new();
+
+    private sealed class LiveOperation {
+        public LiveOperation(JToken cid, IPendingOperation operation, int screen, int startedAtTick) {
+            Cid = cid;
+            Operation = operation;
+            Screen = screen;
+            StartedAtTick = startedAtTick;
+        }
+
+        public JToken Cid { get; }
+        public IPendingOperation Operation { get; }
+        public int Screen { get; }
+        public int StartedAtTick { get; }
+    }
     private readonly object _writeLock = new();
 
     private TcpListener? _listener;
@@ -95,20 +109,26 @@ public sealed class E2eControlService : IDisposable {
 
         try {
             var request = Wire.RequestParser.Parse(cmd, payload);
-            _incoming.Enqueue((cid, request));
+            var screen = payload["screen"]?.Value<int>() ?? 0;
+            _incoming.Enqueue((cid, request, screen));
         } catch (E2eRequestException exception) {
             WriteReply(Reply.Failure(cid, exception.Message));
         }
     }
 
-    public void Tick() {
-        _tick++;
-
-        while (_incoming.TryDequeue(out var entry)) {
-            try {
-                _live.Add((entry.Cid, _createOperation(entry.Request), _tick));
-            } catch (Exception exception) {
-                WriteReply(Reply.Failure(entry.Cid, exception.Message));
+    // In split screen every screen ticks once per game tick, and an operation runs only
+    // during ticks whose screen id matches its target, so game state reads and writes
+    // happen under the right player's context. Screen zero also owns intake and the
+    // clock.
+    public void Tick(int screenId = 0) {
+        if (screenId == 0) {
+            _tick++;
+            while (_incoming.TryDequeue(out var entry)) {
+                try {
+                    _live.Add(new LiveOperation(entry.Cid, _createOperation(entry.Request), entry.Screen, _tick));
+                } catch (Exception exception) {
+                    WriteReply(Reply.Failure(entry.Cid, exception.Message));
+                }
             }
         }
 
@@ -116,18 +136,26 @@ public sealed class E2eControlService : IDisposable {
         // order they were sent.
         var finishedIndexes = new List<int>();
         for (var index = 0; index < _live.Count; index++) {
-            var (cid, operation, startedAt) = _live[index];
+            var live = _live[index];
+            if (live.Screen != screenId) {
+                if (screenId == 0 && _tick - live.StartedAtTick >= OperationDeadlineTicks) {
+                    finishedIndexes.Add(index);
+                    WriteReply(Reply.Failure(live.Cid, "operation timed out"));
+                }
+                continue;
+            }
+
             bool finished;
             object? data = null;
             string? error;
             try {
-                finished = operation.TryComplete(out data, out error);
+                finished = live.Operation.TryComplete(out data, out error);
             } catch (Exception exception) {
                 finished = true;
                 error = exception.Message;
             }
 
-            if (!finished && _tick - startedAt >= OperationDeadlineTicks) {
+            if (!finished && _tick - live.StartedAtTick >= OperationDeadlineTicks) {
                 finished = true;
                 error = "operation timed out";
             }
@@ -137,7 +165,7 @@ public sealed class E2eControlService : IDisposable {
             }
 
             finishedIndexes.Add(index);
-            WriteReply(error is null ? Reply.Success(cid, data) : Reply.Failure(cid, error));
+            WriteReply(error is null ? Reply.Success(live.Cid, data) : Reply.Failure(live.Cid, error));
         }
 
         for (var i = finishedIndexes.Count - 1; i >= 0; i--) {

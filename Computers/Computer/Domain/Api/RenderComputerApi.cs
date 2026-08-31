@@ -14,16 +14,17 @@ public class RenderComputerApi: IComputerApi {
     
     public ISet<Type> ReceivableEvents => new HashSet<Type> { typeof(RenderComputerEvent) };
     public IRedundantLoader? LibraryLoader => null;
-    
+
     private readonly Configuration _configuration;
 
     private readonly RenderComputerState _state;
 
     private readonly TripleFrameBuffer _frames;
     private readonly Texture2D _renderTexture;
-
+    
     public RenderComputerApi(
-        IComputerPort computerPort
+        IComputerPort computerPort,
+        IFrameTap frameTap
     ) {
         _configuration = computerPort.Configuration;
         var pixelCount = _configuration.Render.CanvasWidth * _configuration.Render.CanvasHeight;
@@ -47,8 +48,6 @@ public class RenderComputerApi: IComputerApi {
             font!,
             () => { },
             (commands, background, foreground) => {
-                // Runs on the scheduler worker inside a slice: compose the complete frame
-                // into the produce slot and publish it by reference. No pixel copies cross threads.
                 FrameComposer.Compose(
                     _frames.ProduceSlot,
                     background,
@@ -58,6 +57,12 @@ public class RenderComputerApi: IComputerApi {
                     _configuration.Render.CanvasHeight
                 );
                 _frames.Publish();
+
+                if (!frameTap.WantsFrames(computerPort.Id)) {
+                    return;
+                }
+
+                frameTap.OnFrame(computerPort.Id, commands, background, foreground, _state.RawVersion);
             }
         );
     }
@@ -98,6 +103,8 @@ internal class RenderComputerState {
     private readonly Action _onBegin;
     private readonly Action<List<IRenderCommand>, Color[], Color[]> _onEnd;
 
+    public int RawVersion { get; private set; }
+
     public RenderComputerState(
         Configuration configuration,
         BmFont font,
@@ -117,16 +124,11 @@ internal class RenderComputerState {
     }
 
     public void Begin() {
-        // Only the command list resets per frame. The background/foreground pixel layers are
-        // persistent overlays: scripts clear them explicitly (ClearBackground/ClearForeground),
-        // so SetForeground/SetBackground calls survive across frames and console evals.
         ClearCommands();
         _onBegin();
     }
 
     public void End() {
-        // Runs inside a scheduler slice; _onEnd composes and publishes the frame directly
-        // (no cross-thread copies). Pacing comes from the scheduler's frame gate, not from here.
         _onEnd(_commands, _rawBackground, _rawForeground);
     }
     
@@ -263,7 +265,12 @@ internal class RenderComputerState {
     
     private static readonly int[] DefaultBackgroundColor = { 0, 0, 0, 255 };
 
+    private void MarkRawChanged() {
+        RawVersion++;
+    }
+
     public void ClearBackground(int[]? color = null) {
+        MarkRawChanged();
         var backgroundColor = color ?? DefaultBackgroundColor;
         var fill = new Color(backgroundColor[0], backgroundColor[1], backgroundColor[2], backgroundColor[3]);
         for (var i = 0; i < _rawBackground.Length; i++) {
@@ -272,12 +279,14 @@ internal class RenderComputerState {
     }
     
     public void ClearForeground() {
+        MarkRawChanged();
         for (var i = 0; i < _rawForeground.Length; i++) {
             _rawForeground[i] = Color.Transparent;
         }
     }
     
     public void SetBackground(int x, int y, int[] color) {
+        MarkRawChanged();
         if (x < 0 || x >= _configuration.Render.CanvasWidth || y < 0 || y >= _configuration.Render.CanvasHeight) {
             return;
         }
@@ -287,6 +296,7 @@ internal class RenderComputerState {
     }
 
     public void SetForeground(int x, int y, int[] color) {
+        MarkRawChanged();
         if (x < 0 || x >= _configuration.Render.CanvasWidth || y < 0 || y >= _configuration.Render.CanvasHeight) {
             return;
         }

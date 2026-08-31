@@ -59,4 +59,16 @@ Tile addressed commands take an optional `location` defaulting to the farm.
 | `queryShippingBin` | none | contents of the farm shipping bin |
 | `queryFarmhouse` | none | the main farmhouse door tile, the anchor scenarios place relative to |
 | `saveGame` | none | runs the real end of day save, replies once saved |
+| `queryActiveMenu` | none | the active menu's type name for the target screen, null when nothing is open |
+| `menuKey` | `key` | sends a key press to the open menu, the value is the XNA key code |
+| `menuClick` | `x`, `y`, `button` | clicks the open menu, button left or right |
+| `insertDisk` | `x`, `y` | inserts a fresh disk into the machine at the tile on the target screen's instance |
+| `startSplitScreen` | none | adds the second split screen player in process |
 | `quit` | none | exits the game cleanly |
+
+Tile and menu commands accept an optional `screen` argument, default zero, and run
+under that split screen's context. The harness also drives farmhand joins end to end,
+it activates a free farmhand slot and completes the naming dialog automatically, it
+dismisses every player's end of day shipping summary so day changes complete
+unattended, and it disables the unfocused window frame throttle so background game
+processes run at full speed during multi process scenarios.

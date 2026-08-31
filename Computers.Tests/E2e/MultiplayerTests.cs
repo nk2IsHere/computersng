@@ -12,33 +12,48 @@ public class MultiplayerTests {
         _fixture = fixture;
     }
 
+    private static void WaitFor(Func<bool> condition, TimeSpan deadline, string what) {
+        var until = DateTime.UtcNow + deadline;
+        while (!condition()) {
+            if (DateTime.UtcNow >= until) {
+                throw new TimeoutException(what);
+            }
+            Thread.Sleep(300);
+        }
+    }
+
     [E2eFact]
-    public void FarmhandSeesAndPokesTheHostsComputer() {
+    public void FarmhandOpensTheScreenAndTypesIntoIt() {
         var host = _fixture.Client;
         var (ex, ey) = _fixture.FarmhouseEntry;
         var (x, y) = (ex, ey + 2);
         host.Place("computer", x, y);
+        host.WriteDisk(x, y, "/Startup.js", Programs.KeyRecorder);
+        host.RestartComputer(x, y);
+        host.PollDisk(x, y, "/keys.txt", TimeSpan.FromSeconds(60));
 
         var farmhand = _fixture.LaunchFarmhand();
-
-        var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(180);
-        while (DateTime.UtcNow < deadline) {
-            if (host.Status()["playerCount"]!.Value<int>() >= 2) {
-                break;
+        WaitFor(() => host.Status()["playerCount"]!.Value<int>() >= 2, TimeSpan.FromSeconds(180), "the farmhand never joined");
+        WaitFor(() => {
+            try {
+                return farmhand.Status()["worldReady"]!.Value<bool>();
+            } catch (E2eFailureException) {
+                return false;
             }
-            Thread.Sleep(2000);
-        }
-        Assert.True(host.Status()["playerCount"]!.Value<int>() >= 2, "the farmhand never joined");
+        }, TimeSpan.FromSeconds(120), "the farmhand's world never became ready");
 
-        var hostView = host.QueryObject(x, y);
-        var farmhandView = farmhand.QueryObject(x, y);
-        Assert.Equal(hostView["itemId"]!.Value<string>(), farmhandView["itemId"]!.Value<string>());
+        farmhand.Interact(x, y);
+        WaitFor(() => farmhand.QueryActiveMenu() == "GameWindow", TimeSpan.FromSeconds(30), "the remote screen never opened");
 
-        // The mod has no multiplayer support yet. Mod entities live in the host's save
-        // and are never synced to clients, so a farmhand poking a computer fails with a
-        // missing context entry instead of opening the screen. This assertion pins that
-        // known gap and should flip to a plain success once multiplayer support lands.
-        var missing = Assert.Throws<E2eFailureException>(() => farmhand.Interact(x, y));
-        Assert.Contains("not found", missing.Message);
+        farmhand.MenuKey(65);
+        WaitFor(() => Waits.DiskContains(host, x, y, "/keys.txt", "65,"), TimeSpan.FromSeconds(30), "the farmhand's key never reached the computer");
+
+        farmhand.MenuKey(27);
+        WaitFor(() => farmhand.QueryActiveMenu() is null, TimeSpan.FromSeconds(30), "the remote screen never closed");
+
+        farmhand.Interact(x, y);
+        WaitFor(() => farmhand.QueryActiveMenu() == "GameWindow", TimeSpan.FromSeconds(30), "the remote screen never reopened");
+        farmhand.MenuKey(66);
+        WaitFor(() => Waits.DiskContains(host, x, y, "/keys.txt", "66,"), TimeSpan.FromSeconds(30), "typing after the reopen never landed");
     }
 }

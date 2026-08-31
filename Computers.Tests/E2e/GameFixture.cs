@@ -15,6 +15,7 @@ public sealed class GameFixture : IDisposable {
     private readonly string _savesDir;
     private readonly string _saveName;
     private readonly List<Process> _processes = new();
+    private readonly List<Process> _farmhandProcesses = new();
     private readonly int _hostPort;
     private int _launchCounter;
 
@@ -57,15 +58,41 @@ public sealed class GameFixture : IDisposable {
         FarmhouseEntry = Client.QueryFarmhouse();
     }
 
+    private GameClient? _farmhand;
+
+    // The world has one cabin, so one farmhand slot. Tests share a single farmhand
+    // client, launched on first use and replaced only after KillFarmhands.
     public GameClient LaunchFarmhand() {
+        if (_farmhand is not null) {
+            return _farmhand;
+        }
         var port = FreePort();
         var env = new Dictionary<string, string> {
             ["COMPUTERS_E2E_PORT"] = port.ToString(),
             ["COMPUTERS_E2E_JOIN"] = "localhost"
         };
         Launch("farmhand", env);
+        _farmhandProcesses.Add(_processes[^1]);
         // The farmhand has no world of its own to wait for, joining completes later.
-        return Connect(port, waitForWorld: false);
+        _farmhand = Connect(port, waitForWorld: false);
+        return _farmhand;
+    }
+
+    // Kills every farmhand process without touching the host, for disconnect scenarios.
+    public void KillFarmhands() {
+        foreach (var process in _farmhandProcesses) {
+            try {
+                if (!process.HasExited) {
+                    process.Kill(entireProcessTree: true);
+                    process.WaitForExit(15000);
+                }
+            } catch (Exception) {
+                // A process that is already gone is fine.
+            }
+        }
+        _farmhandProcesses.Clear();
+        _farmhand?.Dispose();
+        _farmhand = null;
     }
 
     private void Launch(string role, Dictionary<string, string> extraEnv) {
@@ -93,7 +120,7 @@ public sealed class GameFixture : IDisposable {
             try {
                 client = new GameClient(port);
             } catch (SocketException) when (DateTime.UtcNow < deadline) {
-                Thread.Sleep(2000);
+                Thread.Sleep(500);
             }
         }
 
@@ -110,7 +137,7 @@ public sealed class GameFixture : IDisposable {
             if (DateTime.UtcNow >= worldDeadline) {
                 throw new TimeoutException($"the world did not come up, last status {status}");
             }
-            Thread.Sleep(2000);
+            Thread.Sleep(500);
         }
     }
 

@@ -100,13 +100,37 @@ public sealed class GameClient : IDisposable {
         Send("saveGame");
     }
 
+    public string? QueryActiveMenu(int screen = 0) {
+        return Send("queryActiveMenu", new { screen })!["menu"]?.Value<string>();
+    }
+
+    public void MenuKey(int key, int screen = 0) {
+        Send("menuKey", new { key, screen });
+    }
+
+    public void MenuClick(int x, int y, string button = "left", int screen = 0) {
+        Send("menuClick", new { x, y, button, screen });
+    }
+
+    public void StartSplitScreen() {
+        Send("startSplitScreen");
+    }
+
+    public void InsertDisk(int x, int y, int screen = 0, string? location = null) {
+        Send("insertDisk", new { x, y, screen, location });
+    }
+
+    public void Interact(int x, int y, int screen, string? location = null) {
+        Send("interact", new { x, y, screen, location });
+    }
+
     public string PollDisk(int x, int y, string path, TimeSpan deadline) {
         var until = DateTime.UtcNow + deadline;
         while (true) {
             try {
                 return ReadDisk(x, y, path);
             } catch (E2eFailureException) when (DateTime.UtcNow < until) {
-                Thread.Sleep(1000);
+                Thread.Sleep(300);
             }
         }
     }

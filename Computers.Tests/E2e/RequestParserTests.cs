@@ -39,6 +39,11 @@ public class RequestParserTests {
         Assert.IsType<StatusRequest>(RequestParser.Parse("status", new JObject()));
         Assert.IsType<QueryShippingBinRequest>(RequestParser.Parse("queryShippingBin", new JObject()));
         Assert.IsType<QueryFarmhouseRequest>(RequestParser.Parse("queryFarmhouse", new JObject()));
+        Assert.IsType<QueryActiveMenuRequest>(RequestParser.Parse("queryActiveMenu", new JObject()));
+        Assert.IsType<StartSplitScreenRequest>(RequestParser.Parse("startSplitScreen", new JObject()));
+        Assert.Equal(27, Assert.IsType<MenuKeyRequest>(RequestParser.Parse("menuKey", JObject.Parse("{\"key\":27}"))).Key);
+        Assert.Equal("right", Assert.IsType<MenuClickRequest>(RequestParser.Parse("menuClick", JObject.Parse("{\"x\":1,\"y\":2,\"button\":\"right\"}"))).Button);
+        Assert.IsType<InsertDiskRequest>(RequestParser.Parse("insertDisk", JObject.Parse("{\"x\":1,\"y\":2}")));
         Assert.IsType<SaveGameRequest>(RequestParser.Parse("saveGame", new JObject()));
         Assert.IsType<QuitRequest>(RequestParser.Parse("quit", new JObject()));
     }

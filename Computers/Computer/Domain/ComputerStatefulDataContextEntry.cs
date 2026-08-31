@@ -45,7 +45,8 @@ public class ComputerStatefulDataContextEntry : IContextEntry.StatefulDataContex
         IRedundantLoader dataLoader,
         NetworkRegistry registry,
         ContextLookup<IRouterPort> routers,
-        ComputerScheduler scheduler
+        ComputerScheduler scheduler,
+        IFrameTap frameTap
     ) : base(factoryId, id) {
         _monitor = monitor;
         Configuration = configuration;
@@ -54,7 +55,7 @@ public class ComputerStatefulDataContextEntry : IContextEntry.StatefulDataContex
         _scheduler = scheduler;
         
         _computerApis = new List<IComputerApi> {
-            new RenderComputerApi(this),
+            new RenderComputerApi(this, frameTap),
             new EventComputerApi(this),
             new SystemComputerApi(this),
             new StorageComputerApi(

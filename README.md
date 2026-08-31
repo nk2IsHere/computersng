@@ -50,6 +50,7 @@ Make processing of Stardew's resources a configurable function pipe-like process
 - [Networking](Docs/Networking.md) - the LAN wire protocol, router firmware and peripheral command tables
 - [Peripherals](Docs/Peripherals.md) - setting up routers and using every peripheral
 - [Testing](Docs/Testing.md) - the unit suite and the e2e harness that drives the real game
+- [Multiplayer](Docs/Multiplayer.md) - what farmhands can do, the player channel and screen casting
 
 ## TODOs
 
@@ -106,7 +107,7 @@ Make processing of Stardew's resources a configurable function pipe-like process
 
 ### Multiplayer
 
-- [ ] Add multiplayer context syncing so farmhands can interact with computers and peripherals, entities stay host authoritative and clients proxy screens and input to the host
+- [x] Add multiplayer context syncing so farmhands can interact with computers and peripherals, entities stay host authoritative and clients proxy screens and input to the host
 
 ### For future
 

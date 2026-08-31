@@ -45,7 +45,10 @@ public class E2eOperations {
     // Vanilla machines the place command accepts. They carry no mod identity, so
     // placement completes as soon as the object exists.
     private static readonly IReadOnlyDictionary<string, string> VanillaItemsByName = new Dictionary<string, string> {
-        ["furnace"] = "13"
+        ["furnace"] = "13",
+        // A computer craftable with no disk inserted, for scenarios about the machine
+        // shell itself. No mod identity is expected, so it completes like vanilla items.
+        ["computerShell"] = ModEntry.ComputerBigCraftableId
     };
 
     private sealed class Operation : IPendingOperation {
@@ -93,6 +96,11 @@ public class E2eOperations {
             WaitTicksRequest wait => WaitTicks(wait.Count),
             QueryShippingBinRequest => Immediate(QueryShippingBin),
             QueryFarmhouseRequest => Immediate(QueryFarmhouse),
+            QueryActiveMenuRequest => Immediate(() => new ActiveMenuResult(Game1.activeClickableMenu?.GetType().Name)),
+            MenuKeyRequest menuKey => Immediate(() => MenuKey(menuKey)),
+            MenuClickRequest menuClick => Immediate(() => MenuClick(menuClick)),
+            StartSplitScreenRequest => StartSplitScreen(),
+            InsertDiskRequest insertDisk => Immediate(() => InsertDisk(insertDisk)),
             SaveGameRequest => SaveGame(),
             QuitRequest => Immediate(Quit),
             _ => throw new E2eRequestException("command is not implemented")
@@ -233,6 +241,45 @@ public class E2eOperations {
         return new Operation(() => (--remaining <= 0, null));
     }
 
+    private static object? MenuKey(MenuKeyRequest request) {
+        if (Game1.activeClickableMenu is null) {
+            throw new E2eRequestException("no menu is open on this screen");
+        }
+        Game1.activeClickableMenu.receiveKeyPress((Microsoft.Xna.Framework.Input.Keys) request.Key);
+        return null;
+    }
+
+    private static object? MenuClick(MenuClickRequest request) {
+        if (Game1.activeClickableMenu is null) {
+            throw new E2eRequestException("no menu is open on this screen");
+        }
+        if (request.Button == "right") {
+            Game1.activeClickableMenu.receiveRightClick(request.X, request.Y);
+        } else {
+            Game1.activeClickableMenu.receiveLeftClick(request.X, request.Y);
+        }
+        return null;
+    }
+
+    private static IPendingOperation StartSplitScreen() {
+        var started = false;
+        return new Operation(() => {
+            if (!started) {
+                started = true;
+                StardewValley.GameRunner.instance.AddGameInstance(Microsoft.Xna.Framework.PlayerIndex.Two);
+                return (false, null);
+            }
+            return (StardewValley.GameRunner.instance.gameInstances.Count >= 2, null);
+        });
+    }
+
+    private static object? InsertDisk(InsertDiskRequest request) {
+        var obj = ObjectAt(request.X, request.Y, request.Location);
+        var disk = ItemRegistry.Create($"(O){ModEntry.DiskItemId}");
+        obj.performObjectDropInAction(disk, false, Game1.player);
+        return null;
+    }
+
     private static object QueryFarmhouse() {
         var entry = Game1.getFarm().GetMainFarmHouseEntry();
         return new FarmhouseResult(entry.X, entry.Y);
@@ -255,6 +302,7 @@ public class E2eOperations {
                 Game1.NewDay(0f);
                 return (false, null);
             }
+
             return (_saved, null);
         });
     }

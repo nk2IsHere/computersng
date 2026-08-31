@@ -109,3 +109,11 @@ network:
 
   # Maximum payload size (UTF-8 bytes) for Network.SendMessage.
   maxPayloadBytes: 65536
+
+multiplayer:
+  # How many game ticks pass between streamed screen frames per viewer.
+  castTicksPerFrame: 6
+  # How many players may view one computer screen at once.
+  maxViewersPerComputer: 4
+  # How many ticks a client waits for a host reply before giving up.
+  callTimeoutTicks: 300

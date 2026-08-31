@@ -63,7 +63,7 @@ public class E2eControlServiceTests : IDisposable {
     private JObject ReadReplyAfterTicks(int maxTicks) {
         var read = Task.Run(() => _reader.ReadLine());
         for (var i = 0; i < maxTicks && !read.IsCompleted; i++) {
-            _service.Tick();
+            _service.Tick(0);
             Thread.Sleep(10);
         }
         Assert.True(read.Wait(TimeSpan.FromSeconds(5)), "no reply arrived");
@@ -95,6 +95,25 @@ public class E2eControlServiceTests : IDisposable {
         var reply = JObject.Parse(read.Result!);
         Assert.False(reply["ok"]!.Value<bool>());
         Assert.Equal("unknown command 'nope'", reply["error"]!.Value<string>());
+    }
+
+    [Fact]
+    public void ScreenTargetedOperationRunsOnlyOnItsScreen() {
+        _writer.WriteLine("{\"cid\":\"s1\",\"cmd\":\"waitTicks\",\"count\":1,\"screen\":1}");
+        var read = Task.Run(() => _reader.ReadLine());
+        for (var i = 0; i < 20 && !read.IsCompleted; i++) {
+            _service.Tick(0);
+            Thread.Sleep(10);
+        }
+        Assert.False(read.IsCompleted);
+
+        for (var i = 0; i < 20 && !read.IsCompleted; i++) {
+            _service.Tick(0);
+            _service.Tick(1);
+            Thread.Sleep(10);
+        }
+        Assert.True(read.Wait(TimeSpan.FromSeconds(5)), "no reply arrived");
+        Assert.True(JObject.Parse(read.Result!)["ok"]!.Value<bool>());
     }
 
     public void Dispose() {

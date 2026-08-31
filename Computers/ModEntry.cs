@@ -886,6 +886,13 @@ public class ModEntry : Mod {
                     initializer.GetSingle<Configuration>(ServiceBaseId / "Configuration")
                 )
             ),
+            // The computer domain publishes frames through this port only. The tap
+            // bridges to the live screen cast once the multiplayer wiring has run.
+            new IContextEntry.ServiceContextEntry(
+                ServiceBaseId / "FrameTap",
+                typeof(IFrameTap),
+                _ => new Multiplayer.ScreenCastFrameTap(CastSink)
+            ),
             new IContextEntry.ServiceContextEntry(
                 ServiceBaseId / "SchedulerPulseDispatcher",
                 typeof(IEventHandler),
@@ -961,7 +968,8 @@ public class ModEntry : Mod {
                     initializer.GetSingle<IRedundantLoader>(ServiceBaseId / "DataLoader"),
                     initializer.GetSingle<NetworkRegistry>(ServiceBaseId / "NetworkRegistry"),
                     initializer.Lookup<IRouterPort>(),
-                    initializer.GetSingle<ComputerScheduler>(ServiceBaseId / "ComputerScheduler")
+                    initializer.GetSingle<ComputerScheduler>(ServiceBaseId / "ComputerScheduler"),
+                    initializer.GetSingle<IFrameTap>(ServiceBaseId / "FrameTap")
                 )
             ),
             new IContextEntry.ServiceContextEntry(
@@ -1204,25 +1212,194 @@ public class ModEntry : Mod {
         );
 
         var eventBus = _context.GetSingle<IEventBus>(ServiceBaseId / "EventBus");
-        
+
+        static bool IsMainScreen() {
+            return StardewModdingAPI.Context.ScreenId == 0;
+        }
+
         helper.Events.Content.AssetRequested += (_, e) => eventBus.Publish(new AssetRequestedEvent(e));
-        
-        helper.Events.GameLoop.GameLaunched += (_, e) => eventBus.Publish(new GameLaunchedEvent(e));
-        helper.Events.GameLoop.UpdateTicked += (_, e) => eventBus.Publish(new UpdateTickedEvent(e));
+
+        helper.Events.GameLoop.GameLaunched += (_, e) => {
+            if (IsMainScreen()) eventBus.Publish(new GameLaunchedEvent(e));
+        };
+        helper.Events.GameLoop.UpdateTicked += (_, e) => {
+            if (IsMainScreen()) eventBus.Publish(new UpdateTickedEvent(e));
+        };
         helper.Events.GameLoop.ReturnedToTitle += (_, e) => {
+            if (!IsMainScreen()) return;
             _context.GetSingle<NetworkRegistry>(ServiceBaseId / "NetworkRegistry").Clear();
             eventBus.Publish(new ReturnedToTitleEvent(e));
         };
-        
-        helper.Events.Input.ButtonPressed += (_, e) => eventBus.Publish(new ButtonPressedEvent(e));
-        helper.Events.Input.ButtonReleased += (_, e) => eventBus.Publish(new ButtonReleasedEvent(e));
-        
-        helper.Events.World.ObjectListChanged += (_, e) => HandleObjectListChanged(e);
-        helper.Events.GameLoop.SaveCreating += (_, _) => HandleSave();
-        helper.Events.GameLoop.Saving += (_, _) => HandleSave();
-        helper.Events.GameLoop.SaveLoaded += (_, e) => HandleLoad(e);
 
+        helper.Events.Input.ButtonPressed += (_, e) => {
+            if (IsMainScreen()) eventBus.Publish(new ButtonPressedEvent(e));
+        };
+        helper.Events.Input.ButtonReleased += (_, e) => {
+            if (IsMainScreen()) eventBus.Publish(new ButtonReleasedEvent(e));
+        };
+
+        helper.Events.World.ObjectListChanged += (_, e) => {
+            if (IsMainScreen()) HandleObjectListChanged(e);
+        };
+        helper.Events.GameLoop.SaveCreating += (_, _) => {
+            if (IsMainScreen()) HandleSave();
+        };
+        helper.Events.GameLoop.Saving += (_, _) => {
+            if (IsMainScreen()) HandleSave();
+        };
+        helper.Events.GameLoop.SaveLoaded += (_, e) => {
+            if (IsMainScreen()) HandleLoad(e);
+        };
+
+        RegisterMultiplayer(helper);
         RegisterDevAutoload(helper);
+    }
+
+    private static SmapiPlayerTransport? _playerTransport;
+    private static Multiplayer.Domain.HostChannel? _hostChannel;
+    private static Multiplayer.Domain.ScreenCast? _screenCast;
+    private static StardewModdingAPI.Utilities.PerScreen<Multiplayer.Domain.ClientChannel>? _clientChannels;
+
+    private static Multiplayer.IScreenCastSink CastSink =>
+        (Multiplayer.IScreenCastSink?) _screenCast ?? new Multiplayer.NullScreenCastSink();
+
+    private static Multiplayer.Domain.ClientChannel? CurrentClientChannel => 
+        _clientChannels?.Value;
+
+    private void RegisterMultiplayer(IModHelper helper) {
+        var monitor = _context.GetSingle<IMonitor>(ServiceBaseId / "Monitor");
+        var configuration = _context.GetSingle<Configuration>(ServiceBaseId / "Configuration");
+
+        _playerTransport = new SmapiPlayerTransport(helper, ModManifest);
+        _hostChannel = new Multiplayer.Domain.HostChannel(_playerTransport, message => monitor.Log(message));
+        _screenCast = new Multiplayer.Domain.ScreenCast(
+            _hostChannel,
+            configuration.Multiplayer.CastTicksPerFrame,
+            configuration.Multiplayer.MaxViewersPerComputer,
+            message => monitor.Log(message)
+        );
+        _clientChannels = new StardewModdingAPI.Utilities.PerScreen<Multiplayer.Domain.ClientChannel>(
+            () => new Multiplayer.Domain.ClientChannel(
+                _playerTransport,
+                configuration.Multiplayer.CallTimeoutTicks,
+                message => monitor.Log(message)
+            )
+        );
+        RegisterChannelHandlers();
+
+        helper.Events.GameLoop.UpdateTicked += (_, _) => {
+            _playerTransport.NoteLocalPlayer();
+            if (_playerTransport.IsHost) {
+                _hostChannel.Tick();
+                _screenCast.Tick();
+                TryStampPendingComputers();
+            }
+            else {
+                _clientChannels.Value.Tick();
+            }
+        };
+
+        helper.Events.Multiplayer.PeerDisconnected += (_, e) => {
+            if (StardewModdingAPI.Context.ScreenId == 0) {
+                _screenCast.DropPlayer(e.Peer.PlayerID);
+            }
+        };
+    }
+
+    private void RegisterChannelHandlers() {
+        var configuration = _context.GetSingle<Configuration>(ServiceBaseId / "Configuration");
+
+        _hostChannel!.Register("openScreen", (playerId, request) => {
+            var open = (Multiplayer.Domain.Wire.OpenScreenRequest) request;
+            var obj = ChannelObjectAt(open.X, open.Y, open.Location);
+            var heldModData = obj.HeldObjectModData();
+            if (heldModData is null || !heldModData.TryGetValue("ComputerId", out var computerId)) {
+                throw new Multiplayer.Domain.Wire.ChannelRequestException("no computer at that tile");
+            }
+            return _screenCast!.Subscribe(computerId, playerId, configuration.Render.CanvasWidth, configuration.Render.CanvasHeight);
+        });
+
+        _hostChannel.Register("closeScreen", (playerId, request) => {
+            _screenCast!.Unsubscribe(((Multiplayer.Domain.Wire.CloseScreenRequest) request).ComputerId, playerId);
+            return null;
+        });
+
+        _hostChannel.Register("screenInput", (_, request) => {
+            var input = (Computers.Multiplayer.Domain.Wire.ScreenInputRequest) request;
+            if (!_context.TryGetSingle<IComputerPort>(input.ComputerId.AsId(), out var computer)) {
+                return null;
+            }
+            switch (input.Kind) {
+                case "key":
+                    computer.Fire(new KeyPressedEvent(computer.Id, (Microsoft.Xna.Framework.Input.Keys) input.A));
+                    break;
+                case "leftClick":
+                    computer.Fire(new MouseLeftClickedEvent(computer.Id, input.A, input.B));
+                    break;
+                case "rightClick":
+                    computer.Fire(new MouseRightClickedEvent(computer.Id, input.A, input.B));
+                    break;
+                case "wheel":
+                    computer.Fire(new MouseWheelEvent(computer.Id, input.A));
+                    break;
+            }
+            return null;
+        });
+
+        _hostChannel.Register("initializeComputer", (_, request) => {
+            var init = (Multiplayer.Domain.Wire.InitializeComputerRequest) request;
+            PendingComputerStamps.Add(new PendingStamp(init.X, init.Y, init.Location) { TicksLeft = 600 });
+            TryStampPendingComputers();
+            return null;
+        });
+    }
+
+    private static Object ChannelObjectAt(int x, int y, string locationName) {
+        var location = Game1.getLocationFromName(locationName)
+            ?? throw new Multiplayer.Domain.Wire.ChannelRequestException($"location '{locationName}' not found");
+        return !location.objects.TryGetValue(new Vector2(x, y), out var obj)
+            ? throw new Multiplayer.Domain.Wire.ChannelRequestException("no object at that tile") 
+            : obj;
+    }
+
+    private sealed record PendingStamp(int X, int Y, string Location) {
+        public int TicksLeft { get; set; }
+    }
+
+    private static readonly List<PendingStamp> PendingComputerStamps = new();
+
+    private static void TryStampPendingComputers() {
+        for (var index = PendingComputerStamps.Count - 1; index >= 0; index--) {
+            var pending = PendingComputerStamps[index];
+            if (--pending.TicksLeft <= 0) {
+                PendingComputerStamps.RemoveAt(index);
+                continue;
+            }
+
+            var location = Game1.getLocationFromName(pending.Location);
+            if (location is null || !location.objects.TryGetValue(new Vector2(pending.X, pending.Y), out var obj)) {
+                continue;
+            }
+
+            var held = obj.heldObject.Value;
+            if (held is null) {
+                continue;
+            }
+
+            if (!held.modData.ContainsKey("ComputerId")) {
+                var computer = _context.ProduceSingle<ComputerStatefulDataContextEntry>(ServiceBaseId / "ComputerFactory");
+                held.modData["ComputerId"] = computer.Id;
+                computer.Start();
+                _context.GetSingle<NetworkRegistry>(ServiceBaseId / "NetworkRegistry").Register(new Placement(
+                    computer.Id,
+                    NodeRole.Endpoint,
+                    location.NameOrUniqueName,
+                    pending.X,
+                    pending.Y
+                ));
+            }
+            PendingComputerStamps.RemoveAt(index);
+        }
     }
 
     private void RegisterDevAutoload(IModHelper helper) {
@@ -1255,8 +1432,6 @@ public class ModEntry : Mod {
             }
 
             Monitor.Log($"Dev autoload: loading save '{saveFolder}'.", LogLevel.Info);
-            // Mirror LoadGameMenu.SaveFileSlot.Activate: start the load, then close the title menu -
-            // leaving TitleMenu active resets the game back to the title screen after the load.
             SaveGame.Load(saveFolder);
             Game1.exitActiveMenu();
         };
@@ -1267,6 +1442,11 @@ public class ModEntry : Mod {
         GameLocation location,
         Farmer player
     ) {
+        if (!Game1.IsMasterGame || StardewModdingAPI.Context.ScreenId != 0) {
+            OpenRemoteScreen(machine, location);
+            return true;
+        }
+
         var monitor = _context.GetSingle<IMonitor>(ServiceBaseId / "Monitor");
         monitor.Log($"Interacted with computer machine. Machine: {machine}, Location: {location}, Player: {player}, Held Object: {machine.heldObject}");
 
@@ -1274,8 +1454,6 @@ public class ModEntry : Mod {
         if (modData == null) {
             monitor.Log("Computer does not have a held object - cannot infer script.");
             Game1.showGlobalMessage("Computer has no disk inserted.");
-            // Return true so the game treats the click as handled; returning false makes the
-            // held action button retry next tick, showing the toast twice.
             return true;
         }
 
@@ -1308,6 +1486,15 @@ public class ModEntry : Mod {
         var outputItem = inputItem.getOne();
         
         if (probe) {
+            return outputItem;
+        }
+
+        if (!Game1.IsMasterGame || StardewModdingAPI.Context.ScreenId != 0) {
+            CurrentClientChannel?.Send("initializeComputer", new {
+                x = (int) machine.TileLocation.X,
+                y = (int) machine.TileLocation.Y,
+                location = machine.Location.NameOrUniqueName
+            });
             return outputItem;
         }
 
@@ -1357,9 +1544,13 @@ public class ModEntry : Mod {
         var routerId = modData["RouterId"].AsId();
         monitor.Log($"Router has id: {routerId}");
 
-        // Show router id and channel in a message box
-        var routerPort = _context.GetSingle<IRouterPort>(routerId);
-        Game1.showGlobalMessage($"Router Id: {routerId.Last}, Channel: {routerPort.Channel?.ToString() ?? "none"}");
+        // The router entity only exists on the host, other instances show the id alone.
+        if (_context.TryGetSingle<IRouterPort>(routerId, out var routerPort)) {
+            Game1.showGlobalMessage($"Router Id: {routerId.Last}, Channel: {routerPort.Channel?.ToString() ?? "none"}");
+        }
+        else {
+            Game1.showGlobalMessage($"Router Id: {routerId.Last}");
+        }
         return true;
     }
 
@@ -1458,10 +1649,6 @@ public class ModEntry : Mod {
     }
 
     private static void HandleObjectListChanged(ObjectListChangedEventArgs args) {
-        // Entities are host authoritative and their state lives in the host's save. A
-        // farmhand client also sees synced world changes, and running the entity
-        // management there would produce client side entities and write their ids into
-        // the net synced modData, clobbering the host's identities.
         if (!Game1.IsMasterGame) {
             return;
         }
@@ -1627,7 +1814,10 @@ public class ModEntry : Mod {
         }
         
         monitor.Log($"Computer with id {computerId} was removed.");
-        
+
+        // Anyone still viewing this screen remotely gets told it closed.
+        _screenCast?.DropComputer(computerId);
+
         // Stop computer
         if (_context.TryGetSingle<IComputerPort>(computerId, out var computerState)) {
             computerState.Fire(new StopComputerEvent(computerState.Id));
@@ -1644,6 +1834,33 @@ public class ModEntry : Mod {
         );
     }
     
+    private static void OpenRemoteScreen(Object machine, GameLocation location) {
+        var monitor = _context.GetSingle<IMonitor>(ServiceBaseId / "Monitor");
+        monitor.Log($"Remote screen open requested on screen {StardewModdingAPI.Context.ScreenId}, master game {Game1.IsMasterGame}.");
+        var channel = CurrentClientChannel;
+        if (channel is null) {
+            return;
+        }
+        var configuration = _context.GetSingle<Configuration>(ServiceBaseId / "Configuration");
+        var assetLoader = _context.GetSingle<IRedundantLoader>(ServiceBaseId / "AssetsLoader");
+        channel.Call(
+            "openScreen",
+            new {
+                x = (int) machine.TileLocation.X,
+                y = (int) machine.TileLocation.Y,
+                location = location.NameOrUniqueName
+            },
+            data => {
+                monitor.Log($"Remote screen opening on screen {StardewModdingAPI.Context.ScreenId}.");
+                RemoteScreen.Open(channel, data!["computerId"]!.ToObject<string>()!, configuration, assetLoader);
+            },
+            error => {
+                monitor.Log($"Remote screen open failed. {error}");
+                Game1.showGlobalMessage(error);
+            }
+        );
+    }
+
     private static void DrawScreen(IComputerPort computerPort) {
         var monitor = _context.GetSingle<IMonitor>(ServiceBaseId / "Monitor");
         var configuration = _context.GetSingle<Configuration>(ServiceBaseId / "Configuration");

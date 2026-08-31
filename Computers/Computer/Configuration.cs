@@ -19,6 +19,16 @@ public class Configuration {
     public MachineControllerConfiguration MachineController { get; set; } = new();
 
     public PlayerSensorConfiguration PlayerSensor { get; set; } = new();
+
+    public MultiplayerConfiguration Multiplayer { get; set; } = new();
+}
+
+public class MultiplayerConfiguration {
+    public int CastTicksPerFrame { get; set; } = 6;
+
+    public int MaxViewersPerComputer { get; set; } = 4;
+
+    public int CallTimeoutTicks { get; set; } = 300;
 }
 
 public class PeripheralConfiguration {

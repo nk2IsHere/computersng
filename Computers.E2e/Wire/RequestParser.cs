@@ -17,6 +17,11 @@ public static class RequestParser {
             "waitTicks" => new WaitTicksRequest(RequirePositiveInt(payload, "count")),
             "queryShippingBin" => new QueryShippingBinRequest(),
             "queryFarmhouse" => new QueryFarmhouseRequest(),
+            "queryActiveMenu" => new QueryActiveMenuRequest(),
+            "menuKey" => new MenuKeyRequest(RequireInt(payload, "key")),
+            "menuClick" => new MenuClickRequest(RequireInt(payload, "x"), RequireInt(payload, "y"), RequireString(payload, "button")),
+            "startSplitScreen" => new StartSplitScreenRequest(),
+            "insertDisk" => new InsertDiskRequest(RequireInt(payload, "x"), RequireInt(payload, "y"), ReadLocation(payload)),
             "saveGame" => new SaveGameRequest(),
             "quit" => new QuitRequest(),
             _ => throw new E2eRequestException($"unknown command '{cmd}'")
